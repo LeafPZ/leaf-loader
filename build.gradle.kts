@@ -219,6 +219,7 @@ val generateBuildInfo = tasks.register("generateBuildInfo") {
             package dev.aoqia.leaf.loader.impl.util;
             
             public final class BuildInfo {
+                public static final String MOD_ID = "leaf-${rootProject.name}";
                 public static final String VERSION = "$baseVersion";
                 private BuildInfo() {}
             }

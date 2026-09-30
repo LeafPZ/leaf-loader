@@ -11,3 +11,93 @@ ij_groovy_imports_layout = java.**,|,javax.**,|,*,|,net.fabricmc.**,|,dev.aoqia.
 [java]
 max_line_length = 120
 ij_java_layout_static_imports_separately = true
+
+# see https://github.com/CppCXY/EmmyLuaCodeStyle
+[*.lua]
+
+# Basic options
+
+indent_style = space
+indent_size = 4
+tab_width = 4
+quote_style = double
+call_arg_parentheses = always
+continuation_indent = 4
+max_line_length = 100
+end_of_line = lf
+trailing_table_separator = smart
+detect_end_of_line = false
+insert_final_newline = true
+
+table_separator_style = comma
+
+# Whitespace options
+
+space_around_table_field_list = true
+space_before_attribute = true
+space_before_function_open_parenthesis = false
+space_before_function_call_open_parenthesis = false
+space_before_closure_open_parenthesis = false
+space_before_function_call_single_arg = true
+space_before_open_square_bracket = false
+space_inside_function_call_parentheses = false
+space_inside_function_param_list_parentheses = false
+space_inside_square_brackets = false
+space_around_table_append_operator = false
+ignore_spaces_inside_function_call = false
+space_before_inline_comment = 1
+
+space_around_math_operator = true
+space_after_comma = true
+space_after_comma_in_for_statement = true
+space_around_concat_operator = true
+
+space_after_comment_dash = true
+space_around_logical_operator = true
+space_around_assign_operator = true
+
+# Alignment options
+
+align_call_args = false
+align_function_params = false
+align_continuous_assign_statement = false
+align_continuous_rect_table_field = true
+align_continuous_line_space = 4
+align_if_branch = true
+align_array_table = true
+align_continuous_similar_call_args = false
+align_continuous_inline_comment = true
+align_chain_expr = false
+
+# Other indentation settings
+
+never_indent_before_if_condition = true
+never_indent_comment_on_if_branch = false
+# keep_indents_on_empty_lines = false
+# allow_non_indented_comments = false
+
+# Line layout
+
+line_space_after_if_statement = max(2)
+line_space_after_do_statement = max(2)
+line_space_after_while_statement = max(2)
+line_space_after_repeat_statement = max(2)
+line_space_after_for_statement = max(2)
+line_space_after_local_or_assign_statement = max(2)
+line_space_after_function_statement = fixed(2)
+line_space_after_expression_statement = max(2)
+line_space_after_comment = max(2)
+# line_space_around_block = max(2)
+
+# Line breaks
+
+break_all_list_when_line_exceed = true
+auto_collapse_lines = true
+# break_before_braces = false
+
+# Preferences
+
+ignore_space_after_colon = false
+remove_call_expression_list_finish_comma = false
+end_statement_with_semicolon = same_line
+

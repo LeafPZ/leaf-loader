@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "id": "leafloader",
+  "id": "leaf-loader",
   "name": "Leaf Loader",
   "version": "${version}",
   "environment": "*",

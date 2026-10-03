@@ -722,12 +722,15 @@ public final class LeafLoaderImpl extends LeafLoader {
             }
         }
 
-        // Check the lunch args for cachedir
-        Arguments args = getGameProvider().getArguments();
-        if (args.containsKey("cachedir")) {
-            String cachedir = args.get("cachedir");
-            if (cachedir != null) {
-                return Paths.get(cachedir);
+        // Check the launch args for cachedir
+        GameProvider provider = tryGetGameProvider();
+        if (provider != null) {
+            Arguments args = provider.getArguments();
+            if (args.containsKey("cachedir")) {
+                String cachedir = args.get("cachedir");
+                if (cachedir != null) {
+                    return Paths.get(cachedir);
+                }
             }
         }
 

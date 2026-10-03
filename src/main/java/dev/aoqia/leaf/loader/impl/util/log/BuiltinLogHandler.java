@@ -31,7 +31,7 @@ import dev.aoqia.leaf.loader.impl.util.LoaderUtil;
 import dev.aoqia.leaf.loader.impl.util.SystemProperties;
 
 /**
- * Default LogHandler until Log is initialized.
+ * Default LogHandler until Log is initialised.
  *
  * <p>The log handler has the following properties:
  * - log to stdout for anything but LogLevel.ERROR
@@ -78,7 +78,8 @@ final class BuiltinLogHandler extends ConsoleLogHandler {
 		if (enableOutput) return;
 
 		if (buffer != null) {
-			for (int i = 0; i < buffer.size(); i++) { // index based loop to tolerate replay producing log output by itself
+            //noinspection ForLoopReplaceableByForEach
+            for (int i = 0; i < buffer.size(); i++) { // index based loop to tolerate replay producing log output by itself
 				ReplayEntry entry = buffer.get(i);
 				super.log(entry.time, entry.level, entry.category, entry.msg, entry.exc, true, true);
 			}
@@ -118,13 +119,14 @@ final class BuiltinLogHandler extends ConsoleLogHandler {
 		configured = true;
 	}
 
-	synchronized void finishConfig() {
+    synchronized void finishConfig() {
 		if (!configured) configure(false, true);
 	}
 
 	synchronized boolean replay(LogHandler target) {
 		if (buffer == null || buffer.isEmpty()) return false;
 
+        //noinspection ForLoopReplaceableByForEach
 		for (int i = 0; i < buffer.size(); i++) { // index based loop to tolerate replay producing log output by itself
 			ReplayEntry entry = buffer.get(i);
 			target.log(entry.time, entry.level, entry.category, entry.msg, entry.exc, true, !enableOutput);
@@ -157,11 +159,14 @@ final class BuiltinLogHandler extends ConsoleLogHandler {
 		@Override
 		public void run() {
 			synchronized (BuiltinLogHandler.this) {
-				if (buffer == null || buffer.isEmpty()) return;
+				if (buffer == null || buffer.isEmpty()) {
+                    return;
+                }
 
 				if (!enableOutput) {
 					enableOutput = true;
 
+                    //noinspection ForLoopReplaceableByForEach
 					for (int i = 0; i < buffer.size(); i++) { // index based loop to tolerate replay producing log output by itself
 						ReplayEntry entry = buffer.get(i);
 						BuiltinLogHandler.super.log(entry.time, entry.level, entry.category, entry.msg, entry.exc, true, true);
@@ -173,20 +178,23 @@ final class BuiltinLogHandler extends ConsoleLogHandler {
                             ((LeafLoaderImpl) LeafLoader.getInstance()).getCacheDir().toString())))
 						.resolve(DEFAULT_LOG_FILE)
 						.toString());
-				if (fileName.isEmpty()) return;
+				if (fileName.isEmpty()) {
+                    return;
+                }
 
 				try {
 					Path file = LoaderUtil.normalizePath(Paths.get(fileName));
 					Files.createDirectories(file.getParent());
 
-					try (Writer writer = Files.newBufferedWriter(file, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE)) {
+                    try (Writer writer = Files.newBufferedWriter(file, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE)) {
+                        //noinspection ForLoopReplaceableByForEach
 						for (int i = 0; i < buffer.size(); i++) { // index based loop to tolerate replay producing log output by itself
 							ReplayEntry entry = buffer.get(i);
 							writer.write(formatLog(entry.time, entry.level, entry.category, entry.msg, entry.exc));
 						}
 					}
 				} catch (IOException e) {
-					System.err.printf("Error saving log: %s", e);
+					originalErr.printf("Error saving log: %s", e);
 				}
 			}
 		}

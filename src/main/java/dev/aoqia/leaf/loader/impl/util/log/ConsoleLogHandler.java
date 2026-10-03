@@ -26,8 +26,8 @@ public class ConsoleLogHandler implements LogHandler {
 	private static final LogLevel MIN_STDERR_LEVEL = LogLevel.ERROR;
 	private static final LogLevel MIN_STDOUT_LEVEL = LogLevel.getDefault();
 
-    private final PrintStream originalOut = new PrintStream(new FileOutputStream(FileDescriptor.out));
-    private final PrintStream originalErr = new PrintStream(new FileOutputStream(FileDescriptor.err));
+    public static final PrintStream originalOut = new PrintStream(new FileOutputStream(FileDescriptor.out));
+    public static final PrintStream originalErr = new PrintStream(new FileOutputStream(FileDescriptor.err));
 
 	@Override
 	public void log(long time, LogLevel level, LogCategory category, String msg, Throwable exc, boolean fromReplay, boolean wasSuppressed) {

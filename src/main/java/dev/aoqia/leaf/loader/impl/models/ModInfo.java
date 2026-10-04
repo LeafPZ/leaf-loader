@@ -18,22 +18,22 @@ public class ModInfo {
             return null;
         }
 
-        ModInfo inst = new ModInfo();
+        ModInfo info = new ModInfo();
 
         try (BufferedReader br = Files.newBufferedReader(modInfo)) {
             String line;
             while ((line = br.readLine()) != null) {
                 if (line.startsWith("name=")) {
-                    inst.name = line.replace("name=", "");
+                    info.name = line.replace("name=", "");
                 } else if (line.startsWith("id=")) {
-                    inst.id = line.replace("id=", "");
+                    info.id = line.replace("id=", "");
                 }
             }
         } catch (IOException e) {
             throw new FormattedException("Failed to parse mod.info for mod at path: %s", modInfo.toString());
         }
 
-        return inst;
+        return info;
     }
 
     public String getName() {

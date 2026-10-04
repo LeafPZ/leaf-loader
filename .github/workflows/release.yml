@@ -78,3 +78,6 @@ jobs:
           files: |
             build/libs/!(*-SNAPSHOT|*-sources|*-javadoc)*.jar*
           body: ${{ steps.cliff.outputs.content }}
+      - name: Copy installer manifest
+        if: needs.pre.outputs.is_full_release == 'true'
+        uses: ./.github/workflows/installerjson.yml

@@ -105,7 +105,7 @@ dependencies {
     "installer"(libs.bundles.asm)
     "installer"(libs.mixin)
     "installer"(libs.apache.commons.codec)
-    "installer"(libs.flatlaf)
+//    "installer"(libs.flatlaf)
 
     // JIJ dependencies in the fat jar
     "development"(libs.mixinextras)

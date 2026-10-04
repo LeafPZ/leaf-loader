@@ -59,13 +59,10 @@ import javax.swing.JTree;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.ToolTipManager;
-import javax.swing.UIManager;
 import javax.swing.WindowConstants;
 import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreeNode;
-
-import com.formdev.flatlaf.themes.FlatMacDarkLaf;
 
 import dev.aoqia.leaf.loader.impl.gui.LeafStatusTree.LeafBasicButtonType;
 import dev.aoqia.leaf.loader.impl.gui.LeafStatusTree.LeafStatusButton;
@@ -86,7 +83,6 @@ class LeafMainWindow {
 		System.setProperty("apple.awt.application.appearance", "system");
 		System.setProperty("apple.awt.application.name", tree.title);
 
-		FlatMacDarkLaf.setup();
 		open0(tree, shouldWait);
 	}
 

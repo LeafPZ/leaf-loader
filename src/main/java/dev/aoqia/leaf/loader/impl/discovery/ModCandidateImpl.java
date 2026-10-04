@@ -68,7 +68,7 @@ public final class ModCandidateImpl implements DomainObject.Mod {
 	private int minNestLevel;
 	private SoftReference<ByteBuffer> dataRef;
     private final ModSource source;
-    private ModInfo modInfo = null;
+    private @Nullable ModInfo modInfo = null;
 
 	static ModCandidateImpl createBuiltin(BuiltinMod mod, VersionOverrides versionOverrides, DependencyOverrides depOverrides) {
 		LoaderModMetadata metadata = new BuiltinMetadataWrapper(mod.metadata);
@@ -170,9 +170,9 @@ public final class ModCandidateImpl implements DomainObject.Mod {
         return getPaths().get(0).getParent().getParent().getParent();
     }
 
-    public String getGameId() {
-        if (source == ModSource.WORKSHOP) {
-            return getModInfo().getId();
+    public @Nullable String getGameId() {
+        if (modInfo != null) {
+            return modInfo.getId();
         }
 
         return getRootModFolder().getParent().getFileName().toString();
@@ -457,7 +457,7 @@ public final class ModCandidateImpl implements DomainObject.Mod {
 		return ret;
 	}
 
-    public ModInfo getModInfo() {
+    public @Nullable ModInfo getModInfo() {
         return modInfo;
     }
 

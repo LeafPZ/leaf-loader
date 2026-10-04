@@ -1,6 +1,8 @@
 name: Copy Installer Json
 
-on: workflow_dispatch
+on:
+  workflow_call:
+  workflow_dispatch:
 
 jobs:
   copyinstallerjson:

@@ -127,7 +127,8 @@ public final class ModCandidateImpl implements DomainObject.Mod {
         this.source = source;
 
         if (source == ModSource.WORKSHOP) {
-            this.modInfo = ModInfo.parse(getRootModFolder().resolve("mod.info"));
+            // TODO(leaf): mod.info can exist in any version folder
+            this.modInfo = ModInfo.parse(getActiveVersionFolder().resolve("mod.info"));
         }
 	}
 
@@ -166,7 +167,7 @@ public final class ModCandidateImpl implements DomainObject.Mod {
 		return metadata;
 	}
 
-    public Path getRootModFolder() {
+    public Path getActiveVersionFolder() {
         return getPaths().get(0).getParent().getParent().getParent();
     }
 
@@ -175,7 +176,7 @@ public final class ModCandidateImpl implements DomainObject.Mod {
             return modInfo.getId();
         }
 
-        return getRootModFolder().getParent().getFileName().toString();
+        return getActiveVersionFolder().getParent().getFileName().toString();
     }
 
     public @Nullable String getJarHash() {
@@ -195,7 +196,7 @@ public final class ModCandidateImpl implements DomainObject.Mod {
             return null;
         }
 
-        return getRootModFolder().getParent().getParent().getParent().getFileName().toString();
+        return getActiveVersionFolder().getParent().getParent().getParent().getFileName().toString();
     }
 
     public ModSource getSource() {

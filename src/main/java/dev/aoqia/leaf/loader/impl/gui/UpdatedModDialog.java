@@ -1,22 +1,31 @@
 package dev.aoqia.leaf.loader.impl.gui;
 
-import javax.swing.*;
+import javax.swing.JOptionPane;
 
 import dev.aoqia.leaf.loader.impl.discovery.ModCandidateImpl;
+import dev.aoqia.leaf.loader.impl.discovery.ModSource;
 
 public class UpdatedModDialog {
     public static boolean show(ModCandidateImpl mod) {
-        int result = JOptionPane.showConfirmDialog(
-            null,
-            "A leaf Java mod was discovered that has been modified since it was last verified."
-                + "\nDo you want to load the mod?"
-                + "\nIf you do not recognise or trust this mod, you should click no."
-                + "\n"
-                + "\nWorkshop ID: " + mod.getWorkshopId()
-                + "\nGame Mod ID: " + mod.getGameId()
-                + "\nLeaf Mod ID: " + mod.getId(),
-            "Mod Verification",
-            JOptionPane.YES_NO_OPTION,
+        ModSource source = mod.getSource();
+
+        String s = "A leaf mod was discovered that has been modified since you last verified it."
+            + "\nDo you want to load the mod?"
+            + "\nIf you do not recognise or trust this mod, you should click no."
+            + "\n\nDiscovery source: " + source;
+
+        if (source == ModSource.WORKSHOP || source == ModSource.UNKNOWN) {
+            s += "\nWorkshop ID: " + mod.getWorkshopId();
+        }
+
+        s += "\nGame Mod ID" + (mod.getModInfo() == null ? " (?)" : "") + ": " + mod.getGameId();
+        s += "\nLeaf Mod ID: " + mod.getId();
+
+        if (source == ModSource.UNKNOWN) {
+            s += "\n\nJAR path: " + mod.getLocalPath();
+        }
+
+        int result = JOptionPane.showConfirmDialog(null, s, "Mod Verification", JOptionPane.YES_NO_OPTION,
             JOptionPane.WARNING_MESSAGE
         );
 

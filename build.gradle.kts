@@ -155,10 +155,20 @@ tasks.compileJava {
 tasks.processResources {
     dependsOn(copyJson)
 
-    inputs.property("version", project.version)
+    inputs.properties(
+        mapOf(
+            "id" to project.name,
+            "version" to project.version,
+        )
+    )
 
     filesMatching("leaf.mod.json") {
-        expand("version" to inputs.properties["version"].toString().replace(".local", ""))
+        expand(
+            mapOf(
+                "id" to inputs.properties["name"].toString(),
+                "version" to inputs.properties["version"].toString().replace(".local", ""),
+            )
+        )
     }
 }
 
@@ -420,9 +430,11 @@ val checkVersion = tasks.register("checkVersion") {
         }
 
         val xml = try {
-            URI.create("https://maven.aoqia.dev/${if (isSnapshot) "snapshots" else "releases"}/${
-                rootProject.group.toString().replace(".", "/")
-            }/${rootProject.name}/maven-metadata.xml").toURL().readText()
+            URI.create(
+                "https://maven.aoqia.dev/${if (isSnapshot) "snapshots" else "releases"}/${
+                    rootProject.group.toString().replace(".", "/")
+                }/${rootProject.name}/maven-metadata.xml"
+            ).toURL().readText()
         } catch (_: FileNotFoundException) {
             null
         }

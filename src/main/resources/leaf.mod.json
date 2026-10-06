@@ -1,15 +1,15 @@
 {
   "schemaVersion": 1,
-  "id": "leaf-loader",
+  "id": "${id}",
   "name": "Leaf Loader",
   "version": "${version}",
   "environment": "*",
-  "description": "The base mod loader.",
+  "description": "The mod loader for Leaf",
   "contact": {
     "sources": "https://github.com/LeafPZ/leaf-loader"
   },
   "license": "Apache-2.0",
-  "icon": "assets/leafloader/icon.png",
+  "icon": "assets/${id}/icon.png",
   "authors": [
     "FabricMC", "aoqia"
   ]

@@ -28,7 +28,7 @@ import dev.aoqia.leaf.loader.api.LeafLoader;
  * @see LeafLoader#getEntrypointContainers(String, Class)
  */
 @FunctionalInterface
-public interface DedicatedServerModInitializer {
+public interface ServerModInitializer {
 	/**
 	 * Runs the mod initializer on the server environment.
 	 */

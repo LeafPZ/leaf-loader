@@ -27,7 +27,7 @@ import dev.aoqia.leaf.loader.api.LeafLoader;
  * <p>In {@code leaf.mod.json}, the entrypoint is defined with {@code client} key.</p>
  *
  * @see ModInitializer
- * @see DedicatedServerModInitializer
+ * @see ServerModInitializer
  * @see LeafLoader#getEntrypointContainers(String, Class)
  */
 @FunctionalInterface

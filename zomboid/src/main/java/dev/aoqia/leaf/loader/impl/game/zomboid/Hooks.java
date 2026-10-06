@@ -19,7 +19,7 @@ package dev.aoqia.leaf.loader.impl.game.zomboid;
 import java.io.File;
 
 import dev.aoqia.leaf.api.ClientModInitializer;
-import dev.aoqia.leaf.api.DedicatedServerModInitializer;
+import dev.aoqia.leaf.api.ServerModInitializer;
 import dev.aoqia.leaf.api.ModInitializer;
 import dev.aoqia.leaf.loader.impl.LeafLoaderImpl;
 import dev.aoqia.leaf.loader.impl.launch.LeafLauncher;
@@ -59,7 +59,7 @@ public final class Hooks {
 		LeafLoaderImpl loader = LeafLoaderImpl.INSTANCE;
 		loader.prepareModInit(runDir.toPath(), gameInstance);
 		loader.invokeEntrypoints("main", ModInitializer.class, ModInitializer::onInitialize);
-		loader.invokeEntrypoints("server", DedicatedServerModInitializer.class, DedicatedServerModInitializer::onInitializeServer);
+		loader.invokeEntrypoints("server", ServerModInitializer.class, ServerModInitializer::onInitializeServer);
 	}
 
 	public static void setGameInstance(Object gameInstance) {

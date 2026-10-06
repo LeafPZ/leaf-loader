@@ -37,7 +37,7 @@ public final class Hooks {
             return LEAF;
 		}
 
-        return s + " (" + LEAF + ")";
+        return s + " (" + LEAF + " " + LeafLoaderImpl.VERSION + ")";
 	}
 
 	public static void startClient(File runDir, Class<?> gameInstance) {

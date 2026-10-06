@@ -89,9 +89,8 @@ public class CachedirModCandidateFinder implements ModCandidateFinder {
             return modPath;
         }
 
-        File[] versionFolders = modPath.toFile().listFiles(f -> {
-            return f.isDirectory() && (Character.isDigit(f.getName().charAt(0)));
-        });
+        File[] versionFolders = modPath.toFile().listFiles(f ->
+            f.isDirectory() && (Character.isDigit(f.getName().charAt(0)) || "common".equals(f.getName())));
 
         if (versionFolders == null || versionFolders.length == 0) {
             return modPath;
@@ -101,6 +100,11 @@ public class CachedirModCandidateFinder implements ModCandidateFinder {
         String bestFolder = null;
         for (File folder : versionFolders) {
             String folderName = folder.getName();
+            if ("common".equals(folderName)) {
+                bestFolder = folderName;
+                break;
+            }
+
             SemanticVersion version = SemanticVersion.parse(folderName);
             if (version.compareTo((Version) bestVersion) >= 0 && version.compareTo((Version) this.gameVersion) <= 0) {
                 bestFolder = folderName;
@@ -109,8 +113,7 @@ public class CachedirModCandidateFinder implements ModCandidateFinder {
         }
 
         if (bestFolder == null) {
-            return modPath;
-//            throw new IllegalStateException("Failed to get best version folder for mod at path '" + modPath + "'!");
+            throw new IllegalStateException("Failed to get best version folder for mod at path '" + modPath + "'!");
         }
 
         return modPath.resolve(bestFolder);

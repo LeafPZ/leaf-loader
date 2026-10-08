@@ -81,3 +81,45 @@ jobs:
       - name: Copy installer manifest
         if: needs.pre.outputs.is_full_release == 'true'
         uses: ./.github/workflows/installerjson.yml
+  copyinstallerjson:
+    if: ${{ github.repository_owner == 'LeafPZ' }}
+    name: Copy Installer Json
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        # v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Generate
+        run: ./gradlew copyJson -Pleaf.loom.minimalSetup=true
+      - name: Get Loader Version
+        run: echo "LOADER_VERSION=$(./gradlew -q getLoaderVersion -Pleaf.loom.minimalSetup=true | grep -Eo '^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$')" >> $GITHUB_ENV
+      - name: Generate Token
+        id: generate_token
+        # v3.2.0
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1
+        with:
+          client-id: ${{ secrets.SYNC_APP_CLIENT_ID }}
+          private-key: ${{ secrets.SYNC_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+      - name: Checkout leaf
+        # v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: LeafPZ/leaf
+          token: ${{ steps.generate_token.outputs.token }}
+          path: leaf
+      - name: Copy Installer JSON to Leaf
+        shell: bash
+        run: |
+          destFile="${{ env.LOADER_VERSION }}.json"
+          cp 'src/main/resources/leaf-installer.json' "leaf/dist/loader/${destFile}"
+          cd leaf
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add "dist/loader/${destFile}"
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit --message "https://github.com/${GITHUB_REPOSITORY}/commit/${GITHUB_SHA}"
+            git push origin main
+          fi

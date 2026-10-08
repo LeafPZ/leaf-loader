@@ -118,7 +118,7 @@ public class VerifiedModList {
     }
 
     public void updateMod(ModCandidateImpl mod) {
-        Optional<Mod> stored = this.internal.get(mod.getGameId()).stream().findFirst();
+        Optional<Mod> stored = this.internal.get(mod.getWorkshopId()).stream().findFirst();
         if (!stored.isPresent()) {
             throw new FormattedException("Failed to update mod %s (%s/%s) after verifying",
                 mod.getId(), mod.getWorkshopId(), mod.getGameId());

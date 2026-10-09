@@ -1,0 +1,4 @@
+{
+  "$schema": "https://raw.githubusercontent.com/pz-wiki-modding/pz-translation-data/refs/heads/main/PZ_Translation_Schemas/UI.schema.json",
+  "UI_LeafLoader_LeafOverlay_Tooltip": "Leaf's Java loader component is active! Have fun!"
+}

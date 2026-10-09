@@ -3,6 +3,7 @@
 
 !/.github
 !/buildSrc
+!/Contents
 !/gradle
 !/junit
 !/src
@@ -11,6 +12,7 @@
 
 !/.cliff.toml
 !/.editorconfig
+!/.emmyrc.json
 !/.envrc
 !/.gitattributes
 !/.gitignore
@@ -21,7 +23,9 @@
 !/gradlew.bat
 !/HEADER
 !/LICENSE
+!/preview.png
 !/proguard.conf
 !/README.md
 !/settings.gradle*
 !/shell.nix
+!/workshop.txt

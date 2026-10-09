@@ -18,6 +18,7 @@ package dev.aoqia.leaf.loader.api;
 
 import java.util.Optional;
 
+import dev.aoqia.leaf.loader.impl.util.version.SemanticVersionImpl;
 import dev.aoqia.leaf.loader.impl.util.version.VersionParser;
 
 /**
@@ -87,7 +88,7 @@ public interface SemanticVersion extends Version {
 	boolean hasWildcard();
 
 	/**
-	 * @deprecated Use {@link #compareTo(Version)} instead
+	 * @deprecated Use {@link SemanticVersionImpl#compareTo(Version)} instead
 	 */
 	@Deprecated
 	default int compareTo(SemanticVersion o) {

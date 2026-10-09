@@ -1,0 +1,9 @@
+version=1
+id=3776625738
+title=Leaf Loader
+description=The workshop mod for Leaf, the most powerful Project Zomboid Java modding toolchain!
+description=
+description=This is updated manually every release, so if it isn't updated then create an issue on the [url=https://github.com/LeafPZ/leaf-loader]leaf-loader[/url] repository.
+description=The mod contains the leaf-loader JAR and its dependencies, however these will only be loaded if the leaf-loader-proxy is installed (recommended).
+tags=Build 42;Framework;Misc
+visibility=public

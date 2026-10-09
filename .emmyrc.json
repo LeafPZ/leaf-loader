@@ -1,0 +1,25 @@
+{
+  "$schema": "https://raw.githubusercontent.com/EmmyLuaLs/emmylua-analyzer-rust/refs/heads/main/crates/emmylua_code_analysis/resources/schema.json",
+  "completion": {
+    "autoRequireSeparator": "/"
+  },
+  "hover": {
+    "customDetail": 255,
+    "enable": true
+  },
+  "doc": {
+    "privateName": ["_*"]
+  },
+  "diagnostics": {
+    "disable": ["unnecessary-if"],
+    "globals": []
+  },
+  "runtime": {
+    "requirePattern": ["shared/?.lua", "client/?.lua", "server/?.lua"],
+    "version": "Lua5.1"
+  },
+  "workspace": {
+    "library": ["$UMBRELLA_PATH/library"],
+    "workspaceRoots": ["Contents/mods/*/*/media/lua"]
+  }
+}

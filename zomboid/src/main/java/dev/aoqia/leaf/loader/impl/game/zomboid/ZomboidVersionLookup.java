@@ -284,7 +284,7 @@ public final class ZomboidVersionLookup {
 				};
 			}
 
-            // TODO(leaf): handle revision hash/number here
+            // TODO(leaf): Properly capture unstable revision hash
             // if (gitHash == null && name.equals("getGitRevision")) {
             //     return new InsnFwdMethodVisitor() {
             //         @Override

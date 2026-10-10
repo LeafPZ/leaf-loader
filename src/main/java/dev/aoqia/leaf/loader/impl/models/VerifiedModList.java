@@ -29,7 +29,10 @@ public class VerifiedModList {
     public void readOrCreate() throws IOException {
         // If the mod list data file doesn't exist, initialise it and return empty.
         if (!Files.exists(this.path)) {
-            Files.createDirectory(this.path.getParent());
+            if (!Files.exists(this.path.getParent())) {
+                Files.createDirectory(this.path.getParent());
+            }
+
             Files.write(this.path, (VERSION + "\n").getBytes());
             return;
         }

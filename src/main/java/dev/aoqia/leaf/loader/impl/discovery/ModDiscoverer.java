@@ -198,7 +198,7 @@ public final class ModDiscoverer {
         try {
             verifiedModList.readOrCreate();
         } catch (IOException e) {
-            throw new RuntimeException("Failed to read user-verified leaf mod list file");
+            throw new RuntimeException("Failed to read user-verified leaf mod list file", e);
         }
 
 		// gather all mods (root+nested), initialize parent data

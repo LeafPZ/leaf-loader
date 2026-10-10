@@ -209,6 +209,7 @@ val generatedDir = layout.projectDirectory.dir("src/${sourceSets.main.name}/gene
 val generateBuildInfo = tasks.register("generateBuildInfo") {
     description = "Generates build info used by loader classes"
 
+    inputs.property("version", baseVersion)
     outputs.dir(generatedDir)
 
     doLast {
@@ -219,7 +220,7 @@ val generateBuildInfo = tasks.register("generateBuildInfo") {
             package dev.aoqia.leaf.loader.impl.util;
             
             public final class BuildInfo {
-                public static final String VERSION = "$baseVersion";
+                public static final String VERSION = "${inputs.properties["version"]}";
                 private BuildInfo() {}
             }
             """.trimIndent()

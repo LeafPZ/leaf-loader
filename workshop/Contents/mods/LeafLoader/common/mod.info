@@ -1,0 +1,8 @@
+name=Leaf Loader
+id=LeafLoader
+author=aoqia
+description=The workshop mod for Leaf, the most powerful Project Zomboid Java modding toolchain (forked from FabricMC/fabric).
+poster=poster.png
+icon=icon.png
+versionMin=42.0.0
+modversion=1.7.2

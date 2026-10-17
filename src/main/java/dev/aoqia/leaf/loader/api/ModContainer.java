@@ -95,26 +95,4 @@ public interface ModContainer {
 	 * @return active contained mods within this mod's jar
 	 */
 	Collection<ModContainer> getContainedMods();
-
-	// deprecated methods
-
-	/**
-	 * @deprecated use {@link #getRootPaths()} instead
-	 */
-	@Deprecated
-	default Path getRoot() {
-		return getRootPath();
-	}
-
-	/**
-	 * @deprecated use {@link #getRootPaths()} instead
-	 */
-	@Deprecated
-	Path getRootPath();
-
-	/**
-	 * @deprecated use {@link #findPath} instead
-	 */
-	@Deprecated
-	Path getPath(String file);
 }

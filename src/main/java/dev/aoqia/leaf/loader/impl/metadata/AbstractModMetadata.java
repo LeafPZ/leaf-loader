@@ -24,11 +24,6 @@ public abstract class AbstractModMetadata implements ModMetadata {
 	public static final String TYPE_LEAF_MOD = "leaf";
 
 	@Override
-	public boolean containsCustomElement(String key) {
-		return containsCustomValue(key);
-	}
-
-	@Override
 	public boolean containsCustomValue(String key) {
 		return getCustomValues().containsKey(key);
 	}

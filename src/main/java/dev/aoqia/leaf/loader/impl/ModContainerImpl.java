@@ -18,6 +18,8 @@ package dev.aoqia.leaf.loader.impl;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -34,11 +36,11 @@ import dev.aoqia.leaf.loader.impl.discovery.ModCandidateImpl;
 import dev.aoqia.leaf.loader.impl.metadata.LoaderModMetadata;
 import dev.aoqia.leaf.loader.impl.metadata.ModOriginImpl;
 import dev.aoqia.leaf.loader.impl.util.FileSystemUtil;
+import dev.aoqia.leaf.loader.impl.util.UrlUtil;
 import dev.aoqia.leaf.loader.impl.util.log.Log;
 import dev.aoqia.leaf.loader.impl.util.log.LogCategory;
 
-@SuppressWarnings("deprecation")
-public class ModContainerImpl extends dev.aoqia.leaf.loader.ModContainer {
+public class ModContainerImpl implements ModContainer {
 	private final LoaderModMetadata info;
 	private final ModOrigin origin;
 	private final List<Path> codeSourcePaths;
@@ -73,12 +75,10 @@ public class ModContainerImpl extends dev.aoqia.leaf.loader.ModContainer {
 		return origin;
 	}
 
-	@Override
 	public List<Path> getCodeSourcePaths() {
 		return codeSourcePaths;
 	}
 
-	@Override
 	public Path getRootPath() {
 		List<Path> paths = getRootPaths();
 
@@ -166,7 +166,14 @@ public class ModContainerImpl extends dev.aoqia.leaf.loader.ModContainer {
 		}
 	}
 
-	@Override
+    public URL getOriginUrl() {
+		try {
+			return UrlUtil.asUrl(getCodeSourcePaths().get(0));
+		} catch (MalformedURLException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
 	public Path getPath(String file) {
 		Optional<Path> res = findPath(file);
 		if (res.isPresent()) return res.get();
@@ -194,17 +201,10 @@ public class ModContainerImpl extends dev.aoqia.leaf.loader.ModContainer {
 		List<ModContainer> ret = new ArrayList<>(childModIds.size());
 
 		for (String id : childModIds) {
-			ModContainer mod = LeafLoaderImpl.INSTANCE.getModContainer(id).orElse(null);
-			if (mod != null) ret.add(mod);
-		}
+            LeafLoaderImpl.INSTANCE.getModContainer(id).ifPresent(ret::add);
+        }
 
 		return ret;
-	}
-
-	@Deprecated
-	@Override
-	public LoaderModMetadata getInfo() {
-		return info;
 	}
 
 	@Override

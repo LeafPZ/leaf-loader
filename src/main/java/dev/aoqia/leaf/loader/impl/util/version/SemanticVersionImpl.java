@@ -22,6 +22,8 @@ import java.util.Optional;
 import java.util.StringTokenizer;
 import java.util.regex.Pattern;
 
+import org.jetbrains.annotations.NotNull;
+
 import dev.aoqia.leaf.loader.api.SemanticVersion;
 import dev.aoqia.leaf.loader.api.Version;
 import dev.aoqia.leaf.loader.api.VersionParsingException;
@@ -35,8 +37,7 @@ import dev.aoqia.leaf.loader.api.VersionParsingException;
  * <li>Arbitrary {@code <build>} contents
  * </ul>
  */
-@SuppressWarnings("deprecation")
-public class SemanticVersionImpl extends dev.aoqia.leaf.loader.util.version.SemanticVersionImpl implements SemanticVersion {
+public class SemanticVersionImpl implements SemanticVersion {
 	private static final Pattern DOT_SEPARATED_ID = Pattern.compile("|[-0-9A-Za-z]+(\\.[-0-9A-Za-z]+)*");
 	private static final Pattern UNSIGNED_INTEGER = Pattern.compile("0|[1-9][0-9]*");
 	private final int[] components;
@@ -250,7 +251,7 @@ public class SemanticVersionImpl extends dev.aoqia.leaf.loader.util.version.Sema
 	}
 
 	@Override
-	public int compareTo(Version other) {
+	public int compareTo(@NotNull Version other) {
 		if (!(other instanceof SemanticVersion)) {
 			return getFriendlyString().compareTo(other.getFriendlyString());
 		}

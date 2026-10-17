@@ -124,10 +124,6 @@ public final class LibClassifier<L extends Enum<L> & LibraryType> {
 		if (gameLibs != null) {
 			process(gameLibs);
 		}
-
-		// process indirectly referenced libs
-
-		processManifestClassPath(LoaderLibrary.SERVER_LAUNCH, env, junitRun); // not used by fabric itself, but others add Log4J this way
 	}
 
 	private void processManifestClassPath(LoaderLibrary lib, EnvType env, boolean junitRun) throws IOException {

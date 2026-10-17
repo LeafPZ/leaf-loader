@@ -21,7 +21,6 @@ package dev.aoqia.leaf.loader.api;
  *
  * @see LeafLoader#getEntrypointContainers(String, Class)
  */
-@SuppressWarnings("serial")
 public class EntrypointException extends RuntimeException {
 	private final String key;
 

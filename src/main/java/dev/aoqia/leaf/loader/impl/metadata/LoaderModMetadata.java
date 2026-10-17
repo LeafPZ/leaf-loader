@@ -23,30 +23,24 @@ import java.util.Map;
 import dev.aoqia.leaf.api.EnvType;
 import dev.aoqia.leaf.loader.api.Version;
 import dev.aoqia.leaf.loader.api.metadata.ModDependency;
+import dev.aoqia.leaf.loader.api.metadata.ModMetadata;
 
 /**
  * Internal variant of the ModMetadata interface.
  */
-@SuppressWarnings("deprecation")
-public interface LoaderModMetadata extends dev.aoqia.leaf.loader.metadata.LoaderModMetadata {
+public interface LoaderModMetadata extends ModMetadata {
 	int getSchemaVersion();
-
-	default String getOldStyleLanguageAdapter() {
-		return "dev.aoqia.leaf.loader.language.JavaLanguageAdapter";
-	}
 
 	Map<String, String> getLanguageAdapterDefinitions();
 	Collection<NestedJarEntry> getJars();
 	Collection<String> getMixinConfigs(EnvType type);
 	/* @Nullable */
 	String getClassTweaker();
-	@Override
-	boolean loadsInEnvironment(EnvType type);
 
-	Collection<String> getOldInitializers();
-	@Override
+	@SuppressWarnings("BooleanMethodIsAlwaysInverted")
+    boolean loadsInEnvironment(EnvType type);
+
 	List<EntrypointMetadata> getEntrypoints(String type);
-	@Override
 	Collection<String> getEntrypointKeys();
 
 	void emitFormatWarnings();

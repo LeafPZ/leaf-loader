@@ -168,11 +168,6 @@ class BuiltinMetadataWrapper extends AbstractModMetadata implements LoaderModMet
 	}
 
 	@Override
-	public Collection<String> getOldInitializers() {
-		return Collections.emptyList();
-	}
-
-	@Override
 	public List<EntrypointMetadata> getEntrypoints(String type) {
 		return Collections.emptyList();
 	}

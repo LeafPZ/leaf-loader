@@ -68,59 +68,9 @@ public interface ModMetadata {
 	ModEnvironment getEnvironment();
 
 	/**
-	 * Returns all of the mod's dependencies.
+	 * Returns all the mod's dependencies.
 	 */
 	Collection<ModDependency> getDependencies();
-
-	/**
-	 * Returns the mod's required dependencies, without which the Loader will terminate loading.
-	 *
-	 * @deprecated Use {@link #getDependencies()} and filter for {@link ModDependency.Kind#DEPENDS} instead
-	 */
-	@Deprecated
-	default Collection<ModDependency> getDepends() {
-		return getDependencies().stream().filter(d -> d.getKind() == ModDependency.Kind.DEPENDS).collect(Collectors.toList());
-	}
-
-	/**
-	 * Returns the mod's recommended dependencies, without which the Loader will emit a warning.
-	 *
-	 * @deprecated Use {@link #getDependencies()} and filter for {@link ModDependency.Kind#RECOMMENDS} instead
-	 */
-	@Deprecated
-	default Collection<ModDependency> getRecommends() {
-		return getDependencies().stream().filter(d -> d.getKind() == ModDependency.Kind.RECOMMENDS).collect(Collectors.toList());
-	}
-
-	/**
-	 * Returns the mod's suggested dependencies.
-	 *
-	 * @deprecated Use {@link #getDependencies()} and filter for {@link ModDependency.Kind#SUGGESTS} instead
-	 */
-	@Deprecated
-	default Collection<ModDependency> getSuggests() {
-		return getDependencies().stream().filter(d -> d.getKind() == ModDependency.Kind.SUGGESTS).collect(Collectors.toList());
-	}
-
-	/**
-	 * Returns the mod's conflicts, with which the Loader will emit a warning.
-	 *
-	 * @deprecated Use {@link #getDependencies()} and filter for {@link ModDependency.Kind#CONFLICTS} instead
-	 */
-	@Deprecated
-	default Collection<ModDependency> getConflicts() {
-		return getDependencies().stream().filter(d -> d.getKind() == ModDependency.Kind.CONFLICTS).collect(Collectors.toList());
-	}
-
-	/**
-	 * Returns the mod's conflicts, with which the Loader will terminate loading.
-	 *
-	 * @deprecated Use {@link #getDependencies()} and filter for {@link ModDependency.Kind#BREAKS} instead
-	 */
-	@Deprecated
-	default Collection<ModDependency> getBreaks() {
-		return getDependencies().stream().filter(d -> d.getKind() == ModDependency.Kind.BREAKS).collect(Collectors.toList());
-	}
 
 	/**
 	 * Returns the mod's display name.
@@ -194,10 +144,4 @@ public interface ModMetadata {
 	 * @return a map containing the custom values this mod defines.
 	 */
 	Map<String, CustomValue> getCustomValues();
-
-	/**
-	 * @deprecated Use {@link #containsCustomValue} instead, this will be removed (can't expose GSON types)!
-	 */
-	@Deprecated
-	boolean containsCustomElement(String key);
 }

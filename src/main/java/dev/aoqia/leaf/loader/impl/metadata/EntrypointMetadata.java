@@ -16,10 +16,7 @@
 
 package dev.aoqia.leaf.loader.impl.metadata;
 
-@SuppressWarnings("deprecation")
-public interface EntrypointMetadata extends dev.aoqia.leaf.loader.metadata.EntrypointMetadata {
-	@Override
+public interface EntrypointMetadata {
 	String getAdapter();
-	@Override
 	String getValue();
 }

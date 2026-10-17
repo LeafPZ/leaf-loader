@@ -88,7 +88,7 @@ public interface LeafLoader {
 	 *     "value": "&lt;an arbitrary notation&gt;"
 	 *   }
 	 * </blockquote></pre>
-	 * where the {@code default} adapter is the {@linkplain LanguageAdapter adapter}
+	 * Where the {@code default} adapter is the {@linkplain LanguageAdapter adapter}
 	 * offered by Fabric Loader. </p>
 	 *
      * @param key the key in entrypoint declaration in {@code leaf.mod.json}
@@ -191,7 +191,7 @@ public interface LeafLoader {
 	 * Get the original unprocessed game version.
 	 *
 	 * <p>There is normally a Semver-compatible derived game version, obtainable from a mod container representing the
-	 * game, that is derived from this raw version. The raw version may not comparable or even follow a well defined
+	 * game, that is derived from this raw version. The raw version may not comparable or even follow a well-defined
 	 * pattern, making it unusable for dependency range evaluation.
 	 */
 	String getRawGameVersion();
@@ -217,18 +217,12 @@ public interface LeafLoader {
 	 */
 	Path getGameDir();
 
-	@Deprecated
-	File getGameDirectory();
-
 	/**
 	 * Get the current directory for game configuration files.
 	 *
 	 * @return the configuration directory
 	 */
 	Path getConfigDir();
-
-	@Deprecated
-	File getConfigDirectory();
 
 	/**
 	 * Gets the command line arguments used to launch the game.

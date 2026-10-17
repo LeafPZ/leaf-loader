@@ -24,85 +24,20 @@ import java.util.List;
 import java.util.Map;
 
 import dev.aoqia.leaf.loader.api.EntrypointException;
-import dev.aoqia.leaf.loader.api.LanguageAdapterException;
 import dev.aoqia.leaf.loader.api.entrypoint.EntrypointContainer;
 import dev.aoqia.leaf.loader.impl.ModContainerImpl;
-import dev.aoqia.leaf.loader.impl.launch.LeafLauncherBase;
 import dev.aoqia.leaf.loader.impl.metadata.EntrypointMetadata;
 import dev.aoqia.leaf.loader.impl.util.log.Log;
 import dev.aoqia.leaf.loader.impl.util.log.LogCategory;
-import dev.aoqia.leaf.loader.language.LanguageAdapter;
 
 public final class EntrypointStorage {
-	interface Entry {
-		<T> T getOrCreate(Class<T> type) throws Exception;
-		boolean isOptional();
-
-		ModContainerImpl getModContainer();
-
-		String getDefinition();
-	}
-
-	@SuppressWarnings("deprecation")
-	private static class OldEntry implements Entry {
-		private static final LanguageAdapter.Options options = LanguageAdapter.Options.Builder.create()
-				.missingSuperclassBehaviour(LanguageAdapter.MissingSuperclassBehavior.RETURN_NULL)
-				.build();
-
-		private final ModContainerImpl mod;
-		private final String languageAdapter;
-		private final String value;
-		private Object object;
-
-		private OldEntry(ModContainerImpl mod, String languageAdapter, String value) {
-			this.mod = mod;
-			this.languageAdapter = languageAdapter;
-			this.value = value;
-		}
-
-		@Override
-		public String toString() {
-			return mod.getInfo().getId() + "->" + value;
-		}
-
-		@SuppressWarnings({ "unchecked" })
-		@Override
-		public synchronized <T> T getOrCreate(Class<T> type) throws Exception {
-			if (object == null) {
-				dev.aoqia.leaf.loader.language.LanguageAdapter adapter = (dev.aoqia.leaf.loader.language.LanguageAdapter) Class.forName(languageAdapter, true, LeafLauncherBase.getLauncher().getTargetClassLoader()).getConstructor().newInstance();
-				object = adapter.createInstance(value, options);
-			}
-
-			if (object == null || !type.isAssignableFrom(object.getClass())) {
-				return null;
-			} else {
-				return (T) object;
-			}
-		}
-
-		@Override
-		public boolean isOptional() {
-			return true;
-		}
-
-		@Override
-		public ModContainerImpl getModContainer() {
-			return mod;
-		}
-
-		@Override
-		public String getDefinition() {
-			return value;
-		}
-	}
-
-	private static final class NewEntry implements Entry {
+	static final class Entry {
 		private final ModContainerImpl mod;
 		private final dev.aoqia.leaf.loader.api.LanguageAdapter adapter;
 		private final String value;
 		private final Map<Class<?>, Object> instanceMap;
 
-		NewEntry(ModContainerImpl mod, dev.aoqia.leaf.loader.api.LanguageAdapter adapter, String value) {
+		Entry(ModContainerImpl mod, dev.aoqia.leaf.loader.api.LanguageAdapter adapter, String value) {
 			this.mod = mod;
 			this.adapter = adapter;
 			this.value = value;
@@ -115,7 +50,6 @@ public final class EntrypointStorage {
 		}
 
 		@SuppressWarnings("unchecked")
-		@Override
 		public synchronized <T> T getOrCreate(Class<T> type) throws Exception {
 			// this impl allows reentrancy (unlike computeIfAbsent)
 			T ret = (T) instanceMap.get(type);
@@ -130,17 +64,14 @@ public final class EntrypointStorage {
 			return ret;
 		}
 
-		@Override
 		public boolean isOptional() {
 			return false;
 		}
 
-		@Override
 		public ModContainerImpl getModContainer() {
 			return mod;
 		}
 
-		@Override
 		public String getDefinition() {
 			return value;
 		}
@@ -152,21 +83,13 @@ public final class EntrypointStorage {
 		return entryMap.computeIfAbsent(key, (z) -> new ArrayList<>());
 	}
 
-	public void addDeprecated(ModContainerImpl modContainer, String adapter, String value) throws ClassNotFoundException, LanguageAdapterException {
-		Log.debug(LogCategory.ENTRYPOINT, "Registering 0.3.x old-style initializer %s for mod %s", value, modContainer.getMetadata().getId());
-		OldEntry oe = new OldEntry(modContainer, adapter, value);
-		getOrCreateEntries("main").add(oe);
-		getOrCreateEntries("client").add(oe);
-		getOrCreateEntries("server").add(oe);
-	}
-
 	public void add(ModContainerImpl modContainer, String key, EntrypointMetadata metadata, Map<String, dev.aoqia.leaf.loader.api.LanguageAdapter> adapterMap) throws Exception {
 		if (!adapterMap.containsKey(metadata.getAdapter())) {
 			throw new Exception("Could not find adapter '" + metadata.getAdapter() + "' (mod " + modContainer.getMetadata().getId() + "!)");
 		}
 
 		Log.debug(LogCategory.ENTRYPOINT, "Registering new-style initializer %s for mod %s (key %s)", metadata.getValue(), modContainer.getMetadata().getId(), key);
-		getOrCreateEntries(key).add(new NewEntry(
+		getOrCreateEntries(key).add(new Entry(
 				modContainer, adapterMap.get(metadata.getAdapter()), metadata.getValue()
 				));
 	}

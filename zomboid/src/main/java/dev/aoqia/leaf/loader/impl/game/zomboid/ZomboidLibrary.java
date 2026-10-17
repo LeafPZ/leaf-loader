@@ -22,7 +22,6 @@ import dev.aoqia.leaf.loader.impl.game.LibClassifier.LibraryType;
 enum ZomboidLibrary implements LibraryType {
     ZOMBOID_CLIENT(EnvType.CLIENT, "zombie/gameStates/MainScreenState.class"),
     ZOMBOID_SERVER(EnvType.SERVER, "zombie/network/GameServer.class"),
-    ZOMBOID_COMMON("zombie/gameStates/MainScreenState.class"),
 	MODLOADER("ModLoader"),
 	LOG4J_API("org/apache/logging/log4j/LogManager.class"),
 	LOG4J_CORE("META-INF/services/org.apache.logging.log4j.spi.Provider", "META-INF/log4j-provider.properties"),

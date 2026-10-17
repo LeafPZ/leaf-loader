@@ -56,11 +56,11 @@ enum LoaderLibrary {
 	LEAF_LOADER_JUNIT("dev/aoqia/leaf/loader/impl/junit/LeafLoaderLauncherSessionListener.class", null),
 
 	// Logging libraries are only loaded from the platform CL when running as a unit test.
-	LOG4J_API("org/apache/logging/log4j/LogManager.class", true),
+	// LOG4J_API("org/apache/logging/log4j/LogManager.class", true),
 	LOG4J_CORE("META-INF/services/org.apache.logging.log4j.spi.Provider", true),
 	LOG4J_CONFIG("log4j2.xml", true),
-	LOG4J_PLUGIN_3("net/minecrell/terminalconsole/util/LoggerNamePatternSelector.class", true),
-	SLF4J_API("org/slf4j/Logger.class", true);
+	LOG4J_PLUGIN_3("net/minecrell/terminalconsole/util/LoggerNamePatternSelector.class", true);
+	// SLF4J_API("org/slf4j/Logger.class", true);
 
 	final Path path;
 	final EnvType env;

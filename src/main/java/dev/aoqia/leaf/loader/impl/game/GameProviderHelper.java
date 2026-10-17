@@ -39,7 +39,6 @@ import java.util.zip.ZipFile;
 
 import org.jetbrains.annotations.Nullable;
 
-import dev.aoqia.leaf.api.EnvType;
 import dev.aoqia.leaf.loader.impl.LeafLoaderImpl;
 import dev.aoqia.leaf.loader.impl.FormattedException;
 import dev.aoqia.leaf.loader.impl.launch.LeafLauncher;
@@ -61,20 +60,13 @@ import net.fabricmc.tinyremapper.TinyUtils;
 public final class GameProviderHelper {
 	private GameProviderHelper() { }
 
-	public static Path getCommonGameJar() {
-		return getGameJar(SystemProperties.GAME_JAR_PATH);
-	}
-
-	public static Path getEnvGameJar(EnvType env) {
-		return getGameJar(env == EnvType.CLIENT ? SystemProperties.GAME_JAR_PATH_CLIENT : SystemProperties.GAME_JAR_PATH_SERVER);
-	}
-
-	private static Path getGameJar(String property) {
-		String val = System.getProperty(property);
+	public static Path getGameJar() {
+		String val = System.getProperty(SystemProperties.GAME_JAR_PATH);
 		if (val == null) return null;
 
 		Path path = Paths.get(val);
-		if (!Files.exists(path)) throw new RuntimeException("Game jar "+path+" ("+LoaderUtil.normalizePath(path)+") configured through "+property+" system property doesn't exist");
+		if (!Files.exists(path)) throw new RuntimeException("Game jar "+path+" ("+LoaderUtil.normalizePath(path)+") configured through "+ SystemProperties.GAME_JAR_PATH
+            +" system property doesn't exist");
 
 		return LoaderUtil.normalizeExistingPath(path);
 	}

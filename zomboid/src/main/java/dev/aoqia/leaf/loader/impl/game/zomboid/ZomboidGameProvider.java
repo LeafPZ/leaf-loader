@@ -178,35 +178,23 @@ public class ZomboidGameProvider implements GameProvider {
 			LibClassifier<ZomboidLibrary> classifier = new LibClassifier<>(ZomboidLibrary.class, envType, this);
             ZomboidLibrary envGameLib = envType == EnvType.CLIENT
                 ? ZomboidLibrary.ZOMBOID_CLIENT : ZomboidLibrary.ZOMBOID_SERVER;
-			Path commonGameJar = GameProviderHelper.getCommonGameJar();
-			Path envGameJar = GameProviderHelper.getEnvGameJar(envType);
-			boolean commonGameJarDeclared = commonGameJar != null;
 
-			if (commonGameJarDeclared) {
-				if (envGameJar != null) {
-                    classifier.process(envGameJar, ZomboidLibrary.ZOMBOID_COMMON);
-				}
+			Path gameJar = GameProviderHelper.getGameJar();
 
-				classifier.process(commonGameJar);
-			} else if (envGameJar != null) {
-				classifier.process(envGameJar);
+            // Process the game jar if it was found immediately
+			if (gameJar != null) {
+				classifier.process(gameJar);
 			}
 
 			classifier.process(launcher.getClassPath());
 
-			envGameJar = classifier.getOrigin(envGameLib);
-			if (envGameJar == null) return false;
+            // If the game jar wasn't found, try finding it from the classpath
+            if (gameJar == null) {
+                gameJar = classifier.getOrigin(envGameLib);
+            }
 
-            commonGameJar = classifier.getOrigin(ZomboidLibrary.ZOMBOID_COMMON);
-
-			if (commonGameJarDeclared && commonGameJar == null) {
-				Log.warn(LogCategory.GAME_PROVIDER, "The declared common game jar didn't contain any of the expected classes!");
-			}
-
-			gameJars.add(envGameJar);
-
-			if (commonGameJar != null && !commonGameJar.equals(envGameJar)) {
-				gameJars.add(commonGameJar);
+			if (gameJar != null) {
+				gameJars.add(gameJar);
 			}
 
 			entrypoint = classifier.getClassName(envGameLib);

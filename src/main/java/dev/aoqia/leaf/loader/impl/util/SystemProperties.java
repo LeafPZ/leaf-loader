@@ -34,10 +34,8 @@ public final class SystemProperties {
 	public static final String DEFAULT_MIXIN_REMAP_TYPE = "leaf.defaultMixinRemapType";
 	// skips the embedded Zomboid game provider, letting ServiceLoader-provided ones take over
 	public static final String SKIP_ZOMBOID_PROVIDER = "leaf.skipZomboidProvider";
-	// game jar paths for common/client/server, replaces lookup from class path if present, env specific takes precedence
+	// game jar path, replaces lookup from class path if present
 	public static final String GAME_JAR_PATH = "leaf.gameJarPath";
-	public static final String GAME_JAR_PATH_CLIENT = "leaf.gameJarPath.client";
-	public static final String GAME_JAR_PATH_SERVER = "leaf.gameJarPath.server";
 	// game library paths, replaces lookup from class path if present
 	// paths separated by path separator, @ prefix for meta-file with each line referencing an actual file)
 	public static final String GAME_LIBRARIES = "leaf.gameLibraries";

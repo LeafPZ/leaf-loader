@@ -11,4 +11,4 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
-    uses: LeafPZ/.github/.github/workflows/triage.yml@828e9642694b0a9f69324cfd3f36471ac6783c33
+    uses: LeafPZ/.github/.github/workflows/triage.yml@f64a78c8e2fc4f53f46e54691beff22ebb22f289

@@ -7,10 +7,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
+
+import org.jetbrains.annotations.Nullable;
 
 import dev.aoqia.leaf.loader.impl.FormattedException;
 import dev.aoqia.leaf.loader.impl.discovery.ModCandidateImpl;
@@ -19,11 +19,11 @@ public class VerifiedModList {
     public static final int VERSION = 1;
 
     private final Path path;
-    private final Map<String, List<Mod>> internal;
+    private final List<Mod> internal;
 
     public VerifiedModList(Path path) {
         this.path = path;
-        this.internal = new HashMap<>();
+        this.internal = new ArrayList<>();
     }
 
     public void readOrCreate() throws IOException {
@@ -57,8 +57,7 @@ public class VerifiedModList {
                 String leafModId = components[2];
                 String jarHash = components[3];
 
-                this.internal.putIfAbsent(workshopId, new ArrayList<>());
-                this.internal.get(workshopId).add(new Mod(workshopId, leafModId, gameModId, jarHash));
+                this.internal.add(new Mod(workshopId, leafModId, gameModId, jarHash));
             }
         }
     }
@@ -66,50 +65,53 @@ public class VerifiedModList {
     public void write() throws IOException {
         try (BufferedWriter bw = Files.newBufferedWriter(this.path, StandardOpenOption.CREATE)) {
             bw.write(VERSION + "\n");
-            for (String workshopId : this.internal.keySet()) {
-                for (Mod mod : this.internal.get(workshopId)) {
-                    bw.write(mod.getWorkshopId()
-                        + "\t" + mod.getGameId()
-                        + "\t" + mod.getId()
-                        + "\t" + mod.getJarHash()
-                        + "\n");
-                }
+            for (Mod mod : this.internal) {
+                bw.write(mod.getWorkshopId()
+                    + "\t" + mod.getGameId()
+                    + "\t" + mod.getId()
+                    + "\t" + mod.getJarHash()
+                    + "\n");
             }
         }
     }
 
     public void add(ModCandidateImpl mod) {
-        this.internal.putIfAbsent(mod.getGameId(), new ArrayList<>());
-        this.internal.get(mod.getGameId()).add(new Mod(mod));
+        this.internal.add(new Mod(mod));
     }
 
     public boolean contains(ModCandidateImpl mod) {
-        return this.internal.containsKey(mod.getWorkshopId()) && this.internal.get(mod.getWorkshopId())
-            .stream()
-            .anyMatch(m ->
-                m.getGameId().equals(mod.getGameId())
-                    && m.getWorkshopId().equals(mod.getWorkshopId())
+        return this.internal.stream()
+            .anyMatch(m -> {
+                String workshopId = m.getWorkshopId();
+                return workshopId != null
+                    && workshopId.equals(mod.getWorkshopId())
+                    && m.getGameId().equals(mod.getGameId())
                     && m.getId().equals(mod.getId())
-                    && m.getJarHash().equals(mod.getJarHash()));
+                    && m.getJarHash().equals(mod.getJarHash());
+            });
     }
 
     private boolean containsIgnoreHash(ModCandidateImpl mod) {
-        return this.internal.containsKey(mod.getWorkshopId()) && this.internal.get(mod.getWorkshopId())
-            .stream()
-            .anyMatch(m ->
-                m.getGameId().equals(mod.getGameId())
-                    && m.getWorkshopId().equals(mod.getWorkshopId())
-                    && m.getId().equals(mod.getId()));
+        return this.internal.stream()
+            .anyMatch(m -> {
+                String workshopId = m.getWorkshopId();
+                return workshopId != null
+                    && workshopId.equals(mod.getWorkshopId())
+                    && m.getGameId().equals(mod.getGameId())
+                    && m.getId().equals(mod.getId());
+            });
     }
 
     private boolean containsWithBadHash(ModCandidateImpl mod) {
-        return this.internal.containsKey(mod.getWorkshopId()) && this.internal.get(mod.getWorkshopId())
-            .stream()
-            .anyMatch(m ->
-                m.getGameId().equals(mod.getGameId())
-                    && m.getWorkshopId().equals(mod.getWorkshopId())
+        return this.internal.stream()
+            .anyMatch(m -> {
+                String workshopId = m.getWorkshopId();
+                return workshopId != null
+                    && workshopId.equals(mod.getWorkshopId())
+                    && m.getGameId().equals(mod.getGameId())
                     && m.getId().equals(mod.getId())
-                    && !m.getJarHash().equals(mod.getJarHash()));
+                    && !m.getJarHash().equals(mod.getJarHash());
+            });
     }
 
     public boolean isVerified(ModCandidateImpl mod) {
@@ -121,10 +123,16 @@ public class VerifiedModList {
     }
 
     public void updateMod(ModCandidateImpl mod) {
-        Optional<Mod> stored = this.internal.get(mod.getWorkshopId()).stream().findFirst();
+        Optional<Mod> stored = this.internal.stream()
+            .filter(m -> {
+                String workshopId = m.getWorkshopId();
+                return workshopId != null && workshopId.equals(mod.getWorkshopId());
+            })
+            .findFirst();
+
         if (!stored.isPresent()) {
-            throw new FormattedException("Failed to update mod %s (%s/%s) after verifying",
-                mod.getId(), mod.getWorkshopId(), mod.getGameId());
+            throw new FormattedException("Failed to update mod %s (%s/%s) after verifying", mod.getId(),
+                mod.getWorkshopId(), mod.getGameId());
         }
 
         stored.get().setWorkshopId(mod.getWorkshopId());
@@ -133,17 +141,13 @@ public class VerifiedModList {
         stored.get().setJarHash(mod.getJarHash());
     }
 
-    public Map<String, List<Mod>> getInternal() {
-        return internal;
-    }
-
     public static class Mod {
-        private String workshopId;
+        private @Nullable String workshopId;
         private String id;
         private String gameId;
         private String jarHash;
 
-        public Mod(String workshopId, String id, String gameId, String jarHash) {
+        public Mod(@Nullable String workshopId, String id, String gameId, String jarHash) {
             this.workshopId = workshopId;
             this.id = id;
             this.gameId = gameId;
@@ -157,11 +161,11 @@ public class VerifiedModList {
             this.jarHash = candidate.getJarHash();
         }
 
-        public String getWorkshopId() {
+        public @Nullable String getWorkshopId() {
             return workshopId;
         }
 
-        public void setWorkshopId(String workshopId) {
+        public void setWorkshopId(@Nullable String workshopId) {
             this.workshopId = workshopId;
         }
 

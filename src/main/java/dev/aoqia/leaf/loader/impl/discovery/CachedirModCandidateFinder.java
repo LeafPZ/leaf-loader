@@ -49,6 +49,12 @@ public class CachedirModCandidateFinder implements ModCandidateFinder {
             if (this.cacheDir.resolve("Workshop").toFile().exists()) {
                 try (DirectoryStream<Path> stream = Files.newDirectoryStream(this.cacheDir.resolve("Workshop"), Files::isDirectory)) {
                     for (Path rootModFolder : stream) {
+                        // If the folder matches the loader mod's internal id, don't discover it
+                        // This needs to be done in every candidate finder to prevent problems later on
+                        if (LeafLoaderImpl.MOD_ID.equalsIgnoreCase(rootModFolder.getFileName().toString())) {
+                            continue;
+                        }
+
                         Path modsFolder = rootModFolder.resolve("Contents/mods");
                         if (!Files.exists(modsFolder) || !Files.isDirectory(modsFolder)) {
                             continue;
@@ -69,6 +75,12 @@ public class CachedirModCandidateFinder implements ModCandidateFinder {
         throws IOException, VersionParsingException
     {
         for (Path path : stream) {
+            // If the folder matches the loader mod's internal id, don't discover it
+            // This needs to be done in every candidate finder to prevent problems later on
+            if (LeafLoaderImpl.MOD_ID.equalsIgnoreCase(path.getFileName().toString())) {
+                continue;
+            }
+
             Path modPath = getVersionFolder(path);
 
             Path javaPath = modPath.resolve("media/java/");

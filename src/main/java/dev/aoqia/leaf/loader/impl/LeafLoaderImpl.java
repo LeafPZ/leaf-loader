@@ -84,6 +84,7 @@ public final class LeafLoaderImpl implements LeafLoader {
 
     public static final String VERSION = BuildInfo.VERSION;
     public static final String MOD_ID = "leafloader";
+    public static final String WORKSHOP_ID = "3776625738";
 
     // Relative to game cachedir.
     public static final String CACHE_DIR_NAME = ".leaf";

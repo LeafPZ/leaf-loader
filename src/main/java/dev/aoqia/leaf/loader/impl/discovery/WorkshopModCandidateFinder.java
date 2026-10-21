@@ -7,6 +7,7 @@ import java.nio.file.Path;
 
 import dev.aoqia.leaf.loader.api.SemanticVersion;
 import dev.aoqia.leaf.loader.api.VersionParsingException;
+import dev.aoqia.leaf.loader.impl.LeafLoaderImpl;
 
 public class WorkshopModCandidateFinder extends CachedirModCandidateFinder {
     private final Path workshopDir;
@@ -31,6 +32,12 @@ public class WorkshopModCandidateFinder extends CachedirModCandidateFinder {
             // Workshop folder
             try (DirectoryStream<Path> stream = Files.newDirectoryStream(this.workshopDir, Files::isDirectory)) {
                 for (Path rootModFolder : stream) {
+                    // If the folder matches the loader mod's internal id, don't discover it
+                    // This needs to be done in every candidate finder to prevent problems later on
+                    if (LeafLoaderImpl.WORKSHOP_ID.equalsIgnoreCase(rootModFolder.getFileName().toString())) {
+                        continue;
+                    }
+
                     Path modsFolder = rootModFolder.resolve("mods");
                     if (!Files.exists(modsFolder) || !Files.isDirectory(modsFolder)) {
                         continue;

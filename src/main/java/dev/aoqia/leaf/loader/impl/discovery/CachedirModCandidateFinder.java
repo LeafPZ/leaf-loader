@@ -7,10 +7,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.stream.Stream;
 
-import dev.aoqia.leaf.loader.api.Version;
-import dev.aoqia.leaf.loader.api.VersionParsingException;
-
 import dev.aoqia.leaf.loader.api.SemanticVersion;
+import dev.aoqia.leaf.loader.api.VersionParsingException;
+import dev.aoqia.leaf.loader.impl.LeafLoaderImpl;
 import dev.aoqia.leaf.loader.impl.util.LoaderUtil;
 import dev.aoqia.leaf.loader.impl.util.log.Log;
 import dev.aoqia.leaf.loader.impl.util.log.LogCategory;
@@ -24,6 +23,34 @@ public class CachedirModCandidateFinder implements ModCandidateFinder {
         this.cacheDir = LoaderUtil.normalizePath(cacheDir);
         this.gameVersion = gameVersion;
         this.requiresRemap = requiresRemap;
+    }
+
+    static boolean isValidFile(Path path) {
+        /*
+         * We only propose a file as a possible mod in the following scenarios:
+         * General: Must be a jar file
+         *
+         * Some OSes Generate metadata so consider the following because of OSes:
+         * UNIX: Exclude if file is hidden; this occurs when starting a file name with `.`
+         * MacOS: Exclude hidden + startsWith "." since Mac OS names their metadata files in the form of `.mod.jar`
+         */
+
+        if (!Files.isRegularFile(path)) {
+            return false;
+        }
+
+        try {
+            if (Files.isHidden(path)) {
+                return false;
+            }
+        } catch (IOException e) {
+            Log.warn(LogCategory.DISCOVERY, "Error checking if file %s is hidden", path, e);
+            return false;
+        }
+
+        String fileName = path.getFileName().toString();
+
+        return fileName.endsWith(".jar") && !fileName.startsWith(".") && !fileName.endsWith("-sources.jar");
     }
 
     @Override
@@ -40,14 +67,16 @@ public class CachedirModCandidateFinder implements ModCandidateFinder {
         try {
             // mods folder
             if (this.cacheDir.resolve("mods").toFile().exists()) {
-                try (DirectoryStream<Path> stream = Files.newDirectoryStream(this.cacheDir.resolve("mods"), Files::isDirectory)) {
+                try (DirectoryStream<Path> stream = Files.newDirectoryStream(this.cacheDir.resolve("mods"),
+                    Files::isDirectory)) {
                     findModsInModRoot(out, stream, ModSource.CACHEDIR);
                 }
             }
 
             // Workshop folder
             if (this.cacheDir.resolve("Workshop").toFile().exists()) {
-                try (DirectoryStream<Path> stream = Files.newDirectoryStream(this.cacheDir.resolve("Workshop"), Files::isDirectory)) {
+                try (DirectoryStream<Path> stream = Files.newDirectoryStream(this.cacheDir.resolve("Workshop"),
+                    Files::isDirectory)) {
                     for (Path rootModFolder : stream) {
                         // If the folder matches the loader mod's internal id, don't discover it
                         // This needs to be done in every candidate finder to prevent problems later on
@@ -71,8 +100,8 @@ public class CachedirModCandidateFinder implements ModCandidateFinder {
         }
     }
 
-    protected void findModsInModRoot(ModCandidateConsumer out, DirectoryStream<Path> stream, ModSource source)
-        throws IOException, VersionParsingException
+    protected void findModsInModRoot(ModCandidateConsumer out, DirectoryStream<Path> stream, ModSource source) throws
+        IOException, VersionParsingException
     {
         for (Path path : stream) {
             // If the folder matches the loader mod's internal id, don't discover it
@@ -118,7 +147,7 @@ public class CachedirModCandidateFinder implements ModCandidateFinder {
             }
 
             SemanticVersion version = SemanticVersion.parse(folderName);
-            if (version.compareTo((Version) bestVersion) >= 0 && version.compareTo((Version) this.gameVersion) <= 0) {
+            if (version.compareTo(bestVersion) >= 0 && version.compareTo(this.gameVersion) <= 0) {
                 bestFolder = folderName;
                 bestVersion = version;
             }
@@ -129,33 +158,5 @@ public class CachedirModCandidateFinder implements ModCandidateFinder {
         }
 
         return modPath.resolve(bestFolder);
-    }
-
-    static boolean isValidFile(Path path) {
-        /*
-         * We only propose a file as a possible mod in the following scenarios:
-         * General: Must be a jar file
-         *
-         * Some OSes Generate metadata so consider the following because of OSes:
-         * UNIX: Exclude if file is hidden; this occurs when starting a file name with `.`
-         * MacOS: Exclude hidden + startsWith "." since Mac OS names their metadata files in the form of `.mod.jar`
-         */
-
-        if (!Files.isRegularFile(path)) {
-            return false;
-        }
-
-        try {
-            if (Files.isHidden(path)) {
-                return false;
-            }
-        } catch (IOException e) {
-            Log.warn(LogCategory.DISCOVERY, "Error checking if file %s is hidden", path, e);
-            return false;
-        }
-
-        String fileName = path.getFileName().toString();
-
-        return fileName.endsWith(".jar") && !fileName.startsWith(".") && !fileName.endsWith("-sources.jar");
     }
 }

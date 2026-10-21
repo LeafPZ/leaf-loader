@@ -228,23 +228,23 @@ public final class ModDiscoverer {
                     continue;
                 }
 
-                // If the mod is enabled in the game, but the user hasn't verified it, prompt them to.
+                // If the mod is enabled in the game, but the user hasn't verified it, prompt them to verify/update.
                 if (verifiedModList.wasVerified(mod) && UpdatedModDialog.show(mod)) {
-                    // TODO(leaf): Support server-side
                     verifiedModList.updateMod(mod);
                 } else if (!verifiedModList.isVerified(mod)) {
-                    if (VerifyModDialog.show(mod)) {
-                        // TODO(leaf): Support server-side
-                        verifiedModList.add(mod);
-                    } else {
+                    if (!VerifyModDialog.show(mod)) {
                         Log.info(LogCategory.DISCOVERY, "Skipping mod '%s' (from '%s/%s') because it wasn't verified!",
                             mod.getId(), mod.getWorkshopId(), mod.getGameId());
                         continue;
                     }
+
+                    verifiedModList.add(mod);
                 }
             }
 
-            if (!ret.add(mod)) continue;
+            if (!ret.add(mod)) {
+                continue;
+            }
 
             for (ModCandidateImpl child : mod.getNestedMods()) {
                 if (child.addParent(mod)) {

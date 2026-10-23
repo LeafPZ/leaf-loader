@@ -1,20 +1,4 @@
 /*
- * Copyright 2026 aoqia, FabricMC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
-/*
  * Copyright 2016 FabricMC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,5 +12,23 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Modifications Copyright 2024 aoqia
+ *
+ * The terms "project", "repository", etc refer to the fork/derivation of the Apache-licensed code that was created by
+ * aoqia and is maintained by aoqia and public contributors unless stated otherwise; often by using "original",
+ * "upstream", or similar terms.
+ *
+ * This file was originally released under the Apache License, Version 2.0 - see above for the original header. The
+ * project has been relicensed to the GNU AGPLv3 license with additional terms; said terms are in the
+ * LICENSE_EXCEPTION.md file alongside LICENSE.
+ *
+ * All modifications made to this file after the original Apache-licensed version were created by us. These
+ * modifications are provided under the AGPLv3 license (including exception terms). The portions of this file that were
+ * not modified by us remain subject to the original copyright notice and the Apache License Version 2.0, and the
+ * original license text is retained in LICENSE_UPSTREAM located alongside LICENSE.
+ *
+ * The complete record of changes to this file is publicly available in the project's Git history, which anyone may view
+ * at any time for any reason.
  */
 

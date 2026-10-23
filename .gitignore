@@ -23,6 +23,8 @@
 !/gradlew.bat
 !/HEADER
 !/LICENSE
+!/LICENSE_EXCEPTION.md
+!/LICENSE_UPSTREAM
 !/proguard.conf
 !/README.md
 !/settings.gradle*

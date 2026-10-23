@@ -14,8 +14,10 @@
 !/.envrc
 !/.gitattributes
 !/.gitignore
+!/AGENTS.md
 !/build.gradle*
 !/checkstyle.xml
+!/CLAUDE.md
 !/gradle.properties
 !/gradlew
 !/gradlew.bat

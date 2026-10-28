@@ -1,11 +1,16 @@
-import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
-import dev.aoqia.leaf.loom.build.nesting.JarNester
 import groovy.xml.XmlSlurper
 import groovy.xml.slurpersupport.GPathResult
 import groovy.xml.slurpersupport.NodeChildren
-import proguard.gradle.ProGuardTask
-import java.io.FileNotFoundException
+
 import java.net.URI
+import java.nio.charset.Charset
+import java.io.FileNotFoundException
+
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+import com.diffplug.spotless.LineEnding
+import proguard.gradle.ProGuardTask
+
+import dev.aoqia.leaf.loom.build.nesting.JarNester
 
 val isCiBuild = providers.environmentVariable("CI").map { it.toBoolean() }.orElse(false).get()
 val isSnapshot = providers.gradleProperty("isSnapshot").map { it.toBoolean() }.orElse(false).get()
@@ -28,8 +33,8 @@ plugins {
     `java-library`
     eclipse
 
-    // checkstyle
-//    alias(libs.plugins.spotless)
+    checkstyle
+    alias(libs.plugins.spotless)
 
     alias(libs.plugins.shadow)
     alias(libs.plugins.loom) apply false
@@ -439,6 +444,67 @@ val checkVersion = tasks.register("checkVersion") {
             }
         }
     }
+}
+
+spotless {
+    setEncoding(Charset.forName("UTF-8"))
+    setLineEndings(LineEnding.UNIX)
+
+    java {
+        targetExclude("**/*generated*/**")
+        targetExclude("**/src/main/java/${groupUrl}/${name}/impl/lib/gson")
+
+        eclipse().configFile(file("eclipse-formatter.xml"))
+            .sortMembersEnabled(true)
+            // SF,SI,SM,F,I,C,M,T = Static Fields, Static Initializers, Static Methods,
+            //   Fields, Initializers, Constructors, Methods, (Nested) Types
+            .sortMembersOrder("SF,F,SI,I,C,SM,M,T")
+            .sortMembersDoNotSortFields(true)
+            .sortMembersVisibilityOrderEnabled(true)
+            // B,R,D,V = Public, Protected, Package, Private
+            .sortMembersVisibilityOrder("B,R,D,V")
+
+        cleanthat()
+        // formatAnnotations()
+
+        importOrder(
+            "java|javax",
+            "",
+            "net.fabricmc",
+            "\\#net.fabricmc",
+            "$group",
+            "\\#",
+            "\\#$group",
+            "zombie",
+            "\\#zombie"
+        )
+        removeUnusedImports()
+        forbidWildcardImports()
+        forbidModuleImports()
+
+        trimTrailingWhitespace()
+        leadingTabsToSpaces()
+        endWithNewline()
+
+        toggleOffOn()
+        licenseHeaderFile(file("HEADER")).yearSeparator("-").onlyIfContentMatches("^[^/]{2}")
+    }
+
+    kotlin {
+        targetExclude("src/test/resources/projects/*/**")
+
+        ktlint()
+
+        trimTrailingWhitespace()
+        endWithNewline()
+
+        toggleOffOn()
+        licenseHeaderFile(file("HEADER")).yearSeparator("-").onlyIfContentMatches("^[^/]{2}")
+    }
+}
+
+checkstyle {
+    configFile = file("checkstyle.xml")
 }
 
 publishing {

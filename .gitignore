@@ -11,13 +11,14 @@
 
 !/.cliff.toml
 !/.editorconfig
-!/.envrc
+!/.git-blame-ignore-revs
 !/.gitattributes
 !/.gitignore
 !/AGENTS.md
 !/build.gradle*
 !/checkstyle.xml
 !/CLAUDE.md
+!/eclipse-formatter.xml
 !/gradle.properties
 !/gradlew
 !/gradlew.bat

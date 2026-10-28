@@ -1,11 +1,20 @@
 <?xml version="1.0"?>
-<!DOCTYPE module PUBLIC "-//Puppy Crawl//DTD Check Configuration 1.2//EN" "http://www.puppycrawl.com/dtds/configuration_1_2.dtd">
+<!-- https://github.com/checkstyle/checkstyle/blob/b400bc5b90f043d064087ddfd5c829819f2a4dca/config/checkstyle-checks.xml -->
+<!DOCTYPE module PUBLIC "-//Puppy Crawl//DTD Check Configuration 1.3//EN" "http://www.puppycrawl.com/dtds/configuration_1_3.dtd">
 <module name="Checker">
+    <module name="BeforeExecutionExclusionFileFilter">
+        <property name="fileNamePattern" value=".*[\\/]generated[\\/].*"/>
+    </module>
+
+    <module name="LineLength">
+        <property name="max" value="120"/>
+        <property name="ignorePattern" value="^\s*//\s*https://.+$"/>
+    </module>
+
 	<property name="charset" value="UTF-8"/>
 	<property name="fileExtensions" value="java"/>
 	<property name="localeLanguage" value="en"/>
 	<property name="localeCountry" value="US"/>
-	<property name="tabWidth" value="4"/>
 
 	<module name="NewlineAtEndOfFile"/>
 
@@ -62,28 +71,49 @@
 	</module>
 
 	<module name="TreeWalker">
+        <module name="SuppressionCommentFilter">
+            <property name="offCommentFormat" value="checkstyle:off"/>
+            <property name="onCommentFormat" value="checkstyle:on"/>
+        </module>
+
+        <module name="TrailingComment"/>
+
+        <module name="AvoidNestedBlocks">
+            <property name="allowInSwitchCase" value="true"/>
+        </module>
+
+        <!--<module name="MissingJavadocMethod"/>-->
+        <!--<module name="MissingJavadocPackage"/>-->
+        <!--<module name="MissingJavadocType"/>-->
+
 		<!-- Ensure all imports are ship shape -->
 		<module name="AvoidStarImport"/>
 		<module name="IllegalImport"/>
 		<module name="RedundantImport"/>
 		<module name="UnusedImports"/>
 
-		<module name="ImportOrder">
-			<property name="groups" value="java,javax,*,net.minecraft,net.fabricmc"/>
-			<property name="ordered" value="false"/><!-- the plugin orders alphabetically without considering separators.. -->
-			<property name="separated" value="true"/>
-			<property name="option" value="top"/>
-			<property name="sortStaticImportsAlphabetically" value="true"/>
-		</module>
+		<!--<module name="ImportOrder">-->
+		<!--	<property name="groups" value="java,javax,*,net.fabricmc,dev.aoqia,zombie"/>-->
+		<!--	<property name="ordered" value="false"/>&lt;!&ndash; the plugin orders alphabetically without considering separators.. &ndash;&gt;-->
+		<!--	<property name="separated" value="true"/>-->
+		<!--	<property name="option" value="top"/>-->
+		<!--	<property name="sortStaticImportsAlphabetically" value="false"/>-->
+		<!--</module>-->
+        <module name="IllegalImport">
+            <property name="illegalClasses" value="org.jetbrains.annotations.NotNull"/>
+            <property name="illegalClasses" value="org.jetbrains.annotations.Nullable"/>
+        </module>
 
 		<!-- Ensures braces are at the end of a line -->
-		<module name="LeftCurly"/>
+		<module name="LeftCurly">
+            <property name="option" value="nlow"/>
+        </module>
 		<module name="RightCurly"/>
 
 		<!-- single line statements on one line, -->
 		<module name="NeedBraces">
 			<property name="tokens" value="LITERAL_IF,LITERAL_FOR,LITERAL_WHILE"/>
-			<property name="allowSingleLineStatement" value="true"/>
+			<property name="allowSingleLineStatement" value="false"/>
 		</module>
 		<module name="NeedBraces">
 			<property name="tokens" value="LITERAL_ELSE,LITERAL_DO"/>
@@ -108,11 +138,13 @@
 		</module>
 
 		<module name="Indentation">
-			<property name="basicOffset" value="4"/>
-			<property name="caseIndent" value="0"/>
-			<property name="throwsIndent" value="4"/>
 			<property name="arrayInitIndent" value="4"/>
-			<property name="lineWrappingIndentation" value="8"/>
+			<property name="basicOffset" value="4"/>
+			<property name="braceAdjustment" value="0"/>
+			<property name="caseIndent" value="4"/>
+			<property name="forceStrictCondition" value="false"/>
+			<property name="lineWrappingIndentation" value="4"/>
+			<property name="throwsIndent" value="4"/>
 		</module>
 
 		<module name="ParenPad"/>
@@ -122,10 +154,10 @@
 			<property name="tokens" value="AT,INC,DEC,UNARY_MINUS,UNARY_PLUS,BNOT,LNOT,DOT,ARRAY_DECLARATOR,INDEX_OP"/>
 		</module>
 		<module name="WhitespaceAfter"/>
-		<module name="WhitespaceAround">
-			<!-- Allow PLUS, MINUS, MUL, DIV as they may be more readable without spaces in some cases -->
-			<property name="tokens" value="ASSIGN,BAND,BAND_ASSIGN,BOR,BOR_ASSIGN,BSR,BSR_ASSIGN,BXOR,BXOR_ASSIGN,COLON,DIV_ASSIGN,DO_WHILE,EQUAL,GE,GT,LAMBDA,LAND,LCURLY,LE,LITERAL_CATCH,LITERAL_DO,LITERAL_ELSE,LITERAL_FINALLY,LITERAL_FOR,LITERAL_IF,LITERAL_RETURN,LITERAL_SWITCH,LITERAL_SYNCHRONIZED,LITERAL_TRY,LITERAL_WHILE,LOR,LT,MINUS_ASSIGN,MOD,MOD_ASSIGN,NOT_EQUAL,PLUS_ASSIGN,QUESTION,RCURLY,SL,SLIST,SL_ASSIGN,SR,SR_ASSIGN,STAR,STAR_ASSIGN,LITERAL_ASSERT,TYPE_EXTENSION_AND"/>
-		</module>
+		<!--<module name="WhitespaceAround">-->
+		<!--	&lt;!&ndash; Allow PLUS, MINUS, MUL, DIV as they may be more readable without spaces in some cases &ndash;&gt;-->
+		<!--	<property name="tokens" value="ASSIGN,BAND,BAND_ASSIGN,BOR,BOR_ASSIGN,BSR,BSR_ASSIGN,BXOR,BXOR_ASSIGN,COLON,DIV_ASSIGN,DO_WHILE,EQUAL,GE,GT,LAMBDA,LAND,LCURLY,LE,LITERAL_CATCH,LITERAL_DO,LITERAL_ELSE,LITERAL_FINALLY,LITERAL_FOR,LITERAL_IF,LITERAL_RETURN,LITERAL_SWITCH,LITERAL_SYNCHRONIZED,LITERAL_TRY,LITERAL_WHILE,LOR,LT,MINUS_ASSIGN,MOD,MOD_ASSIGN,NOT_EQUAL,PLUS_ASSIGN,QUESTION,RCURLY,SL,SLIST,SL_ASSIGN,SR,SR_ASSIGN,STAR,STAR_ASSIGN,LITERAL_ASSERT,TYPE_EXTENSION_AND"/>-->
+		<!--</module>-->
 		<module name="SingleSpaceSeparator"/>
 		<module name="GenericWhitespace"/>
 		<module name="CommentsIndentation"/>
@@ -144,29 +176,15 @@
 		<module name="AnnotationLocation"/>
 		<module name="MissingOverride"/>
 
-		<!-- By default this allows catch blocks with only comments -->
-		<module name="EmptyCatchBlock"/>
-
-		<!-- Enforce tabs -->
-		<module name="RegexpSinglelineJava">
-			<property name="format" value="^\t* ([^*]|\*[^ /])"/>
-			<property name="message" value="non-tab indentation"/>
-		</module>
+        <!--<module name="EmptyCatchBlock"/>-->
 
 		<module name="OuterTypeFilename"/>
-		<module name="PackageDeclaration"/>
-		<module name="PackageName"/>
 
 		<!--<module name="InvalidJavadocPosition"/>-->
 		<module name="JavadocParagraph"/>
-		<module name="JavadocStyle"/>
+		<!--<module name="JavadocStyle"/>-->
 		<module name="AtclauseOrder">
 			<property name="tagOrder" value="@param,@return,@throws,@deprecated"/>
 		</module>
-	</module>
-
-	<module name="SuppressionSingleFilter">
-		<property name="files" value="net[\\/]fabricmc[\\/]loader[\\/]impl[\\/]lib[\\/]"/>
-		<property name="checks" value=".*"/>
 	</module>
 </module>

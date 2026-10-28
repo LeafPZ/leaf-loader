@@ -1,6 +1,6 @@
 # License Exceptions
 
-Copyright 2024 YEAR aoqia
+Copyright (C) 2026 aoqia
 
 This exception details additional permissions under section 7 of the  
 GNU Affero General Public License version 3.

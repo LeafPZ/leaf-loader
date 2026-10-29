@@ -114,6 +114,8 @@ dependencies {
     "include"(libs.clazztweaker)
     "include"(libs.mappingio)
 
+    api(libs.jspecify)
+
     testCompileOnly(libs.annotations)
 
     // Unit testing for mod metadata

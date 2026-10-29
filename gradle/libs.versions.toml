@@ -8,6 +8,7 @@ flatlaf = "3.7.2"
 gson = "2.14.0"
 junit-bom = "5.10.0"
 junit-jupiter = "5.9.2"
+jspecify = "1.0.1"
 log4j = "2.25.1"
 loom = "1.0.0"
 mappingio = "0.7.1"
@@ -32,6 +33,7 @@ asm-util = { module = "org.ow2.asm:asm-util", version.ref = "asm" }
 clazztweaker = { module = "net.fabricmc:class-tweaker", version.ref = "clazztweaker" }
 flatlaf = { module = "com.formdev:flatlaf", version.ref = "flatlaf" }
 gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
+jspecify = { module = "org.jspecify:jspecify", version.ref = "jspecify" }
 junit-bom = { module = "org.junit:junit-bom", version.ref = "junit-bom" }
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit-jupiter" }
 junit-jupiter-engine = { module = "org.junit.jupiter:junit-jupiter-engine" }

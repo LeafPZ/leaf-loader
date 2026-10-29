@@ -904,7 +904,7 @@
     <!-- Never join already wrapped lines -->
     <setting id="org.eclipse.jdt.core.formatter.join_wrapped_lines" value="false"/>
     <!-- Prefer wrapping outer expressions (keep nested expressions on one line) -->
-    <setting id="org.eclipse.jdt.core.formatter.wrap_outer_expressions_when_nested" value="false"/>
+    <setting id="org.eclipse.jdt.core.formatter.wrap_outer_expressions_when_nested" value="true"/>
 
     <!--
     Line Wrapping / Wrapping settings

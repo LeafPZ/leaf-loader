@@ -445,8 +445,7 @@ spotless {
     setLineEndings(LineEnding.UNIX)
 
     java {
-        targetExclude("**/*generated*/**")
-        targetExclude("**/lib/gson/**")
+        targetExclude("**/generated/**", "**/lib/gson/**")
 
         eclipse().configFile(file("eclipse-formatter.xml"))
             .sortMembersEnabled(true)

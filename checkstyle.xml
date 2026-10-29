@@ -6,6 +6,10 @@
         <property name="fileNamePattern" value=".*[\\/]generated[\\/].*"/>
     </module>
 
+    <module name="BeforeExecutionExclusionFileFilter">
+        <property name="fileNamePattern" value=".*[\\/]lib[\\/]gson[\\/].*"/>
+    </module>
+
     <module name="LineLength">
         <property name="max" value="120"/>
         <property name="ignorePattern" value="^\s*//\s*https://.+$"/>

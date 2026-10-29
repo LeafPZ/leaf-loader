@@ -81,7 +81,7 @@
     <!-- Enum declaration -->
     <setting id="org.eclipse.jdt.core.formatter.brace_position_for_enum_declaration" value="next_line_on_wrap"/>
     <!-- Enum constant body -->
-    <setting id="org.eclipse.jdt.core.formatter.brace_position_for_enum_constant" value="next_line_on_wrap"/>
+    <setting id="org.eclipse.jdt.core.formatter.brace_position_for_enum_constant" value="end_of_line"/>
     <!-- Record declaration -->
     <setting id="org.eclipse.jdt.core.formatter.brace_position_for_record_declaration" value="next_line_on_wrap"/>
     <!-- Record constructor -->

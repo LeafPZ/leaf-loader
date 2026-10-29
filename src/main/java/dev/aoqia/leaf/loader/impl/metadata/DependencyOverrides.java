@@ -186,7 +186,8 @@ public final class DependencyOverrides {
                 }
             }
 
-            assert op != null; // should always match since REPLACE has an empty operator string
+            // should always match since REPLACE has an empty operator string
+            assert op != null;
 
             ModDependency.Kind kind = ModDependency.Kind.parse(key);
 
@@ -217,15 +218,19 @@ public final class DependencyOverrides {
             List<ModDependency> values = map.get(Operation.REPLACE);
 
             if (values != null) {
-                ret.add(new Entry(Operation.REPLACE, kind, values)); // suppresses add+remove
+                // suppresses add+remove
+                ret.add(new Entry(Operation.REPLACE, kind, values));
             } else {
                 values = map.get(Operation.REMOVE);
-                if (values != null)
+                if (values != null) {
                     ret.add(new Entry(Operation.REMOVE, kind, values));
+                }
 
-                values = map.get(Operation.ADD); // after remove
-                if (values != null)
+                // after remove
+                values = map.get(Operation.ADD);
+                if (values != null) {
                     ret.add(new Entry(Operation.ADD, kind, values));
+                }
             }
         }
 
@@ -233,12 +238,14 @@ public final class DependencyOverrides {
     }
 
     public void apply(LoaderModMetadata metadata) {
-        if (dependencyOverrides.isEmpty())
+        if (dependencyOverrides.isEmpty()) {
             return;
+        }
 
         List<Entry> modOverrides = dependencyOverrides.get(metadata.getId());
-        if (modOverrides == null)
+        if (modOverrides == null) {
             return;
+        }
 
         List<ModDependency> deps = new ArrayList<>(metadata.getDependencies());
 
@@ -298,7 +305,8 @@ public final class DependencyOverrides {
     private enum Operation {
         ADD("+"),
         REMOVE("-"),
-        REPLACE(""); // needs to be last to properly match the operator (empty string would match everything)
+        // needs to be last to properly match the operator (empty string would match everything)
+        REPLACE("");
 
         static final Operation[] VALUES = values();
 

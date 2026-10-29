@@ -62,8 +62,9 @@ public interface ModContainer {
     default Optional<Path> findPath(String file) {
         for (Path root : getRootPaths()) {
             Path path = root.resolve(file.replace("/", root.getFileSystem().getSeparator()));
-            if (Files.exists(path))
+            if (Files.exists(path)) {
                 return Optional.of(path);
+            }
         }
 
         return Optional.empty();

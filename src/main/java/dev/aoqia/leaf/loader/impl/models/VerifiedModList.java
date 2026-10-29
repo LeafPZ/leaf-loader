@@ -16,6 +16,7 @@
  * The exceptions permit independent software to use this project as a dependency under terms of its own choosing, but
  * does not permit the copying or incorporation of covered source code into another work outside the terms of the AGPL.
  */
+
 package dev.aoqia.leaf.loader.impl.models;
 
 import java.io.BufferedReader;
@@ -28,7 +29,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import dev.aoqia.leaf.loader.impl.FormattedException;
 import dev.aoqia.leaf.loader.impl.discovery.ModCandidateImpl;

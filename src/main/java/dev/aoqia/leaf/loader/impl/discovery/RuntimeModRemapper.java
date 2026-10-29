@@ -94,14 +94,16 @@ public final class RuntimeModRemapper {
             }
         }
 
-        if (modsToRemap.isEmpty())
+        if (modsToRemap.isEmpty()) {
             return;
+        }
 
         MappingConfiguration config = LeafLauncherBase.getLauncher().getMappingConfiguration();
         String modNs = config.getDefaultModDistributionNamespace();
         String runtimeNs = config.getRuntimeNamespace();
-        if (modNs.equals(runtimeNs) || !config.hasAnyMappings())
+        if (modNs.equals(runtimeNs) || !config.hasAnyMappings()) {
             return;
+        }
 
         Map<ModCandidateImpl, RemapInfo> infoMap = new HashMap<>();
 
@@ -119,8 +121,9 @@ public final class RuntimeModRemapper {
 
                 if (mod.hasPath()) {
                     List<Path> paths = mod.getPaths();
-                    if (paths.size() != 1)
+                    if (paths.size() != 1) {
                         throw new UnsupportedOperationException("multiple path for " + mod);
+                    }
 
                     info.inputPath = paths.get(0);
                 } else {
@@ -251,8 +254,9 @@ public final class RuntimeModRemapper {
         } finally {
             for (RemapInfo info : infoMap.values()) {
                 try {
-                    if (info.inputIsTemp)
+                    if (info.inputIsTemp) {
                         Files.deleteIfExists(info.inputPath);
+                    }
                 } catch (IOException e) {
                     Log.warn(LogCategory.MOD_REMAP, "Error deleting temporary input jar %s", info.inputIsTemp, e);
                 }
@@ -293,14 +297,16 @@ public final class RuntimeModRemapper {
         URISyntaxException
     {
         final Manifest manifest = ManifestUtil.readManifest(inputPath);
-        if (manifest == null)
+        if (manifest == null) {
             return false;
+        }
 
         final Attributes mainAttributes = manifest.getMainAttributes();
 
         String remapType = mainAttributes.getValue(REMAP_TYPE_MANIFEST_KEY);
-        if (remapType == null)
+        if (remapType == null) {
             remapType = defaultMixinRemapType;
+        }
 
         return REMAP_TYPE_STATIC.equalsIgnoreCase(remapType);
     }

@@ -58,8 +58,9 @@ public final class ModDependencyImpl implements ModDependency {
 
     @Override
     public boolean equals(Object obj) {
-        if (!(obj instanceof ModDependency))
+        if (!(obj instanceof ModDependency)) {
             return false;
+        }
 
         ModDependency o = (ModDependency) obj;
 
@@ -102,8 +103,9 @@ public final class ModDependencyImpl implements ModDependency {
     @Override
     public boolean matches(Version version) {
         for (VersionPredicate predicate : ranges) {
-            if (predicate.test(version))
+            if (predicate.test(version)) {
                 return true;
+            }
         }
 
         return false;

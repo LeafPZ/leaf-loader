@@ -54,7 +54,7 @@ import java.util.Set;
 import java.util.jar.JarFile;
 import java.util.zip.ZipFile;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import net.fabricmc.mappingio.tree.MappingTree;
 import net.fabricmc.tinyremapper.InputTag;
@@ -84,7 +84,7 @@ public final class GameProviderHelper {
     public static void addLibrary(String pathStr, List<Path> out) {
         Path path = LoaderUtil.normalizePath(Paths.get(pathStr));
 
-        if (!Files.exists(path)) { // missing
+        if (!Files.exists(path)) {
             Log.warn(LogCategory.GAME_PROVIDER, "Skipping missing library path %s", path);
         } else {
             out.add(path);
@@ -109,7 +109,8 @@ public final class GameProviderHelper {
 
             throw new FormattedException("Incompatible mappings",
                 String.format(
-                    "Supplied mappings for %s %s are incompatible with %s %s, this is likely caused by launcher misbehavior",
+                    "Supplied mappings for %s %s are incompatible with %s %s"
+                        + ", this is likely caused by launcher misbehavior",
                     (mappingsGameId != null ? mappingsGameId : "(unknown)"),
                     (mappingsGameVersion != null ? mappingsGameVersion : "(unknown)"),
                     gameId,
@@ -118,10 +119,7 @@ public final class GameProviderHelper {
 
         List<String> namespaces = mappingConfig.getNamespaces();
 
-        if (namespaces == null
-            || !namespaces.contains(sourceNamespace)
-            || !namespaces.contains(targetNamespace))
-        {
+        if (namespaces == null || !namespaces.contains(sourceNamespace) || !namespaces.contains(targetNamespace)) {
             Log.debug(LogCategory.GAME_REMAP, "No mappings, using input files");
             return inputFileMap;
         }
@@ -149,9 +147,12 @@ public final class GameProviderHelper {
             Path outputFile = deobfJarDir.resolve(deobfJarFilename);
             Path tmpFile = deobfJarDir.resolve(deobfJarFilename + ".tmp");
 
-            if (Files.exists(tmpFile)) { // previous unfinished remap attempt
+            // previous unfinished remap attempt
+            if (Files.exists(tmpFile)) {
                 Log.warn(LogCategory.GAME_REMAP,
-                    "Incomplete remapped file found! This means that the remapping process failed on the previous launch. If this persists, make sure to raise an issue!");
+                    "Incomplete remapped file found!"
+                        + " This means that the remapping process failed on the previous launch."
+                        + " If this persists, make sure to raise an issue!");
 
                 try {
                     Files.deleteIfExists(outputFile);
@@ -229,28 +230,32 @@ public final class GameProviderHelper {
 
     public static Path getGameJar() {
         String val = System.getProperty(SystemProperties.GAME_JAR_PATH);
-        if (val == null)
+        if (val == null) {
             return null;
+        }
 
         Path path = Paths.get(val);
-        if (!Files.exists(path))
+        if (!Files.exists(path)) {
             throw new RuntimeException("Game jar " + path + " (" + LoaderUtil.normalizePath(path)
                 + ") configured through " + SystemProperties.GAME_JAR_PATH
                 + " system property doesn't exist");
+        }
 
         return LoaderUtil.normalizeExistingPath(path);
     }
 
     public static @Nullable List<Path> getLibraries(String property) {
         String value = System.getProperty(property);
-        if (value == null)
+        if (value == null) {
             return null;
+        }
 
         List<Path> ret = new ArrayList<>();
 
         for (String pathStr : value.split(File.pathSeparator)) {
-            if (pathStr.isEmpty())
+            if (pathStr.isEmpty()) {
                 continue;
+            }
 
             if (pathStr.startsWith("@")) {
                 Path path = Paths.get(pathStr.substring(1));
@@ -265,8 +270,9 @@ public final class GameProviderHelper {
 
                     while ((line = reader.readLine()) != null) {
                         line = line.trim();
-                        if (line.isEmpty())
+                        if (line.isEmpty()) {
                             continue;
+                        }
 
                         addLibrary(line, ret);
                     }
@@ -426,13 +432,15 @@ public final class GameProviderHelper {
         }
 
         if (!gameVersion.isEmpty()) {
-            if (versionDirName.length() > 0)
+            if (versionDirName.length() > 0) {
                 versionDirName.append('-');
+            }
             versionDirName.append(gameVersion);
         }
 
-        if (versionDirName.length() > 0)
+        if (versionDirName.length() > 0) {
             versionDirName.append('-');
+        }
         versionDirName.append(LeafLoaderImpl.VERSION);
 
         return ret.resolve(versionDirName.toString().replaceAll("[^\\w\\-\\. ]+", "_"));

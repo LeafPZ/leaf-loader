@@ -147,7 +147,8 @@ public abstract class LeafLauncherBase implements LeafLauncher {
                             LeafGuiEntry.displayError(mainText, e, false);
                         }
                     }
-                } catch (Throwable e2) { // just in case
+                } catch (Throwable e2) {
+                    // just in case
                     e.addSuppressed(e2);
 
                     try {

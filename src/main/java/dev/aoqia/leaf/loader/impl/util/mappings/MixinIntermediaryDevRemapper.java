@@ -46,8 +46,8 @@ import org.spongepowered.asm.mixin.transformer.ClassInfo;
 import net.fabricmc.mappingio.tree.MappingTree;
 
 public class MixinIntermediaryDevRemapper extends MixinRemapper {
-    private static final String ambiguousName = "<ambiguous>"; // dummy value for ambiguous mappings - needs querying
-                                                               // with additional owner and/or desc info
+    /// Dummy value for ambiguous mappings - needs querying with additional owner and/or desc info
+    private static final String ambiguousName = "<ambiguous>";
 
     private final Set<String> allPossibleClassNames = new HashSet<>();
     private final Map<String, String> nameFieldLookup = new HashMap<>();
@@ -164,8 +164,8 @@ public class MixinIntermediaryDevRemapper extends MixinRemapper {
         }
 
         ClassInfo classInfo = ClassInfo.forName(map(owner));
-
-        if (classInfo == null) { // unknown class?
+        if (classInfo == null) {
+            // unknown class?
             return name;
         }
 

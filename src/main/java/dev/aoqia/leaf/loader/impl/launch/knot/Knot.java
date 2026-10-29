@@ -114,19 +114,16 @@ public final class Knot extends LeafLauncherBase {
     private static GameProvider findEmbedddedGameProvider() {
         try {
             Path flPath = UrlUtil.getCodeSource(Knot.class);
-            if (flPath == null || !flPath.getFileName().toString().endsWith(".jar"))
-                return null; // not a jar
+            if (flPath == null || !flPath.getFileName().toString().endsWith(".jar")) {
+                return null;
+            }
 
             try (ZipFile zf = new ZipFile(flPath.toFile())) {
-                ZipEntry entry = zf.getEntry("META-INF/services/dev.aoqia.leaf.loader.impl.game.GameProvider"); // same
-                                                                                                                // file
-                                                                                                                // as
-                                                                                                                // used
-                                                                                                                // by
-                                                                                                                // service
-                                                                                                                // loader
-                if (entry == null)
+                // same file as used by service loader
+                ZipEntry entry = zf.getEntry("META-INF/services/dev.aoqia.leaf.loader.impl.game.GameProvider");
+                if (entry == null) {
                     return null;
+                }
 
                 try (InputStream is = zf.getInputStream(entry)) {
                     byte[] buffer = new byte[100];
@@ -135,17 +132,22 @@ public final class Knot extends LeafLauncherBase {
 
                     while ((len = is.read(buffer, offset, buffer.length - offset)) >= 0) {
                         offset += len;
-                        if (offset == buffer.length)
+                        if (offset == buffer.length) {
                             buffer = Arrays.copyOf(buffer, buffer.length * 2);
+                        }
                     }
 
                     String content = new String(buffer, 0, offset, StandardCharsets.UTF_8).trim();
-                    if (content.indexOf('\n') >= 0)
-                        return null; // potentially more than one entry -> bail out
+
+                    // potentially more than one entry -> bail out
+                    if (content.indexOf('\n') >= 0) {
+                        return null;
+                    }
 
                     int pos = content.indexOf('#');
-                    if (pos >= 0)
+                    if (pos >= 0) {
                         content = content.substring(0, pos).trim();
+                    }
 
                     if (!content.isEmpty()) {
                         return (GameProvider) Class.forName(content).getConstructor().newInstance();
@@ -169,8 +171,9 @@ public final class Knot extends LeafLauncherBase {
 
     @Override
     public byte[] getClassByteArray(String name, boolean runTransformers) throws IOException {
-        if (!unlocked)
+        if (!unlocked) {
             throw new IllegalStateException("early getClassByteArray access");
+        }
 
         if (runTransformers) {
             return classLoader.getPreMixinClassBytes(name);
@@ -217,8 +220,9 @@ public final class Knot extends LeafLauncherBase {
         // configure fabric vars
         if (envType == null) {
             String side = System.getProperty(SystemProperties.SIDE);
-            if (side == null)
+            if (side == null) {
                 throw new RuntimeException("Please specify side or use a dedicated Knot!");
+            }
 
             switch (side.toLowerCase(Locale.ROOT)) {
                 case "client":
@@ -239,8 +243,10 @@ public final class Knot extends LeafLauncherBase {
 
         for (String cpEntry : System.getProperty("java.class.path").split(File.pathSeparator)) {
             if (cpEntry.equals("*") || cpEntry.endsWith(File.separator + "*")) {
-                if (unsupported == null)
+                if (unsupported == null) {
                     unsupported = new ArrayList<>();
+                }
+
                 unsupported.add(cpEntry);
                 continue;
             }
@@ -248,8 +254,10 @@ public final class Knot extends LeafLauncherBase {
             Path path = Paths.get(cpEntry);
 
             if (!Files.exists(path)) {
-                if (missing == null)
+                if (missing == null) {
                     missing = new ArrayList<>();
+                }
+
                 missing.add(cpEntry);
                 continue;
             }
@@ -257,24 +265,27 @@ public final class Knot extends LeafLauncherBase {
             classPath.add(LoaderUtil.normalizeExistingPath(path));
         }
 
-        if (unsupported != null)
+        if (unsupported != null) {
             Log.warn(LogCategory.KNOT,
-                "Knot does not support wildcard class path entries: %s - the game may not load properly!", String.join(
-                    ", ", unsupported));
-        if (missing != null)
+                "Knot does not support wildcard class path entries: %s - the game may not load properly!",
+                String.join(", ", unsupported));
+        }
+
+        if (missing != null) {
             Log.warn(LogCategory.KNOT,
-                "Class path entries reference missing files: %s - the game may not load properly!", String.join(", ",
-                    missing));
+                "Class path entries reference missing files: %s - the game may not load properly!",
+                String.join(", ", missing));
+        }
 
         provider = createGameProvider(args);
         Log.finishBuiltinConfig();
-        Log.info(LogCategory.GAME_PROVIDER, "Loading %s %s with Leaf Loader %s", provider.getGameName(), provider
-            .getRawGameVersion(), LeafLoaderImpl.VERSION);
+        Log.info(LogCategory.GAME_PROVIDER, "Loading %s %s with Leaf Loader %s", provider.getGameName(),
+            provider.getRawGameVersion(), LeafLoaderImpl.VERSION);
 
         // Setup classloader
         // TODO: Provide KnotCompatibilityClassLoader in non-exclusive-Fabric pre-1.13 environments?
-        boolean useCompatibility = provider.requiresUrlClassLoader() || SystemProperties.isSet(
-            SystemProperties.USE_COMPAT_CL);
+        boolean useCompatibility =
+            provider.requiresUrlClassLoader() || SystemProperties.isSet(SystemProperties.USE_COMPAT_CL);
         classLoader = KnotClassLoaderInterface.create(useCompatibility, isDevelopment(), envType, provider);
         ClassLoader cl = classLoader.getClassLoader();
         Thread.currentThread().setContextClassLoader(cl);
@@ -341,12 +352,13 @@ public final class Knot extends LeafLauncherBase {
         List<GameProvider> failedProviders = new ArrayList<>();
 
         for (GameProvider provider : ServiceLoader.load(GameProvider.class)) {
-            if (!provider.isEnabled())
-                continue; // don't attempt disabled providers and don't include them in the error report
+            // don't attempt disabled providers and don't include them in the error report
+            if (!provider.isEnabled()) {
+                continue;
+            }
 
-            if (provider != embeddedGameProvider // don't retry already failed provider
-                && provider.locateGame(this, args))
-            {
+            // don't retry already failed provider
+            if (provider != embeddedGameProvider && provider.locateGame(this, args)) {
                 return provider;
             }
 
@@ -370,7 +382,6 @@ public final class Knot extends LeafLauncherBase {
         }
 
         Log.error(LogCategory.GAME_PROVIDER, msg);
-
         throw new RuntimeException(msg);
     }
 }

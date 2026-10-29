@@ -96,8 +96,9 @@ final class ResultAnalyzer {
                     matches.add(selected);
                 } else {
                     List<ModCandidateImpl> candidates = modsById.get(dep.getModId());
-                    if (candidates != null)
+                    if (candidates != null) {
                         matches.addAll(candidates);
+                    }
                 }
 
                 addErrorToList(explanation.mod, explanation.dep, matches, envDisabledMods.containsKey(dep.getModId()),
@@ -206,8 +207,8 @@ final class ResultAnalyzer {
                 present = false;
 
                 for (ModCandidateImpl match : matches) {
-                    if (dep.matches(match.getVersion())) { // there is a satisfying mod version, but it can't be loaded
-                                                           // for other reasons
+                    // there is a satisfying mod version, but it can't be loaded for other reasons
+                    if (dep.matches(match.getVersion())) {
                         present = true;
                         break;
                     }
@@ -269,8 +270,9 @@ final class ResultAnalyzer {
                     }
                 }
 
-                if (best == null)
+                if (best == null) {
                     break;
+                }
 
                 paths.add(best);
                 cur = best;
@@ -281,8 +283,9 @@ final class ResultAnalyzer {
             for (int i = paths.size() - 1; i >= 0; i--) {
                 ModCandidateImpl m = paths.get(i);
 
-                if (pathSb.length() > 0)
+                if (pathSb.length() > 0) {
                     pathSb.append(" -> ");
+                }
                 pathSb.append(m.getLocalPath());
             }
 
@@ -370,8 +373,8 @@ final class ResultAnalyzer {
             List<ModCandidateImpl> oldMods = entry.getValue();
             String oldModsFormatted = formatOldMods(oldMods);
 
-            if (oldMods.size() != 1 || !oldMods.get(0).getId().equals(newMod.getId())) { // replace mods with another
-                                                                                         // mod (different mod id)
+            // replace mods with another mod (different mod id)
+            if (oldMods.size() != 1 || !oldMods.get(0).getId().equals(newMod.getId())) {
                 String newModName = newMod.getId();
                 ModCandidateImpl alt = selectedMods.get(newMod.getId());
 
@@ -379,26 +382,31 @@ final class ResultAnalyzer {
                     newModName = getName(alt);
                 } else {
                     List<ModCandidateImpl> alts = modsById.get(newMod.getId());
-                    if (alts != null && !alts.isEmpty())
+                    if (alts != null && !alts.isEmpty()) {
                         newModName = getName(alts.get(0));
+                    }
                 }
 
                 pw.printf("\n\t - %s", Localization.format("resolution.solution.replaceMod",
                     oldModsFormatted,
                     newModName,
                     formatVersionRequirements(newMod.getVersionIntervals())));
-            } else { // replace mod version only
+            } else {
+                // replace mod version only
+
                 ModCandidateImpl oldMod = oldMods.get(0);
                 boolean hasOverlap = !VersionInterval.and(newMod.getVersionIntervals(),
                     Collections.singletonList(new VersionIntervalImpl(oldMod.getVersion(), true, oldMod.getVersion(),
                         true)))
                     .isEmpty();
 
-                if (!hasOverlap) { // required version range doesn't overlap installed version, recommend range as-is
+                // required version range doesn't overlap installed version, recommend range as-is
+                if (!hasOverlap) {
                     pw.printf("\n\t - %s", Localization.format("resolution.solution.replaceModVersion",
                         oldModsFormatted,
                         formatVersionRequirements(newMod.getVersionIntervals())));
-                } else { // required version range overlaps installed version, recommend range without
+                } else {
+                    // required version range overlaps installed version, recommend range without
                     pw.printf("\n\t - %s", Localization.format("resolution.solution.replaceModVersionDifferent",
                         oldModsFormatted,
                         formatVersionRequirements(newMod.getVersionIntervals())));
@@ -407,8 +415,9 @@ final class ResultAnalyzer {
 
                     // check old deps against future mod set to highlight inconsistencies
                     for (ModDependency dep : oldMod.getDependencies()) {
-                        if (dep.getKind().isSoft())
+                        if (dep.getKind().isSoft()) {
                             continue;
+                        }
 
                         ModCandidateImpl mod = fix.activeMods.get(dep.getModId());
 
@@ -493,10 +502,12 @@ final class ResultAnalyzer {
                     // empty interval, skip
                     continue;
                 }
-            } else if (isWildcard(interval, 0)) { // major.x wildcard
+            } else if (isWildcard(interval, 0)) {
+                // major.x wildcard
                 SemanticVersion version = (SemanticVersion) interval.getMin();
                 str = Localization.format("resolution.version.major", version.getVersionComponent(0));
-            } else if (isWildcard(interval, 1)) { // major.minor.x wildcard
+            } else if (isWildcard(interval, 1)) {
+                // major.minor.x wildcard
                 SemanticVersion version = (SemanticVersion) interval.getMin();
                 str = Localization.format("resolution.version.majorMinor", version.getVersionComponent(0), version
                     .getVersionComponent(1));
@@ -547,10 +558,9 @@ final class ResultAnalyzer {
      * Example: [1.2.0-,1.3.0-) is the same as 1.2.x (incrementedComponent=1)
      */
     private static boolean isWildcard(VersionInterval interval, int incrementedComponent) {
-        if (interval == null || interval.getMin() == null || interval.getMax() == null // not an interval with
-                                                                                       // lower+upper bounds
-            || !interval.isMinInclusive() || interval.isMaxInclusive() // not an [a,b) interval
-            || !interval.isSemantic())
+        // not an interval with lower+upper bounds or not an [a,b) interval
+        if (interval == null || interval.getMin() == null || interval.getMax() == null || !interval.isMinInclusive()
+            || interval.isMaxInclusive() || !interval.isSemantic())
         {
             return false;
         }
@@ -559,9 +569,7 @@ final class ResultAnalyzer {
         SemanticVersion max = (SemanticVersion) interval.getMax();
 
         // min and max need to use the empty prerelease (a.b.c-)
-        if (!"".equals(min.getPrereleaseKey().orElse(null))
-            || !"".equals(max.getPrereleaseKey().orElse(null)))
-        {
+        if (!"".equals(min.getPrereleaseKey().orElse(null)) || !"".equals(max.getPrereleaseKey().orElse(null))) {
             return false;
         }
 
@@ -571,8 +579,8 @@ final class ResultAnalyzer {
         }
 
         for (
-            int i = incrementedComponent + 1, m = Math.max(min.getVersionComponentCount(), max
-                .getVersionComponentCount());
+            int i = incrementedComponent + 1,
+                m = Math.max(min.getVersionComponentCount(), max.getVersionComponentCount());
             i < m;
             i++)
         {

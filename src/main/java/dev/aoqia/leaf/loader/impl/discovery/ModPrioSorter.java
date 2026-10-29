@@ -98,8 +98,10 @@ final class ModPrioSorter {
         // this is implemented through insertion sort which allows for skipping over unrelated mods that aren't properly
         // comparable
 
-        if (providedMods.isEmpty())
-            return; // no overlapping id mods
+        // no overlapping id mods
+        if (providedMods.isEmpty()) {
+            return;
+        }
 
         // float overlapping ids up as needed
 
@@ -113,8 +115,8 @@ final class ModPrioSorter {
 
             // System.out.printf("%d: %s%n", i, mod);
 
-            if (!movedPastRoots && !mod.isRoot()) { // update start index to avoid mixing root and non-root mods (root
-                                                    // always has higher prio)
+            // update start index to avoid mixing root and non-root mods (root always has higher prio)
+            if (!movedPastRoots && !mod.isRoot()) {
                 movedPastRoots = true;
                 startIdx = i;
             }
@@ -133,8 +135,9 @@ final class ModPrioSorter {
                 }
             }
 
-            if (potentiallyOverlappingIds.isEmpty())
+            if (potentiallyOverlappingIds.isEmpty()) {
                 continue;
+            }
 
             // search for a suitable mod that overlaps mod but has a lower version
 
@@ -143,24 +146,29 @@ final class ModPrioSorter {
             for (int j = i - 1; j >= startIdx; j--) {
                 ModCandidateImpl cmpMod = mods.get(j);
                 String cmpId = cmpMod.getId();
-                if (cmpId.equals(id))
-                    break; // can't move mod past another mod with the same id since that mod since that mod would have
-                           // a higher version due to the previous sorting step and thus always has higher prio
+
+                // can't move mod past another mod with the same id since that mod since that mod would have a higher
+                // version due to the previous sorting step and thus always has higher priority
+                if (cmpId.equals(id)) {
+                    break;
+                }
 
                 // quick check if it might match
                 if (!potentiallyOverlappingIds.contains(cmpId)
-                    && (cmpMod.getProvides().isEmpty() || Collections.disjoint(potentiallyOverlappingIds, cmpMod
-                        .getProvides())))
+                    && (cmpMod.getProvides().isEmpty()
+                        || Collections.disjoint(potentiallyOverlappingIds, cmpMod.getProvides())))
                 {
                     continue;
                 }
 
                 int cmp = compareOverlappingIds(mod, cmpMod, Integer.MAX_VALUE);
 
-                if (cmp < 0) { // mod needs to be after cmpMod, move mod forward
+                // mod needs to be after cmpMod, move mod forward
+                if (cmp < 0) {
                     // System.out.printf("found candidate for %d at %d (before %s)%n", i, j, cmpMod);
                     earliestIdx = j;
-                } else if (cmp != Integer.MAX_VALUE) { // cmpMod has at least the same prio, don't search past it
+                } else if (cmp != Integer.MAX_VALUE) {
+                    // cmpMod has at least the same prio, don't search past it
                     break;
                 }
             }
@@ -181,43 +189,53 @@ final class ModPrioSorter {
 
         if (a.isRoot()) {
             if (!b.isRoot()) {
-                return -1; // only a is root
+                // only a is root
+                return -1;
             }
         } else if (b.isRoot()) {
-            return 1; // only b is root
+            // only b is root
+            return 1;
         }
 
         // sort id asc
 
         int idCmp = a.getId().compareTo(b.getId());
-        if (idCmp != 0)
+        if (idCmp != 0) {
             return idCmp;
+        }
 
         // sort version desc (lower version later)
         int versionCmp = b.getVersion().compareTo(a.getVersion());
-        if (versionCmp != 0)
+        if (versionCmp != 0) {
             return versionCmp;
+        }
 
-        // sort nestLevel asc
-        int nestCmp = a.getMinNestLevel() - b.getMinNestLevel(); // >0 if nest(a) > nest(b)
-        if (nestCmp != 0)
+        // sort nestLevel asc, >0 if nest(a) > nest(b)
+        int nestCmp = a.getMinNestLevel() - b.getMinNestLevel();
+        if (nestCmp != 0) {
             return nestCmp;
+        }
 
-        if (a.isRoot())
-            return 0; // both root
+        if (a.isRoot()) {
+            // both root
+            return 0;
+        }
 
         // find highest priority parent, if it is not shared by both a+b the one that has it is deemed higher prio
         return compareParents(a, b);
     }
 
     private static int compareOverlappingIds(ModCandidateImpl a, ModCandidateImpl b, int noMatchResult) {
-        assert !a.getId().equals(b.getId()); // should have been handled before
+        // should have been handled before
+        assert !a.getId().equals(b.getId());
 
-        int ret = 0; // sum of individual normalized pair comparisons, may cancel each other out
-        boolean matched = false; // whether any ids overlap, for falling back to main id comparison as if there were no
-                                 // provides
+        /// Sum of individual normalized pair comparisons, may cancel each other out
+        int ret = 0;
+        /// Whether any ids overlap, for falling back to main id comparison as if there were no provides
+        boolean matched = false;
 
-        for (String provIdA : a.getProvides()) { // a-provides vs b
+        // a-provides vs b
+        for (String provIdA : a.getProvides()) {
             if (provIdA.equals(b.getId())) {
                 Version providedVersionA = a.getVersion();
                 ret += Integer.signum(b.getVersion().compareTo(providedVersionA));
@@ -226,7 +244,8 @@ final class ModPrioSorter {
         }
 
         for (String provIdB : b.getProvides()) {
-            if (provIdB.equals(a.getId())) { // a vs b-provides
+            // a vs b-provides
+            if (provIdB.equals(a.getId())) {
                 Version providedVersionB = b.getVersion();
                 ret += Integer.signum(providedVersionB.compareTo(a.getVersion()));
                 matched = true;
@@ -234,7 +253,8 @@ final class ModPrioSorter {
                 continue;
             }
 
-            for (String provIdA : a.getProvides()) { // a-provides vs b-provides
+            // a-provides vs b-provides
+            for (String provIdA : a.getProvides()) {
                 if (provIdB.equals(provIdA)) {
                     Version providedVersionA = a.getVersion();
                     Version providedVersionB = b.getVersion();
@@ -265,13 +285,16 @@ final class ModPrioSorter {
         boolean found = false;
 
         for (ModCandidateImpl mod : b.getParentMods()) {
-            if (mod == minParent) { // both a and b have minParent
+            if (mod == minParent) {
+                // both a and b have minParent
                 found = true;
-            } else if (compare(minParent, mod) > 0) { // b has a higher prio parent than a
+            } else if (compare(minParent, mod) > 0) {
+                // b has a higher prio parent than a
                 return 1;
             }
         }
 
-        return found ? 0 : -1; // only a has minParent if !found, so only a has the highest prio parent
+        // only a has minParent if !found, so only a has the highest prio parent
+        return found ? 0 : -1;
     }
 }

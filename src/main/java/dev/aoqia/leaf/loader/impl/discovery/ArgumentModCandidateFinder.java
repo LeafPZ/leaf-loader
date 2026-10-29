@@ -71,29 +71,33 @@ public class ArgumentModCandidateFinder implements ModCandidateFinder {
     @Override
     public void findCandidates(ModCandidateConsumer out) {
         String list = System.getProperty(SystemProperties.ADD_MODS);
-        if (list != null)
+        if (list != null) {
             addMods(list, "system property", out);
+        }
 
         list = LeafLoaderImpl.INSTANCE.getGameProvider().getArguments().remove(Arguments.ADD_MODS);
-        if (list != null)
+        if (list != null) {
             addMods(list, "argument", out);
+        }
     }
 
     private void addMod(String pathStr, String source, ModCandidateConsumer out) {
         Path path = LoaderUtil.normalizePath(Paths.get(pathStr));
 
-        if (!Files.exists(path)) { // missing
+        if (!Files.exists(path)) {
             Log.warn(LogCategory.DISCOVERY, "Skipping missing %s provided mod path %s", source, path);
-        } else if (Files.isDirectory(path)) { // directory for extracted mod (in-dev usually) or jars (like mods, but
-                                              // recursive)
+        } else if (Files.isDirectory(path)) {
+            // directory for extracted mod (in-dev usually) or jars (like mods, but recursive)
             if (isHidden(path)) {
                 Log.warn(LogCategory.DISCOVERY, "Ignoring hidden %s provided mod path %s", source, path);
                 return;
             }
 
-            if (Files.exists(path.resolve("leaf.mod.json"))) { // extracted mod
+            // extracted mod
+            if (Files.exists(path.resolve("leaf.mod.json"))) {
                 out.accept(path, requiresRemap, ModSource.ARGUMENTS);
-            } else { // dir containing jars
+            } else {
+                // dir containing jars
                 try {
                     List<String> skipped = new ArrayList<>();
 
@@ -130,7 +134,8 @@ public class ArgumentModCandidateFinder implements ModCandidateFinder {
                     Log.warn(LogCategory.DISCOVERY, "Error processing %s provided mod path %s: %s", source, path, e);
                 }
             }
-        } else { // single file
+        } else {
+            // single file
             if (!DirectoryModCandidateFinder.isValidFile(path)) {
                 Log.warn(LogCategory.DISCOVERY, "Incompatible file in %s provided mod path %s (non-jar or hidden)",
                     source, path);
@@ -142,8 +147,9 @@ public class ArgumentModCandidateFinder implements ModCandidateFinder {
 
     private void addMods(String list, String source, ModCandidateConsumer out) {
         for (String pathStr : list.split(File.pathSeparator)) {
-            if (pathStr.isEmpty())
+            if (pathStr.isEmpty()) {
                 continue;
+            }
 
             if (pathStr.startsWith("@")) {
                 Path path = Paths.get(pathStr.substring(1));
@@ -160,8 +166,9 @@ public class ArgumentModCandidateFinder implements ModCandidateFinder {
 
                     while ((line = reader.readLine()) != null) {
                         line = line.trim();
-                        if (line.isEmpty())
+                        if (line.isEmpty()) {
                             continue;
+                        }
 
                         addMod(line, fileSource, out);
                     }

@@ -119,17 +119,16 @@ public class ClassStripper extends ClassVisitor {
         return new MethodVisitor(api, ret) {
             @Override
             public void visitFieldInsn(int opcode, String owner, String name, String descriptor) {
-                if (opcode != opcodeToStrip // ignore irrelevant insns
-                    || !owner.equals(className) // ignore writes to other classes
-                    || !stripFields.contains(name + descriptor))
-                { // ignore non-stripped fields
+                // ignore irrelevant insns, ignore writes to other classes, ignore non-stripped fields
+                if (opcode != opcodeToStrip || !owner.equals(className) || !stripFields.contains(name + descriptor)) {
                     super.visitFieldInsn(opcode, owner, name, descriptor);
                 } else {
-                    super.visitInsn(Type.getType(descriptor).getSize() == 2 ? Opcodes.POP2 : Opcodes.POP); // pop field
-                                                                                                           // value
+                    // pop field value
+                    super.visitInsn(Type.getType(descriptor).getSize() == 2 ? Opcodes.POP2 : Opcodes.POP);
 
                     if (opcode == Opcodes.PUTFIELD) {
-                        super.visitInsn(Opcodes.POP); // pop this
+                        // pop this
+                        super.visitInsn(Opcodes.POP);
                     }
                 }
             }

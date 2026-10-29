@@ -104,8 +104,8 @@ final class KnotClassDelegate<T extends ClassLoader & ClassLoaderAccess> impleme
     private IMixinTransformer mixinTransformer;
     private boolean transformInitialized = false;
     private volatile Set<Path> codeSources = Collections.emptySet();
-    private volatile Set<Path> validParentCodeSources = null; // null = disabled isolation, game provider has to set it
-                                                              // to opt in
+    // null = disabled isolation, game provider has to set it to opt in
+    private volatile Set<Path> validParentCodeSources = null;
     private final Map<Path, String[]> allowedPrefixes = new ConcurrentHashMap<>();
 
     private final Set<String> parentSourcedClasses = Collections.newSetFromMap(new ConcurrentHashMap<>());
@@ -133,8 +133,9 @@ final class KnotClassDelegate<T extends ClassLoader & ClassLoaderAccess> impleme
 
         for (String libPathProperty : libPathProperties) {
             String value = System.getProperty(libPathProperty);
-            if (value == null || value.isEmpty())
+            if (value == null || value.isEmpty()) {
                 continue;
+            }
 
             for (String pathStr : value.split(File.pathSeparator)) {
                 try {
@@ -155,10 +156,12 @@ final class KnotClassDelegate<T extends ClassLoader & ClassLoaderAccess> impleme
     private static void copyZipEntryIfDistinct(Path zipFile, String fileName, Path output) throws IOException {
         try (ZipFile zf = new ZipFile(zipFile.toFile())) {
             ZipEntry entry = zf.getEntry(fileName);
-            if (entry == null)
+            if (entry == null) {
                 throw new FileNotFoundException(String.format("zip file %s doesn't contain %s", zipFile, fileName));
+            }
 
-            if (Files.exists(output)) { // extracted file exists, check size and crc
+            // extracted file exists, check size and crc
+            if (Files.exists(output)) {
                 long expectedSize = entry.getSize();
                 long expectedCrc = entry.getCrc();
 
@@ -174,7 +177,8 @@ final class KnotClassDelegate<T extends ClassLoader & ClassLoaderAccess> impleme
                         }
                     }
 
-                    if (crc.getValue() == expectedCrc) { // existing file has the same size and crc as the zip entry
+                    // existing file has the same size and crc as the zip entry
+                    if (crc.getValue() == expectedCrc) {
                         return;
                     }
                 }
@@ -194,9 +198,11 @@ final class KnotClassDelegate<T extends ClassLoader & ClassLoaderAccess> impleme
 
     private static ClassLoader getPlatformClassLoader() {
         try {
-            return (ClassLoader) ClassLoader.class.getMethod("getPlatformClassLoader").invoke(null); // Java 9+ only
+            // Java 9+ only
+            return (ClassLoader) ClassLoader.class.getMethod("getPlatformClassLoader").invoke(null);
         } catch (NoSuchMethodException e) {
-            return new ClassLoader(null) {}; // fall back to boot cl
+            // fall back to boot cl
+            return new ClassLoader(null) {};
         } catch (ReflectiveOperationException e) {
             throw new RuntimeException(e);
         }
@@ -212,8 +218,9 @@ final class KnotClassDelegate<T extends ClassLoader & ClassLoaderAccess> impleme
 
         synchronized (this) {
             Set<Path> codeSources = this.codeSources;
-            if (codeSources.contains(path))
+            if (codeSources.contains(path)) {
                 return;
+            }
 
             Set<Path> newCodeSources = new HashSet<>(codeSources.size() + 1, 1);
             newCodeSources.addAll(codeSources);
@@ -228,8 +235,9 @@ final class KnotClassDelegate<T extends ClassLoader & ClassLoaderAccess> impleme
             throw new RuntimeException(e);
         }
 
-        if (LOG_CLASS_LOAD_ERRORS)
+        if (LOG_CLASS_LOAD_ERRORS) {
             Log.info(LogCategory.KNOT, "added code source %s", path);
+        }
     }
 
     @Override
@@ -254,13 +262,15 @@ final class KnotClassDelegate<T extends ClassLoader & ClassLoaderAccess> impleme
 
     @Override
     public void initializeTransformers() {
-        if (transformInitialized)
+        if (transformInitialized) {
             throw new IllegalStateException("Cannot initialize KnotClassDelegate twice!");
+        }
 
         mixinTransformer = MixinServiceKnot.getTransformer();
 
         if (mixinTransformer == null) {
-            try { // reflective instantiation for older mixin versions
+            // reflective instantiation for older mixin versions
+            try {
                 @SuppressWarnings("unchecked")
                 Constructor<IMixinTransformer> ctor = (Constructor<IMixinTransformer>) Class.forName(
                     "org.spongepowered.asm.mixin.transformer.MixinTransformer").getConstructor();
@@ -335,9 +345,11 @@ final class KnotClassDelegate<T extends ClassLoader & ClassLoaderAccess> impleme
      * @return Library path if available, null otherwise
      */
     synchronized String findLibrary(String libname) {
-        String ret = PROCESSED_NATIVES.get(libname); // cache for repeat queries, avoids expensive validation
-        if (ret != null)
+        // cache for repeat queries, avoids expensive validation
+        String ret = PROCESSED_NATIVES.get(libname);
+        if (ret != null) {
             return ret;
+        }
 
         String fileName = System.mapLibraryName(libname);
 
@@ -346,15 +358,17 @@ final class KnotClassDelegate<T extends ClassLoader & ClassLoaderAccess> impleme
         for (Path dir : JVM_NATIVE_DIRS) {
             Path file = dir.resolve(fileName);
 
-            if (Files.exists(file))
+            if (Files.exists(file)) {
                 return null;
+            }
         }
 
         // check if we can find the native on the knot class path
 
         URL url = classLoader.getResource(fileName);
-        if (url == null)
+        if (url == null) {
             return null;
+        }
 
         // grab native from class path, extracting it as needed
 
@@ -368,9 +382,11 @@ final class KnotClassDelegate<T extends ClassLoader & ClassLoaderAccess> impleme
 
         Path libFile;
 
-        if (Files.isDirectory(codeSource)) { // cp entry is a folder, use library file directly
+        if (Files.isDirectory(codeSource)) {
+            // cp entry is a folder, use library file directly
             libFile = codeSource.resolve(fileName);
-        } else { // cp entry is a jar, extract library file
+        } else {
+            // cp entry is a jar, extract library file
             Path cacheDir = null;
 
             try {
@@ -379,7 +395,8 @@ final class KnotClassDelegate<T extends ClassLoader & ClassLoaderAccess> impleme
                     .resolve("natives");
                 assert cacheDir.isAbsolute();
                 Files.createDirectories(cacheDir);
-            } catch (IllegalStateException e) { // too early access
+            } catch (IllegalStateException e) {
+                // too early access
                 return null;
             } catch (IOException e) {
                 Log.warn(LogCategory.KNOT, "Error creating natives cache directory %s", cacheDir, e);
@@ -410,41 +427,58 @@ final class KnotClassDelegate<T extends ClassLoader & ClassLoaderAccess> impleme
             Class<?> c = classLoader.findLoadedClassFwd(name);
 
             if (c == null) {
-                if (name.startsWith("java.")) { // fast path for java.** (can only be loaded by the platform CL anyway)
+                if (name.startsWith("java.")) {
+                    // fast path for java.** (can only be loaded by the platform CL anyway)
                     c = PLATFORM_CLASS_LOADER.loadClass(name);
                 } else {
-                    c = tryLoadClass(name, false); // try local load
+                    // try local load
+                    c = tryLoadClass(name, false);
 
-                    if (c == null) { // not available locally, try system class loader
+                    // not available locally, try system class loader
+                    if (c == null) {
                         String fileName = LoaderUtil.getClassFileName(name);
                         URL url = parentClassLoader.getResource(fileName);
 
-                        if (url == null) { // no .class file
+                        // no .class file
+                        if (url == null) {
                             try {
                                 c = PLATFORM_CLASS_LOADER.loadClass(name);
-                                if (LOG_CLASS_LOAD)
+                                if (LOG_CLASS_LOAD) {
                                     Log.info(LogCategory.KNOT,
                                         "loaded resources-less class %s from platform class loader");
+                                }
                             } catch (ClassNotFoundException e) {
-                                if (LOG_CLASS_LOAD_ERRORS)
+                                if (LOG_CLASS_LOAD_ERRORS) {
                                     Log.warn(LogCategory.KNOT, "can't find class %s", name);
+                                }
+
                                 throw e;
                             }
-                        } else if (!isValidParentUrl(url, fileName)) { // available, but restricted
+                        } else if (!isValidParentUrl(url, fileName)) {
                             // The class would technically be available, but the game provider restricted it from being
                             // loaded by setting validParentUrls and not including "url". Typical causes are:
                             // - accessing classes too early (game libs shouldn't be used until Loader is ready)
                             // - using jars that are only transient (deobfuscation input or pass-through installers)
+
                             String msg = String.format(
-                                "can't load class %s at %s as it hasn't been exposed to the game (yet? The system property "
-                                    + SystemProperties.PATH_GROUPS + " may not be set correctly in-dev)",
+                                "can't load class %s at %s as it hasn't been exposed to the game"
+                                    + " (yet? The system property "
+                                    + SystemProperties.PATH_GROUPS
+                                    + " may not be set correctly in-dev)",
                                 name, getCodeSource(url, fileName));
-                            if (LOG_CLASS_LOAD_ERRORS)
+
+                            if (LOG_CLASS_LOAD_ERRORS) {
                                 Log.warn(LogCategory.KNOT, msg);
+                            }
+
                             throw new ClassNotFoundException(msg);
-                        } else { // load from system cl
-                            if (LOG_CLASS_LOAD)
+                        } else {
+                            // load from system cl
+
+                            if (LOG_CLASS_LOAD) {
                                 Log.info(LogCategory.KNOT, "loading class %s using the parent class loader", name);
+                            }
+
                             c = parentClassLoader.loadClass(name);
                         }
                     } else if (LOG_CLASS_LOAD) {
@@ -466,8 +500,8 @@ final class KnotClassDelegate<T extends ClassLoader & ClassLoaderAccess> impleme
             return null;
         }
 
-        if (!allowedPrefixes.isEmpty() && !DISABLE_ISOLATION) { // check prefix restrictions (allows exposing libraries
-                                                                // partially during startup)
+        // check prefix restrictions (allows exposing libraries partially during startup)
+        if (!allowedPrefixes.isEmpty() && !DISABLE_ISOLATION) {
             String fileName = LoaderUtil.getClassFileName(name);
             URL url = classLoader.getResource(fileName);
 
@@ -488,16 +522,17 @@ final class KnotClassDelegate<T extends ClassLoader & ClassLoaderAccess> impleme
 
                     if (!found) {
                         String msg = "class " + name + " is currently restricted from being loaded";
-                        if (LOG_CLASS_LOAD_ERRORS)
+                        if (LOG_CLASS_LOAD_ERRORS) {
                             Log.warn(LogCategory.KNOT, msg);
+                        }
                         throw new ClassNotFoundException(msg);
                     }
                 }
             }
         }
 
-        if (!allowFromParent && !parentSourcedClasses.isEmpty()) { // propagate loadIntoTarget behavior to its nested
-                                                                   // classes
+        // propagate loadIntoTarget behavior to its nested classes
+        if (!allowFromParent && !parentSourcedClasses.isEmpty()) {
             int pos = name.length();
 
             while ((pos = name.lastIndexOf('$', pos - 1)) > 0) {
@@ -509,8 +544,9 @@ final class KnotClassDelegate<T extends ClassLoader & ClassLoaderAccess> impleme
         }
 
         byte[] input = getPostMixinClassByteArray(name, allowFromParent);
-        if (input == null)
+        if (input == null) {
             return null;
+        }
 
         // The class we're currently loading could have been loaded already during Mixin initialization triggered by
         // `getPostMixinClassByteArray`.
@@ -537,9 +573,12 @@ final class KnotClassDelegate<T extends ClassLoader & ClassLoaderAccess> impleme
             if (classLoader.getPackageFwd(pkgString) == null) {
                 try {
                     classLoader.definePackageFwd(pkgString, null, null, null, null, null, null, null);
-                } catch (IllegalArgumentException e) { // presumably concurrent package definition
-                    if (classLoader.getPackageFwd(pkgString) == null)
-                        throw e; // still not defined?
+                } catch (IllegalArgumentException e) {
+                    // presumably concurrent package definition
+                    if (classLoader.getPackageFwd(pkgString) == null) {
+                        // still not defined?
+                        throw e;
+                    }
                 }
             }
         }
@@ -557,7 +596,7 @@ final class KnotClassDelegate<T extends ClassLoader & ClassLoaderAccess> impleme
                 if (Files.isDirectory(path)) {
                     manifest = ManifestUtil.readManifestFromBasePath(path);
                 } else {
-                    URLConnection connection = new URL("jar:" + path.toUri().toString() + "!/").openConnection();
+                    URLConnection connection = new URL("jar:" + path.toUri() + "!/").openConnection();
 
                     if (connection instanceof JarURLConnection) {
                         manifest = ((JarURLConnection) connection).getManifest();
@@ -603,8 +642,9 @@ final class KnotClassDelegate<T extends ClassLoader & ClassLoaderAccess> impleme
     private Metadata getMetadata(String name) {
         String fileName = LoaderUtil.getClassFileName(name);
         URL url = classLoader.getResource(fileName);
-        if (url == null || !hasRegularCodeSource(url))
+        if (url == null || !hasRegularCodeSource(url)) {
             return Metadata.EMPTY;
+        }
 
         return getMetadata(getCodeSource(url, fileName));
     }
@@ -625,8 +665,9 @@ final class KnotClassDelegate<T extends ClassLoader & ClassLoaderAccess> impleme
             return getMixinTransformer().transformClassBytes(name, name, transformedClassArray);
         } catch (Throwable t) {
             String msg = String.format("Mixin transformation of %s failed", name);
-            if (LOG_TRANSFORM_ERRORS)
+            if (LOG_TRANSFORM_ERRORS) {
                 Log.warn(LogCategory.KNOT, msg, t);
+            }
 
             throw new RuntimeException(msg, t);
         }
@@ -669,15 +710,17 @@ final class KnotClassDelegate<T extends ClassLoader & ClassLoaderAccess> impleme
         URL url = classLoader.findResourceFwd(name);
 
         if (url == null) {
-            if (!allowFromParent)
+            if (!allowFromParent) {
                 return null;
+            }
 
             url = parentClassLoader.getResource(name);
 
             if (!isValidParentUrl(url, name)) {
-                if (LOG_CLASS_LOAD)
-                    Log.info(LogCategory.KNOT, "refusing to load class %s at %s from parent class loader", name, url
-                        != null ? getCodeSource(url, name) : "null");
+                if (LOG_CLASS_LOAD) {
+                    Log.info(LogCategory.KNOT, "refusing to load class %s at %s from parent class loader", name,
+                        url != null ? getCodeSource(url, name) : "null");
+                }
 
                 return null;
             }
@@ -705,19 +748,24 @@ final class KnotClassDelegate<T extends ClassLoader & ClassLoaderAccess> impleme
      * {@link #codeSources}
      */
     private boolean isValidParentUrl(URL url, String fileName) {
-        if (url == null)
+        if (url == null) {
             return false;
-        if (DISABLE_ISOLATION)
+        }
+        if (DISABLE_ISOLATION) {
             return true;
-        if (!hasRegularCodeSource(url))
+        }
+        if (!hasRegularCodeSource(url)) {
             return true;
+        }
 
         Path codeSource = getCodeSource(url, fileName);
         Set<Path> validParentCodeSources = this.validParentCodeSources;
 
-        if (validParentCodeSources != null) { // explicit whitelist (in addition to platform cl classes)
+        if (validParentCodeSources != null) {
+            // explicit whitelist (in addition to platform cl classes)
             return validParentCodeSources.contains(codeSource) || PLATFORM_CLASS_LOADER.getResource(fileName) != null;
-        } else { // reject urls shadowed by this cl
+        } else {
+            // reject urls shadowed by this cl
             return !codeSources.contains(codeSource);
         }
     }

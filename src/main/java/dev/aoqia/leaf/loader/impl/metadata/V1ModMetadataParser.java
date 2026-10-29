@@ -61,8 +61,7 @@ final class V1ModMetadataParser {
     /**
      * Reads a {@code leaf.mod.json} file of schema version {@code 1}.
      *
-     * @param logger the logger to print warnings to
-     * @param reader the json reader to read the file with
+     * @param reader the JSON reader to read the file with
      * @return the metadata of this file, null if the file could not be parsed
      * @throws IOException if there was any issue reading the file
      */
@@ -77,8 +76,8 @@ final class V1ModMetadataParser {
         // Optional (id provides)
         List<String> provides = new ArrayList<>();
 
-        // Optional (mod loading)
-        ModEnvironment environment = ModEnvironment.UNIVERSAL; // Default is always universal
+        // Optional (mod loading) - default is always universal
+        ModEnvironment environment = ModEnvironment.UNIVERSAL;
         Map<String, List<EntrypointMetadata>> entrypoints = new HashMap<>();
         List<NestedJarEntry> jars = new ArrayList<>();
         List<V1ModMetadata.MixinEntry> mixins = new ArrayList<>();
@@ -118,9 +117,12 @@ final class V1ModMetadataParser {
                     final int read = reader.nextInt();
 
                     if (read != 1) {
-                        throw new ParseMetadataException(String.format(
-                            "Duplicate \"schemaVersion\" field does not match the predicted schema version of 1. Duplicate field value is %s",
-                            read), reader);
+                        throw new ParseMetadataException(
+                            String.format(
+                                "Duplicate \"schemaVersion\" field does not"
+                                    + " match the predicted schema version of 1." + " Duplicate field value is %s",
+                                read),
+                            reader);
                     }
 
                     break;
@@ -563,7 +565,7 @@ final class V1ModMetadataParser {
                     reader.endObject();
 
                     if (environment == null) {
-                        environment = ModEnvironment.UNIVERSAL; // Default to universal
+                        environment = ModEnvironment.UNIVERSAL;
                     }
 
                     if (config == null) {
@@ -681,7 +683,7 @@ final class V1ModMetadataParser {
                     }
 
                     if (contactInformation == null) {
-                        contactInformation = ContactInformation.EMPTY; // Empty if not specified
+                        contactInformation = ContactInformation.EMPTY;
                     }
 
                     people.add(new ContactInfoBackedPerson(personName, contactInformation));

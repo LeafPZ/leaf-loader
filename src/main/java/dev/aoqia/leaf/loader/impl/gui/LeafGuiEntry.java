@@ -162,8 +162,9 @@ public final class LeafGuiEntry {
             }
         }
 
-        if (javaPath == null)
+        if (javaPath == null) {
             throw new RuntimeException("can't find java executable in " + javaBinDir);
+        }
 
         Process process = new ProcessBuilder(javaPath.toString(), "-Xmx100M", "-cp", UrlUtil.LOADER_CODE_SOURCE
             .toString(), LeafGuiEntry.class.getName())
@@ -183,7 +184,8 @@ public final class LeafGuiEntry {
 
         Runtime.getRuntime().removeShutdownHook(shutdownHook);
 
-        if (rVal != 0)
+        if (rVal != 0) {
             throw new IOException("subprocess exited with code " + rVal);
+        }
     }
 }

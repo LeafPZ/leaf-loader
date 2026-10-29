@@ -133,13 +133,15 @@ public final class BuiltinModMetadata extends AbstractModMetadata {
 
     @Override
     public Optional<String> getIconPath(int size) {
-        if (icons.isEmpty())
+        if (icons.isEmpty()) {
             return Optional.empty();
+        }
 
         Integer key = size;
         Entry<Integer, String> ret = icons.ceilingEntry(key);
-        if (ret == null)
+        if (ret == null) {
             ret = icons.lastEntry();
+        }
 
         return Optional.of(ret.getValue());
     }

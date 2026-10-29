@@ -56,8 +56,9 @@ final class ObjectShareImpl implements ObjectShare {
         Objects.requireNonNull(key, "null key");
 
         int pos = key.indexOf(':');
-        if (pos <= 0 || pos >= key.length() - 1)
+        if (pos <= 0 || pos >= key.length() - 1) {
             throw new IllegalArgumentException("invalid key, must be modid:subkey");
+        }
     }
 
     @Override
@@ -76,14 +77,17 @@ final class ObjectShareImpl implements ObjectShare {
 
         synchronized (this) {
             Object prev = values.put(key, value);
-            if (prev != null)
-                return prev; // no new entry -> can't have pending entries for it
+            if (prev != null) {
+                // no new entry -> can't have pending entries for it
+                return prev;
+            }
 
             pending = pendingMap.remove(key);
         }
 
-        if (pending != null)
+        if (pending != null) {
             invokePending(key, value, pending);
+        }
 
         return null;
     }
@@ -97,14 +101,17 @@ final class ObjectShareImpl implements ObjectShare {
 
         synchronized (this) {
             Object prev = values.putIfAbsent(key, value);
-            if (prev != null)
-                return prev; // no new entry -> can't have pending entries for it
+            if (prev != null) {
+                // no new entry -> can't have pending entries for it
+                return prev;
+            }
 
             pending = pendingMap.remove(key);
         }
 
-        if (pending != null)
+        if (pending != null) {
             invokePending(key, value, pending);
+        }
 
         return null;
     }
@@ -125,7 +132,8 @@ final class ObjectShareImpl implements ObjectShare {
         synchronized (this) {
             value = values.get(key);
 
-            if (value == null) { // value doesn't exist yet, queue invocation for when it gets added
+            // value doesn't exist yet, queue invocation for when it gets added
+            if (value == null) {
                 pendingMap.computeIfAbsent(key, ignore -> new ArrayList<>()).add(consumer);
                 return;
             }

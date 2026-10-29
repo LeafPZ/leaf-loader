@@ -16,7 +16,9 @@ import dev.aoqia.leaf.loader.impl.game.zomboid.ZomboidVersionLookup;
 
 public final class ZomboidVersionLookupTest {
     public static void main(String[] args) throws IOException {
-        if (args.length != 1) throw new RuntimeException("usage: <file/dir-to-try>");
+        if (args.length != 1) {
+            throw new RuntimeException("usage: <file/dir-to-try>");
+        }
 
         Path path = Paths.get(args[0]);
         List<String> invalid = new ArrayList<>();

@@ -87,13 +87,15 @@ public class ModResolver {
         ModCandidateImpl> uniqueSelectedMods) throws ModResolutionException
     {
         ModCandidateImpl prev = selectedMods.put(mod.getId(), mod);
-        if (prev != null)
+        if (prev != null) {
             throw new ModResolutionException("duplicate mod %s", mod.getId());
+        }
 
         for (String provided : mod.getProvides()) {
             prev = selectedMods.put(provided, mod);
-            if (prev != null)
+            if (prev != null) {
                 throw new ModResolutionException("duplicate mod %s", provided);
+            }
         }
 
         uniqueSelectedMods.add(mod);
@@ -105,7 +107,8 @@ public class ModResolver {
         // sort all mods by priority and group by id
 
         List<ModCandidateImpl> allModsSorted = new ArrayList<>(candidates);
-        Map<String, List<ModCandidateImpl>> modsById = new LinkedHashMap<>(); // linked to ensure consistent execution
+        // linked to ensure consistent execution
+        Map<String, List<ModCandidateImpl>> modsById = new LinkedHashMap<>();
 
         ModPrioSorter.sort(allModsSorted, modsById);
 
@@ -114,23 +117,35 @@ public class ModResolver {
         // before 0.12x not verifying them properly
 
         for (ModCandidateImpl mod : allModsSorted) {
-            if (mod.getMetadata().getSchemaVersion() >= 2)
+            if (mod.getMetadata().getSchemaVersion() >= 2) {
                 continue;
+            }
 
             for (ModDependency dep : mod.getMetadata().getDependencies()) {
-                if (!dep.getKind().isPositive() || dep.getKind() == Kind.SUGGESTS)
-                    continue; // no positive dep or already suggests
-                if (!(dep instanceof ModDependencyImpl))
-                    continue; // can't modify dep kind
-                if (modsById.containsKey(dep.getModId()))
-                    continue; // non-disabled match available
+                // no positive dep or already suggests
+                if (!dep.getKind().isPositive() || dep.getKind() == Kind.SUGGESTS) {
+                    continue;
+                }
+
+                // can't modify dep kind
+                if (!(dep instanceof ModDependencyImpl)) {
+                    continue;
+                }
+
+                // non-disabled match available
+                if (modsById.containsKey(dep.getModId())) {
+                    continue;
+                }
 
                 Collection<ModCandidateImpl> disabledMatches = envDisabledMods.get(dep.getModId());
-                if (disabledMatches == null)
-                    continue; // no disabled id matches
+                // no disabled id matches
+                if (disabledMatches == null) {
+                    continue;
+                }
 
                 for (ModCandidateImpl m : disabledMatches) {
-                    if (dep.matches(m.getVersion())) { // disabled version match -> remove dep
+                    // disabled version match -> remove dep
+                    if (dep.matches(m.getVersion())) {
                         ((ModDependencyImpl) dep).setKind(Kind.SUGGESTS);
                         break;
                     }
@@ -152,8 +167,9 @@ public class ModResolver {
                 }
             }
 
-            if (builtinMod == null)
+            if (builtinMod == null) {
                 continue;
+            }
 
             if (mods.size() > 1) {
                 mods.remove(builtinMod);
@@ -185,9 +201,10 @@ public class ModResolver {
             Log.warn(LogCategory.RESOLUTION, "Mod resolution failed");
             Log.info(LogCategory.RESOLUTION, "Immediate reason: %s%n", result.immediateReason);
             Log.info(LogCategory.RESOLUTION, "Reason: %s%n", result.reason);
-            if (!envDisabledMods.isEmpty())
+            if (!envDisabledMods.isEmpty()) {
                 Log.info(LogCategory.RESOLUTION, "%s environment disabled: %s%n", envType.name(), envDisabledMods
                     .keySet());
+            }
 
             if (result.fix == null) {
                 Log.info(LogCategory.RESOLUTION, "No fix?");
@@ -219,8 +236,10 @@ public class ModResolver {
         Queue<ModCandidateImpl> queue = new ArrayDeque<>();
 
         for (ModCandidateImpl mod : allModsSorted) {
-            if (selectedMods.get(mod.getId()) == mod) { // mod is selected
-                if (!mod.resetMinNestLevel()) { // -> is root
+            // mod is selected
+            if (selectedMods.get(mod.getId()) == mod) {
+                // -> is root
+                if (!mod.resetMinNestLevel()) {
                     queue.add(mod);
                 }
             } else {
@@ -238,14 +257,11 @@ public class ModResolver {
 
         // recompute minNestLevel (may have changed due to parent associations having been dropped by the above step)
 
-        {
-            ModCandidateImpl mod;
-
-            while ((mod = queue.poll()) != null) {
-                for (ModCandidateImpl child : mod.getNestedMods()) {
-                    if (child.updateMinNestLevel(mod)) {
-                        queue.add(child);
-                    }
+        ModCandidateImpl mod;
+        while ((mod = queue.poll()) != null) {
+            for (ModCandidateImpl child : mod.getNestedMods()) {
+                if (child.updateMinNestLevel(mod)) {
+                    queue.add(child);
                 }
             }
         }

@@ -48,6 +48,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 
+import org.jspecify.annotations.Nullable;
 import org.sat4j.pb.IPBSolver;
 import org.sat4j.pb.SolverFactory;
 import org.sat4j.pb.tools.DependencyHelper;
@@ -95,12 +96,14 @@ final class ModSolver {
         for (ModDependency dep : mod.getDependencies()) {
             if (dep.getKind() == ModDependency.Kind.DEPENDS) {
                 ModCandidateImpl m = mods.get(dep.getModId());
-                if (m == null || !dep.matches(m.getVersion()))
+                if (m == null || !dep.matches(m.getVersion())) {
                     return false;
+                }
             } else if (dep.getKind() == ModDependency.Kind.BREAKS) {
                 ModCandidateImpl m = mods.get(dep.getModId());
-                if (m != null && dep.matches(m.getVersion()))
+                if (m != null && dep.matches(m.getVersion())) {
                     return false;
+                }
             }
         }
 
@@ -109,8 +112,9 @@ final class ModSolver {
 
     static boolean isAnyParentSelected(ModCandidateImpl mod, Map<String, ModCandidateImpl> selectedMods) {
         for (ModCandidateImpl parentMod : mod.getParentMods()) {
-            if (selectedMods.get(parentMod.getId()) == parentMod)
+            if (selectedMods.get(parentMod.getId()) == parentMod) {
                 return true;
+            }
         }
 
         return false;
@@ -134,9 +138,11 @@ final class ModSolver {
 
         IPBSolver solver = SolverFactory.newDefaultOptimizer();
 
+        // in seconds
         int timeout = Integer.getInteger(SystemProperties.DEBUG_RESOLUTION_TIMEOUT, 60);
-        if (timeout > 0)
-            solver.setTimeout(timeout); // in seconds
+        if (timeout > 0) {
+            solver.setTimeout(timeout);
+        }
 
         DependencyHelper<DomainObject, Explanation> dependencyHelper = createDepHelper(solver);
 
@@ -171,7 +177,9 @@ final class ModSolver {
             dependencyHelper.reset();
 
             return Result.createSuccess();
-        } else { // no solution
+        } else {
+            // no solution
+
             Set<Explanation> reason = dependencyHelper.why();
 
             // gather all failed deps
@@ -219,8 +227,8 @@ final class ModSolver {
         TimeoutException
     {
         dependencyHelper.reset();
-        dependencyHelper = createDepHelper(dependencyHelper.getSolver()); // dependencyHelper.reset doesn't fully reset
-                                                                          // the dep helper
+        // dependencyHelper.reset doesn't fully reset the dep helper
+        dependencyHelper = createDepHelper(dependencyHelper.getSolver());
 
         setupSolver(allModsSorted, modsById,
             priorities, selectedMods, uniqueSelectedMods,
@@ -229,7 +237,8 @@ final class ModSolver {
 
         if (dependencyHelper.hasASolution()) {
             Collection<DomainObject> solution = dependencyHelper.getASolution();
-            Set<ModDependency> disabledDeps = new HashSet<>(); // DisableDepVar uses equality semantics, not identity
+            // DisableDepVar uses equality semantics, not identity
+            Set<ModDependency> disabledDeps = new HashSet<>();
 
             for (DomainObject obj : solution) {
                 if (obj instanceof DisableDepVar) {
@@ -244,8 +253,9 @@ final class ModSolver {
             // record explanation for failed deps that capture the depending mod
 
             for (DomainObject obj : solution) {
-                if (!(obj instanceof ModCandidateImpl))
+                if (!(obj instanceof ModCandidateImpl)) {
                     continue;
+                }
 
                 ModCandidateImpl mod = (ModCandidateImpl) obj;
 
@@ -283,10 +293,11 @@ final class ModSolver {
         Set<String> modsWithOnlyOutboundDepFailures = new HashSet<>();
 
         for (ModCandidateImpl mod : allModsSorted) {
+            // mod has unsatisfied deps
             if (!mod.getDependencies().isEmpty()
                 && !depsById.containsKey(mod.getId())
                 && !Collections.disjoint(mod.getDependencies(), failedDeps))
-            { // mod has unsatisfied deps
+            {
                 depsById.computeIfAbsent(mod.getId(), ignore -> new HashSet<>())
                     .add(Collections.singleton(VersionPredicateParser.getAny()));
                 modsWithOnlyOutboundDepFailures.add(mod.getId());
@@ -297,8 +308,9 @@ final class ModSolver {
 
         for (ModCandidateImpl mod : allModsSorted) {
             for (ModDependency dep : mod.getDependencies()) {
-                if (dep.getKind() != ModDependency.Kind.DEPENDS)
+                if (dep.getKind() != ModDependency.Kind.DEPENDS) {
                     continue;
+                }
 
                 Set<Collection<VersionPredicate>> predicates = depsById.get(dep.getModId());
 
@@ -330,8 +342,9 @@ final class ModSolver {
                 allIntervals.addAll(intervals);
             }
 
-            if (allIntervals.isEmpty())
+            if (allIntervals.isEmpty()) {
                 continue;
+            }
 
             // try to determine common version bounds, alternatively approximate (imprecise due to not knowing the real
             // versions or which deps are really essential)
@@ -342,7 +355,8 @@ final class ModSolver {
 
             for (VersionInterval interval : allIntervals) {
                 if (commonInterval == null) {
-                    if (!commonVersionInitialized) { // initialize to first range, otherwise leave as empty range
+                    // initialize to first range, otherwise leave as empty range
+                    if (!commonVersionInitialized) {
                         commonInterval = interval;
                         commonVersionInitialized = true;
                     }
@@ -370,9 +384,9 @@ final class ModSolver {
 
         fixSolveTime = System.nanoTime();
 
+        // dependencyHelper.reset doesn't fully reset the dep helper
         dependencyHelper.reset();
-        dependencyHelper = createDepHelper(dependencyHelper.getSolver()); // dependencyHelper.reset doesn't fully reset
-                                                                          // the dep helper
+        dependencyHelper = createDepHelper(dependencyHelper.getSolver());
 
         setupSolver(allModsSorted, modsById,
             priorities, selectedMods, uniqueSelectedMods,
@@ -406,16 +420,19 @@ final class ModSolver {
                 List<ModCandidateImpl> replaced = new ArrayList<>();
 
                 ModCandidateImpl selectedMod = selectedMods.get(obj.getId());
-                if (selectedMod != null)
+                if (selectedMod != null) {
                     replaced.add(selectedMod);
+                }
 
                 List<ModCandidateImpl> mods = modsById.get(obj.getId());
-                if (mods != null)
+                if (mods != null) {
                     replaced.addAll(mods);
+                }
 
                 if (replaced.isEmpty()) {
                     modsToAdd.add(mod);
-                } else { // same id as mods picked previously -> replacement
+                } else {
+                    // same id as mods picked previously -> replacement
                     modReplacements.put(mod, replaced);
 
                     for (ModCandidateImpl m : replaced) {
@@ -446,7 +463,8 @@ final class ModSolver {
                 }
 
                 assert found;
-            } else { // unexpected domainobj kind
+            } else {
+                // unexpected domainobj kind
                 assert false : obj;
             }
         }
@@ -459,8 +477,9 @@ final class ModSolver {
 
                 for (ModCandidateImpl m : activeMods.values()) {
                     for (ModDependency dep : m.getDependencies()) {
-                        if (!dep.getModId().equals(mod.getId()) || dep.getKind().isSoft())
+                        if (!dep.getModId().equals(mod.getId()) || dep.getKind().isSoft()) {
                             continue;
+                        }
 
                         if (dep.getKind().isPositive()) {
                             intervals = VersionInterval.and(intervals, dep.getVersionIntervals());
@@ -478,15 +497,16 @@ final class ModSolver {
 
         inactiveModLoop:
         for (Map.Entry<ModCandidateImpl, InactiveReason> entry : inactiveMods.entrySet()) {
-            if (entry.getValue() != InactiveReason.UNKNOWN)
+            if (entry.getValue() != InactiveReason.UNKNOWN) {
                 continue;
+            }
 
             ModCandidateImpl mod = entry.getKey();
             ModCandidateImpl active = activeMods.get(mod.getId());
 
             if (active != null) {
-                if (allModsSorted.indexOf(mod) > allModsSorted.indexOf(active)) { // entry has lower prio (=higher
-                                                                                  // index) than active
+                // entry has lower prio (=higher index) than active
+                if (allModsSorted.indexOf(mod) > allModsSorted.indexOf(active)) {
                     if (mod.getVersion().equals(active.getVersion())) {
                         entry.setValue(InactiveReason.SAME_ACTIVE);
                     } else {
@@ -523,7 +543,7 @@ final class ModSolver {
     }
 
     private static DependencyHelper<DomainObject, Explanation> createDepHelper(IPBSolver solver) {
-        DependencyHelper<DomainObject, Explanation> ret = new DependencyHelper<>(solver); // new LexicoHelper<>(solver)
+        DependencyHelper<DomainObject, Explanation> ret = new DependencyHelper<>(solver);
         ret.setNegator(negator);
 
         return ret;
@@ -536,14 +556,18 @@ final class ModSolver {
 
         SemanticVersion v = (SemanticVersion) interval.getMin();
 
-        if (v != null) { // min bound present
-            if (!interval.isMinInclusive()) { // not inclusive, increment slightly
+        // min bound present
+        if (v != null) {
+            // not inclusive, increment slightly
+            if (!interval.isMinInclusive()) {
                 String pr = v.getPrereleaseKey().orElse(null);
                 int[] comps = ((SemanticVersionImpl) v).getVersionComponents();
 
-                if (pr != null) { // has prerelease, add to increase
+                // has prerelease, add to increase
+                if (pr != null) {
                     pr = pr.isEmpty() ? "0" : pr.concat(".0");
-                } else { // regular version only, increment patch and make least prerelease
+                } else {
+                    // regular version only, increment patch and make least prerelease
                     if (comps.length < 3) {
                         comps = Arrays.copyOf(comps, comps.length + 1);
                     }
@@ -554,14 +578,18 @@ final class ModSolver {
 
                 v = new SemanticVersionImpl(comps, pr, null);
             }
-        } else if ((v = (SemanticVersion) interval.getMax()) != null) { // max bound only
-            if (!interval.isMaxInclusive()) { // not inclusive, decrement slightly
+        } else if ((v = (SemanticVersion) interval.getMax()) != null) {
+            // max bound only
+            if (!interval.isMaxInclusive()) {
+                // not inclusive, decrement slightly
                 String pr = v.getPrereleaseKey().orElse(null);
                 int[] comps = ((SemanticVersionImpl) v).getVersionComponents();
 
-                if (pr == null) { // no prerelease, use large pr segment
+                if (pr == null) {
+                    // no prerelease, use large pr segment
                     pr = "zzzzzzzz";
-                } else if (!pr.isEmpty()) { // non-empty prerelease present, decrement slightly or truncate
+                } else if (!pr.isEmpty()) {
+                    // non-empty prerelease present, decrement slightly or truncate
                     int pos = pr.lastIndexOf('.') + 1;
                     String suffix = pr.substring(pos);
                     int val;
@@ -584,7 +612,8 @@ final class ModSolver {
                     } else {
                         pr = pos > 0 ? pr.substring(0, pos - 1) : "";
                     }
-                } else { // empty prerelease, decrement version and strip prerelease
+                } else {
+                    // empty prerelease, decrement version and strip prerelease
                     pr = null;
 
                     if (comps.length < 3) {
@@ -603,7 +632,8 @@ final class ModSolver {
 
                 v = new SemanticVersionImpl(comps, pr, null);
             }
-        } else { // unbounded
+        } else {
+            // unbounded
             v = new SemanticVersionImpl(new int[] { 1 }, null, null);
         }
 
@@ -619,25 +649,29 @@ final class ModSolver {
             DomainObject>> weightedObjects)
         throws ContradictionException
     {
-        boolean enableOptional = !depDisableSim && installableMods == null && !removalSim; // whether to enable optional
-                                                                                           // mods (regular solve only,
-                                                                                           // not for failure handling)
+        // whether to enable optional mods (regular solve only, not for failure handling)
+        boolean enableOptional = !depDisableSim && installableMods == null && !removalSim;
         List<DomainObject> suitableMods = new ArrayList<>();
 
         for (ModCandidateImpl mod : allModsSorted) {
             // add constraints for dependencies
 
             for (ModDependency dep : mod.getDependencies()) {
-                if (!enableOptional && dep.getKind().isSoft())
+                if (!enableOptional && dep.getKind().isSoft()) {
                     continue;
+                }
 
                 ModCandidateImpl selectedMod = selectedMods.get(dep.getModId());
 
-                if (selectedMod != null) { // dep is already selected = present
+                // dep is already selected = present
+                if (selectedMod != null) {
                     if (!removalSim) {
-                        if (!dep.getKind().isSoft() // .. and is a hard dep
+                        // .. and is a hard dep
+                        if (!dep.getKind().isSoft()
                             && dep.matches(selectedMod.getVersion()) != dep.getKind().isPositive())
-                        { // ..but isn't suitable (DEPENDS without match or BREAKS with match)
+                        {
+                            // ..but isn't suitable (DEPENDS without match or BREAKS with match)
+
                             if (depDisableSim) {
                                 dependencyHelper.setTrue(getCreateDisableDepVar(dep, disabledDeps), new Explanation(
                                     ErrorKind.HARD_DEP, mod, dep));
@@ -657,8 +691,9 @@ final class ModSolver {
 
                 if (availableMods != null) {
                     for (DomainObject.Mod m : availableMods) {
-                        if (dep.matches(m.getVersion()))
+                        if (dep.matches(m.getVersion())) {
                             suitableMods.add(m);
+                        }
                     }
                 }
 
@@ -667,14 +702,16 @@ final class ModSolver {
 
                     if (availableMods != null) {
                         for (DomainObject.Mod m : availableMods) {
-                            if (dep.matches(m.getVersion()))
+                            if (dep.matches(m.getVersion())) {
                                 suitableMods.add(m);
+                            }
                         }
                     }
                 }
 
                 switch (dep.getKind()) {
-                    case DEPENDS: // strong dep
+                    case DEPENDS:
+                        // strong dep
                         if (depDisableSim) {
                             suitableMods.add(getCreateDisableDepVar(dep, disabledDeps));
                         }
@@ -688,7 +725,8 @@ final class ModSolver {
                         }
 
                         break;
-                    case RECOMMENDS: // soft dep
+                    case RECOMMENDS:
+                        // soft dep
                         // this will prioritize greedy over non-greedy loaded mods, regardless of modPrioComparator due
                         // to the objective weights
 
@@ -705,7 +743,8 @@ final class ModSolver {
                         }
 
                         break;
-                    case BREAKS: // strong negative dep
+                    case BREAKS:
+                        // strong negative dep
                         if (!suitableMods.isEmpty()) {
                             if (depDisableSim) {
                                 DomainObject var = getCreateDisableDepVar(dep, disabledDeps);
@@ -738,13 +777,15 @@ final class ModSolver {
             // add constraints to select greedy nested mods (ALWAYS or IF_POSSIBLE)
             // add constraints to restrict nested mods to selected parents
 
-            if (!mod.isRoot()) { // nested mod
+            // nested mod
+            if (!mod.isRoot()) {
                 ModLoadCondition loadCondition = mod.getLoadCondition();
 
-                if (loadCondition == ModLoadCondition.ALWAYS) { // required with parent
-                    Explanation explanation = new Explanation(ErrorKind.NESTED_FORCELOAD, mod.getParentMods()
-                        .iterator()
-                        .next(), mod.getId()); // FIXME: this applies to all parents
+                // required with parent
+                if (loadCondition == ModLoadCondition.ALWAYS) {
+                    // FIXME: this applies to all parents
+                    Explanation explanation =
+                        new Explanation(ErrorKind.NESTED_FORCELOAD, mod.getParentMods().iterator().next(), mod.getId());
                     DomainObject[] siblings = modsById.get(mod.getId()).toArray(new DomainObject[0]);
 
                     if (isAnyParentSelected(mod, selectedMods)) {
@@ -773,10 +814,10 @@ final class ModSolver {
                 int prio = priorities.get(mod);
                 BigInteger weight;
 
-                if (mod.getLoadCondition().ordinal() >= ModLoadCondition.IF_RECOMMENDED.ordinal()) { // non-greedy
-                                                                                                     // (optional)
+                // non-greedy (optional) else greedy
+                if (mod.getLoadCondition().ordinal() >= ModLoadCondition.IF_RECOMMENDED.ordinal()) {
                     weight = TWO.pow(prio + 1);
-                } else { // greedy
+                } else {
                     weight = TWO.pow(allModsSorted.size() - prio).negate();
                 }
 
@@ -794,11 +835,13 @@ final class ModSolver {
 
             // force-load root mod
 
-            if (variants.size() == 1 && !removalSim) { // trivial case, others are handled by multi-variant impl
+            // trivial case, others are handled by multi-variant impl
+            if (variants.size() == 1 && !removalSim) {
                 if (firstMod.isRoot() && firstMod.getLoadCondition() == ModLoadCondition.ALWAYS) {
                     dependencyHelper.setTrue(firstMod, new Explanation(ErrorKind.ROOT_FORCELOAD_SINGLE, firstMod));
                 }
-            } else { // complex case, potentially multiple variants
+            } else {
+                // complex case, potentially multiple variants
                 boolean isRequired = false;
 
                 for (ModCandidateImpl mod : variants) {
@@ -811,16 +854,18 @@ final class ModSolver {
                 if (isRequired) {
                     if (removalSim) {
                         int prio = priorities.size() + 10;
-                        if (installableMods != null)
+                        if (installableMods != null) {
                             prio += installableMods.getOrDefault(id, Collections.emptyList()).size();
+                        }
 
                         suitableMods.add(getCreateDummy(id, RemoveModVar::new, dummyMods, prio, weightedObjects));
                     }
 
                     if (installableMods != null) {
                         List<AddModVar> installable = installableMods.get(id);
-                        if (installable != null)
+                        if (installable != null) {
                             suitableMods.addAll(installable);
+                        }
                     }
 
                     suitableMods.addAll(variants);
@@ -842,14 +887,16 @@ final class ModSolver {
                     suitableMods.addAll(installable);
 
                     ModCandidateImpl mod = selectedMods.get(id);
-                    if (mod != null)
+                    if (mod != null) {
                         suitableMods.add(mod);
+                    }
                 }
             }
 
-            if (suitableMods.size() > 1 // multiple options
+            if (suitableMods.size() > 1
                 || enableOptional && firstMod.getLoadCondition() == ModLoadCondition.IF_POSSIBLE)
-            { // optional greedy loading
+            {
+                // optional greedy loading
                 dependencyHelper.atMost(1, suitableMods.toArray(new DomainObject[0]))
                     .named(new Explanation(ErrorKind.UNIQUE_ID, id));
             }
@@ -864,12 +911,14 @@ final class ModSolver {
                 String id = variants.get(0).getId();
                 boolean isReplacement = modsById.containsKey(id);
 
-                if (!isReplacement) { // no single mod per id constraint created yet
+                // no single mod per id constraint created yet
+                if (!isReplacement) {
                     suitableMods.addAll(variants);
 
                     ModCandidateImpl selectedMod = selectedMods.get(id);
-                    if (selectedMod != null)
+                    if (selectedMod != null) {
                         suitableMods.add(selectedMod);
+                    }
 
                     if (suitableMods.size() > 1) {
                         dependencyHelper.atMost(1, suitableMods.toArray(new DomainObject[0]))
@@ -882,10 +931,12 @@ final class ModSolver {
                 for (int i = 0; i < variants.size(); i++) {
                     AddModVar mod = variants.get(i);
                     int weight = priorities.size() + 4 + i;
-                    if (isReplacement)
+                    if (isReplacement) {
                         weight += 3;
-                    if (mod.hadOnlyOutboundDepFailures)
+                    }
+                    if (mod.hadOnlyOutboundDepFailures) {
                         weight++;
+                    }
 
                     weightedObjects.add(WeightedObject.newWO(mod, TWO.pow(weight)));
                 }
@@ -902,26 +953,29 @@ final class ModSolver {
             DomainObject>> weightedObjects)
         throws ContradictionException
     {
-        boolean enableOptional = !depDisableSim && installableMods == null && !removalSim; // whether to enable optional
-                                                                                           // mods (regular solve only,
-                                                                                           // not for failure handling)
+        // whether to enable optional mods (regular solve only, not for failure handling)
+        boolean enableOptional = !depDisableSim && installableMods == null && !removalSim;
         List<DomainObject> suitableMods = new ArrayList<>();
 
         for (ModCandidateImpl mod : uniqueSelectedMods) {
             // add constraints for dependencies (skips deps that are already preselected outside depDisableSim)
 
             for (ModDependency dep : mod.getDependencies()) {
-                if (!enableOptional && dep.getKind().isSoft())
+                if (!enableOptional && dep.getKind().isSoft()) {
                     continue;
-                if (selectedMods.containsKey(dep.getModId()))
+                }
+
+                if (selectedMods.containsKey(dep.getModId())) {
                     continue;
+                }
 
                 List<? extends DomainObject.Mod> availableMods = modsById.get(dep.getModId());
 
                 if (availableMods != null) {
                     for (DomainObject.Mod m : availableMods) {
-                        if (dep.matches(m.getVersion()))
+                        if (dep.matches(m.getVersion())) {
                             suitableMods.add(m);
+                        }
                     }
                 }
 
@@ -930,14 +984,16 @@ final class ModSolver {
 
                     if (availableMods != null) {
                         for (DomainObject.Mod m : availableMods) {
-                            if (dep.matches(m.getVersion()))
+                            if (dep.matches(m.getVersion())) {
                                 suitableMods.add(m);
+                            }
                         }
                     }
                 }
 
-                if (suitableMods.isEmpty() && !depDisableSim)
+                if (suitableMods.isEmpty() && !depDisableSim) {
                     continue;
+                }
 
                 switch (dep.getKind()) {
                     case DEPENDS:
@@ -993,8 +1049,9 @@ final class ModSolver {
                     prio += installableMods.getOrDefault(mod.getId(), Collections.emptyList()).size();
 
                     List<AddModVar> installable = installableMods.get(mod.getId());
-                    if (installable != null)
+                    if (installable != null) {
                         suitableMods.addAll(installable);
+                    }
                 }
 
                 suitableMods.add(getCreateDummy(mod.getId(), RemoveModVar::new, dummyMods, prio, weightedObjects));
@@ -1021,8 +1078,9 @@ final class ModSolver {
         DomainObject> duplicateMap, int modCount, List<WeightedObject<DomainObject>> weightedObjects)
     {
         DomainObject ret = duplicateMap.get(id);
-        if (ret != null)
+        if (ret != null) {
             return ret;
+        }
 
         ret = supplier.apply(id);
         int weight = modCount + 2;
@@ -1139,10 +1197,10 @@ final class ModSolver {
         final boolean success;
         final Collection<Explanation> immediateReason;
         final Collection<Explanation> reason;
-        final Fix fix; // may be null
+        final @Nullable Fix fix;
 
         private Result(boolean success, Collection<Explanation> immediateReason, Collection<Explanation> reason,
-            Fix fix)
+            @Nullable Fix fix)
         {
             this.success = success;
             this.immediateReason = immediateReason;

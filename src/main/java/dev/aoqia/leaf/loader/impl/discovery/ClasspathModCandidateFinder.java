@@ -66,8 +66,9 @@ public class ClasspathModCandidateFinder implements ModCandidateFinder {
      */
     private static Map<Path, List<Path>> getPathGroups() {
         String prop = System.getProperty(SystemProperties.PATH_GROUPS);
-        if (prop == null)
+        if (prop == null) {
             return Collections.emptyMap();
+        }
 
         Set<Path> cp = new HashSet<>(LeafLauncherBase.getLauncher().getClassPath());
         Map<Path, List<Path>> ret = new HashMap<>();
@@ -76,8 +77,9 @@ public class ClasspathModCandidateFinder implements ModCandidateFinder {
             Set<Path> paths = new LinkedHashSet<>();
 
             for (String path : group.split(File.pathSeparator)) {
-                if (path.isEmpty())
+                if (path.isEmpty()) {
                     continue;
+                }
 
                 Path resolvedPath = Paths.get(path);
 
@@ -123,16 +125,8 @@ public class ClasspathModCandidateFinder implements ModCandidateFinder {
                     URL url = mods.nextElement();
 
                     try {
-                        Path path = LoaderUtil.normalizeExistingPath(UrlUtil.getCodeSource(url, "leaf.mod.json")); // code
-                                                                                                                   // source
-                                                                                                                   // may
-                                                                                                                   // not
-                                                                                                                   // be
-                                                                                                                   // normalized
-                                                                                                                   // if
-                                                                                                                   // from
-                                                                                                                   // app
-                                                                                                                   // cl
+                        // code source may not be normalized if from app cl
+                        Path path = LoaderUtil.normalizeExistingPath(UrlUtil.getCodeSource(url, "leaf.mod.json"));
                         List<Path> paths = pathGroups.get(path);
 
                         if (paths == null) {
@@ -148,7 +142,9 @@ public class ClasspathModCandidateFinder implements ModCandidateFinder {
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
-        } else { // production, add loader as a mod
+        } else {
+            // production, add loader as a mod
+
             try {
                 out.accept(UrlUtil.LOADER_CODE_SOURCE, false, ModSource.CLASSPATH);
             } catch (Throwable t) {

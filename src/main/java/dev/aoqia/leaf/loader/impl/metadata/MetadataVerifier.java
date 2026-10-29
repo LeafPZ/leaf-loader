@@ -94,7 +94,9 @@ public final class MetadataVerifier {
 
             if (exc != null) {
                 Log.warn(LogCategory.METADATA,
-                    "Mod %s uses the version %s which isn't compatible with Loader's extended semantic version format (%s), SemVer is recommended for reliably evaluating dependencies and prioritizing newer version",
+                    "Mod %s uses the version %s which isn't compatible with Loader's extended semantic version format "
+                        + "(%s)"
+                        + ", SemVer is recommended for reliably evaluating dependencies and prioritizing newer version",
                     metadata.getId(), version, exc.getMessage());
             }
 
@@ -103,8 +105,9 @@ public final class MetadataVerifier {
     }
 
     private static void checkModId(String id, String name) throws ParseMetadataException {
-        if (MOD_ID_PATTERN.matcher(id).matches())
+        if (MOD_ID_PATTERN.matcher(id).matches()) {
             return;
+        }
 
         List<String> errorList = new ArrayList<>();
 

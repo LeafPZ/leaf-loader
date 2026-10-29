@@ -30,11 +30,12 @@
  */
 
 // spotless:on
+
 package dev.aoqia.leaf.loader.test;
 
 import java.util.function.Predicate;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import dev.aoqia.leaf.loader.api.Version;
 import dev.aoqia.leaf.loader.api.VersionParsingException;
@@ -75,6 +76,8 @@ public class VersionParsingTests {
         testTrue(tryParseSemantic("1.0.0-x.7.z.92", false));
         testTrue(tryParseSemantic("1.0.0+20130313144700", false));
         testTrue(tryParseSemantic("1.0.0-beta+exp.sha.5114f85", false));
+
+        // checkstyle:off
 
         // Test: comparator range with pre-releases.
         {
@@ -301,6 +304,7 @@ public class VersionParsingTests {
             testFalse(predicate.test(new SemanticVersionImpl("2.0.0", false)));
             testFalse(predicate.test(new SemanticVersionImpl("2.0.0-beta.2", false)));
         }
+        // checkstyle:on
     }
 
     private static void testFalse(boolean b) {

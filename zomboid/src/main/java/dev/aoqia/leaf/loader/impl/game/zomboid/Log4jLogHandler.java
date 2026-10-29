@@ -80,11 +80,21 @@ public final class Log4jLogHandler implements LogHandler {
 
 	private static Level translateLogLevel(LogLevel level) {
 		// can't use enum due to it generating a nested class, which would have to be on the same class loader as Log4jLogHandler
-		if (level == LogLevel.ERROR) return Level.ERROR;
-		if (level == LogLevel.WARN) return Level.WARN;
-		if (level == LogLevel.INFO) return Level.INFO;
-		if (level == LogLevel.DEBUG) return Level.DEBUG;
-		if (level == LogLevel.TRACE) return Level.TRACE;
+		if (level == LogLevel.ERROR) {
+		    return Level.ERROR;
+		}
+		if (level == LogLevel.WARN) {
+		    return Level.WARN;
+		}
+		if (level == LogLevel.INFO) {
+		    return Level.INFO;
+		}
+		if (level == LogLevel.DEBUG) {
+		    return Level.DEBUG;
+		}
+		if (level == LogLevel.TRACE) {
+		    return Level.TRACE;
+		}
 
 		throw new IllegalArgumentException("unknown log level: "+level);
 	}
@@ -110,13 +120,19 @@ public final class Log4jLogHandler implements LogHandler {
 			return true;
 		}
 
-		if (manifest == null) return true;
+		if (manifest == null) {
+		    return true;
+		}
 
 		String title = ManifestUtil.getManifestValue(manifest, Name.IMPLEMENTATION_TITLE);
-		if (title == null || !title.toLowerCase(Locale.ENGLISH).contains("log4j")) return true;
+		if (title == null || !title.toLowerCase(Locale.ENGLISH).contains("log4j")) {
+		    return true;
+		}
 
 		String version = ManifestUtil.getManifestValue(manifest, Name.IMPLEMENTATION_VERSION);
-		if (version == null) return true;
+		if (version == null) {
+		    return true;
+		}
 
 		try {
 			return Version.parse(version).compareTo(Version.parse("2.16")) < 0; // 2.15+ doesn't lookup by default, but we patch anything up to 2.16 just in case
@@ -155,7 +171,9 @@ public final class Log4jLogHandler implements LogHandler {
 			Object config = context.getClass().getMethod("getConfiguration").invoke(context);
 			Object substitutor = config.getClass().getMethod("getStrSubstitutor").invoke(config);
 			Object varResolver = substitutor.getClass().getMethod("getVariableResolver").invoke(substitutor);
-			if (varResolver == null) return;
+			if (varResolver == null) {
+			    return;
+			}
 
 			boolean removed = false;
 
@@ -174,7 +192,9 @@ public final class Log4jLogHandler implements LogHandler {
 			}
 
 			if (!removed) {
-				if (ignoreMissing) return;
+				if (ignoreMissing) {
+				    return;
+				}
 				throw new RuntimeException("couldn't find JNDI lookup entry");
 			}
 

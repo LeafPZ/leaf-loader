@@ -108,11 +108,12 @@ public final class LeafMixinBootstrap {
         for (ModContainerImpl mod : loader.getModsInternal()) {
             for (String config : mod.getMetadata().getMixinConfigs(side)) {
                 ModContainerImpl prev = configToModMap.putIfAbsent(config, mod);
-                if (prev != null)
+                if (prev != null) {
                     throw new RuntimeException(String.format(
                         "Non-unique Mixin config name %s used by the mods %s and %s", config, prev.getMetadata()
                             .getId(),
                         mod.getMetadata().getId()));
+                }
 
                 try {
                     Mixins.addConfiguration(config);
@@ -125,8 +126,9 @@ public final class LeafMixinBootstrap {
 
         for (Config config : Mixins.getConfigs()) {
             ModContainerImpl mod = configToModMap.get(config.getName());
-            if (mod == null)
+            if (mod == null) {
                 continue;
+            }
         }
 
         try {
@@ -143,8 +145,9 @@ public final class LeafMixinBootstrap {
         static void apply(Map<String, ModContainerImpl> configToModMap) {
             for (Config rawConfig : Mixins.getConfigs()) {
                 ModContainerImpl mod = configToModMap.get(rawConfig.getName());
-                if (mod == null)
+                if (mod == null) {
                     continue;
+                }
 
                 IMixinConfig config = rawConfig.getConfig();
                 config.decorate(FabricUtil.KEY_MOD_ID, mod.getMetadata().getId());
@@ -169,16 +172,19 @@ public final class LeafMixinBootstrap {
                 }
             }
 
-            if (reqIntervals.isEmpty())
-                throw new IllegalStateException("mod " + mod + " is incompatible with every loader version?"); // shouldn't
-                                                                                                               // get
-                                                                                                               // there
+            // shouldn't get there
+            if (reqIntervals.isEmpty()) {
+                throw new IllegalStateException("mod " + mod + " is incompatible with every loader version?");
+            }
 
-            Version minLoaderVersion = reqIntervals.get(0).getMin(); // it is sorted, to 0 has the absolute lower bound
+            // it is sorted, to 0 has the absolute lower bound
+            Version minLoaderVersion = reqIntervals.get(0).getMin();
 
-            if (minLoaderVersion != null) { // has a lower bound
+            // has a lower bound
+            if (minLoaderVersion != null) {
                 for (LeafMixinVersions.LoaderMixinVersionEntry version : LeafMixinVersions.getVersions()) {
-                    if (minLoaderVersion.compareTo(version.loaderVersion) >= 0) { // lower bound is >= current version
+                    // lower bound is >= current version
+                    if (minLoaderVersion.compareTo(version.loaderVersion) >= 0) {
                         return version.mixinVersion;
                     }
                 }

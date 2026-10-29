@@ -46,7 +46,8 @@ import java.util.zip.ZipFile;
 public final class SimpleClassPath implements Closeable {
     private final List<Path> paths;
 
-    private final boolean[] jarMarkers; // whether the path is a jar (otherwise plain dir)
+    /// Whether the path is a jar (otherwise plain dir)
+    private final boolean[] jarMarkers;
 
     private final ZipFile[] openJars;
 
@@ -70,8 +71,9 @@ public final class SimpleClassPath implements Closeable {
             Closeable file = openJars[i];
 
             try {
-                if (file != null)
+                if (file != null) {
                     file.close();
+                }
             } catch (IOException e) {
                 if (exc == null) {
                     exc = e;
@@ -83,8 +85,9 @@ public final class SimpleClassPath implements Closeable {
             openJars[i] = null;
         }
 
-        if (exc != null)
+        if (exc != null) {
             throw exc;
+        }
     }
 
     public CpEntry getEntry(String subPath) throws IOException {

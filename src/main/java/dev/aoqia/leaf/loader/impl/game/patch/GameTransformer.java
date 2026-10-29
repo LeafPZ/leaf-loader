@@ -65,8 +65,9 @@ public class GameTransformer {
     }
 
     private static ClassNode readClass(ClassReader reader) {
-        if (reader == null)
+        if (reader == null) {
             return null;
+        }
 
         ClassNode node = new ClassNode();
         reader.accept(node, 0);
@@ -139,8 +140,9 @@ public class GameTransformer {
 
         try {
             CpEntry entry = classpath.getEntry(LoaderUtil.getClassFileName(name));
-            if (entry == null)
+            if (entry == null) {
                 return null;
+            }
 
             try (InputStream is = entry.getInputStream()) {
                 return readClass(new ClassReader(is));

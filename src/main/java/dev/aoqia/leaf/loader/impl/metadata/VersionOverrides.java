@@ -47,13 +47,15 @@ public final class VersionOverrides {
 
     public VersionOverrides() {
         String property = System.getProperty(SystemProperties.DEBUG_REPLACE_VERSION);
-        if (property == null)
+        if (property == null) {
             return;
+        }
 
         for (String entry : property.split(",")) {
             int pos = entry.indexOf(':');
-            if (pos <= 0 || pos >= entry.length() - 1)
+            if (pos <= 0 || pos >= entry.length() - 1) {
                 throw new RuntimeException("invalid version replacement entry: " + entry);
+            }
 
             String id = entry.substring(0, pos);
             String rawVersion = entry.substring(pos + 1);
@@ -76,8 +78,9 @@ public final class VersionOverrides {
     }
 
     public void apply(LoaderModMetadata metadata) {
-        if (replacements.isEmpty())
+        if (replacements.isEmpty()) {
             return;
+        }
 
         Version replacement = replacements.get(metadata.getId());
 

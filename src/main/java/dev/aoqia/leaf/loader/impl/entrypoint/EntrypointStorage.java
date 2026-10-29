@@ -50,7 +50,8 @@ import dev.aoqia.leaf.loader.impl.util.log.LogCategory;
 public final class EntrypointStorage {
     private final Map<String, List<Entry>> entryMap = new HashMap<>();
 
-    @SuppressWarnings("unchecked") // return value allows "throw" declaration to end method
+    // return value allows "throw" declaration to end method
+    @SuppressWarnings("unchecked")
     static <E extends Throwable> RuntimeException sneakyThrows(Throwable ex) throws E {
         throw (E) ex;
     }
@@ -73,8 +74,9 @@ public final class EntrypointStorage {
     @SuppressWarnings("deprecation")
     public <T> List<EntrypointContainer<T>> getEntrypointContainers(String key, Class<T> type) {
         List<Entry> entries = entryMap.get(key);
-        if (entries == null)
+        if (entries == null) {
             return Collections.emptyList();
+        }
 
         List<EntrypointContainer<T>> results = new ArrayList<>(entries.size());
         EntrypointException exc = null;
@@ -85,8 +87,9 @@ public final class EntrypointStorage {
             if (entry.isOptional()) {
                 try {
                     T instance = entry.getOrCreate(type);
-                    if (instance == null)
+                    if (instance == null) {
                         continue;
+                    }
 
                     container = new EntrypointContainerImpl<>(entry, instance);
                 } catch (Throwable t) {
@@ -105,8 +108,9 @@ public final class EntrypointStorage {
             results.add(container);
         }
 
-        if (exc != null)
+        if (exc != null) {
             throw exc;
+        }
 
         return results;
     }
@@ -114,8 +118,9 @@ public final class EntrypointStorage {
     @SuppressWarnings("deprecation")
     public <T> List<T> getEntrypoints(String key, Class<T> type) {
         List<Entry> entries = entryMap.get(key);
-        if (entries == null)
+        if (entries == null) {
             return Collections.emptyList();
+        }
 
         EntrypointException exception = null;
         List<T> results = new ArrayList<>(entries.size());
@@ -181,8 +186,9 @@ public final class EntrypointStorage {
                 ret = adapter.create(mod, value, type);
                 assert ret != null;
                 T prev = (T) instanceMap.putIfAbsent(type, ret);
-                if (prev != null)
+                if (prev != null) {
                     ret = prev;
+                }
             }
 
             return ret;

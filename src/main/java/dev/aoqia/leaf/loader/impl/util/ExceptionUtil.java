@@ -46,15 +46,17 @@ public final class ExceptionUtil {
     {
         exc = unwrap(exc);
 
-        if (THROW_DIRECTLY)
+        if (THROW_DIRECTLY) {
             throw mainExcFactory.apply(exc);
+        }
 
         if (prev == null) {
             return mainExcFactory.apply(exc);
         } else if (exc != prev) {
             for (Throwable t : prev.getSuppressed()) {
-                if (exc.equals(t))
+                if (exc.equals(t)) {
                     return prev;
+                }
             }
 
             prev.addSuppressed(exc);
@@ -64,12 +66,14 @@ public final class ExceptionUtil {
     }
 
     public static RuntimeException wrap(Throwable exc) {
-        if (exc instanceof RuntimeException)
+        if (exc instanceof RuntimeException) {
             return (RuntimeException) exc;
+        }
 
         exc = unwrap(exc);
-        if (exc instanceof RuntimeException)
+        if (exc instanceof RuntimeException) {
             return (RuntimeException) exc;
+        }
 
         return new WrappedException(exc);
     }
@@ -81,8 +85,9 @@ public final class ExceptionUtil {
             || exc instanceof CompletionException)
         {
             Throwable ret = exc.getCause();
-            if (ret != null)
+            if (ret != null) {
                 return unwrap(ret);
+            }
         }
 
         return exc;

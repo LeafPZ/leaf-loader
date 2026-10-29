@@ -35,8 +35,9 @@ package dev.aoqia.leaf.loader.impl.util;
 
 public final class StringUtil {
     public static String capitalize(String s) {
-        if (s.isEmpty())
+        if (s.isEmpty()) {
             return s;
+        }
 
         int pos;
 
@@ -46,13 +47,15 @@ public final class StringUtil {
             }
         }
 
-        if (pos == s.length())
+        if (pos == s.length()) {
             return s;
+        }
 
         int cp = s.codePointAt(pos);
         int cpUpper = Character.toUpperCase(cp);
-        if (cpUpper == cp)
+        if (cpUpper == cp) {
             return s;
+        }
 
         StringBuilder ret = new StringBuilder(s.length());
         ret.append(s, 0, pos);
@@ -73,8 +76,9 @@ public final class StringUtil {
     }
 
     public static String wrapLines(String str, int limit) {
-        if (str.length() < limit)
+        if (str.length() < limit) {
             return str;
+        }
 
         StringBuilder sb = new StringBuilder(str.length() + 20);
         int lastSpace = -1;
@@ -95,8 +99,9 @@ public final class StringUtil {
                     len = sb.length() - lastSpace - 1;
                 }
 
-                if (i == max)
+                if (i == max) {
                     break;
+                }
 
                 if (len >= limit) {
                     lastSpace = -1;
@@ -109,8 +114,9 @@ public final class StringUtil {
                 }
             } else if (c == '"' || c == '\'') {
                 int next = str.indexOf(c, i + 1) + 1;
-                if (next <= 0)
+                if (next <= 0) {
                     next = str.length();
+                }
                 sb.append(str, i, next);
                 len += next - i;
                 i = next - 1;

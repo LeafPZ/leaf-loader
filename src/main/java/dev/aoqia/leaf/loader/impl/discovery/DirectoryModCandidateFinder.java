@@ -42,8 +42,8 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.EnumSet;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import dev.aoqia.leaf.loader.impl.util.LoaderUtil;
 import dev.aoqia.leaf.loader.impl.util.log.Log;
@@ -117,7 +117,7 @@ public class DirectoryModCandidateFinder implements ModCandidateFinder {
                 Path>()
             {
                 @Override
-                public @NotNull FileVisitResult visitFile(@NotNull Path file, @NotNull BasicFileAttributes attrs) {
+                public @NonNull FileVisitResult visitFile(@NonNull Path file, @NonNull BasicFileAttributes attrs) {
                     if (isValidFile(file) && (subpath == null || file.getParent().endsWith(subpath))) {
                         out.accept(file, requiresRemap, ModSource.UNKNOWN);
                     }

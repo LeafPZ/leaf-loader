@@ -64,7 +64,9 @@ public final class ZomboidVersion {
 		public Builder setFromFileName(String name) {
 			// strip extension
 			int pos = name.lastIndexOf('.');
-			if (pos > 0) name = name.substring(0, pos);
+			if (pos > 0) {
+			    name = name.substring(0, pos);
+			}
 
 			return setIdLookup(name);
 		}

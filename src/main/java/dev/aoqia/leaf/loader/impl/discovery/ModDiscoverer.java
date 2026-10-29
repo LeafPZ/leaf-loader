@@ -93,12 +93,10 @@ public final class ModDiscoverer {
     private final DependencyOverrides depOverrides;
     private final List<ModCandidateFinder> candidateFinders = new ArrayList<>();
     private final EnvType envType = LeafLoaderImpl.INSTANCE.getEnvironmentType();
-    private final Map<Long, ModScanTask> jijDedupMap = new ConcurrentHashMap<>(); // avoids reading the same jar twice
-    private final List<NestedModInitData> nestedModInitDatas = Collections.synchronizedList(new ArrayList<>()); // breaks
-                                                                                                                // potential
-                                                                                                                // cycles
-                                                                                                                // from
-                                                                                                                // deduplication
+    /// Avoids reading the same jar twice
+    private final Map<Long, ModScanTask> jijDedupMap = new ConcurrentHashMap<>();
+    /// Breaks potential cycles from deduplication
+    private final List<NestedModInitData> nestedModInitDatas = Collections.synchronizedList(new ArrayList<>());
     private final List<Path> nonLeafMods = Collections.synchronizedList(new ArrayList<>());
 
     public ModDiscoverer(VersionOverrides versionOverrides, DependencyOverrides depOverrides) {
@@ -119,8 +117,9 @@ public final class ModDiscoverer {
             if (offset == buffer.length) {
                 if (availableGood) {
                     int val = is.read();
-                    if (val < 0)
+                    if (val < 0) {
                         break;
+                    }
 
                     availableGood = false;
                     buffer = Arrays.copyOf(buffer, Math.max(buffer.length * 2, 30_000));
@@ -163,7 +162,8 @@ public final class ModDiscoverer {
     {
         long startTime = System.nanoTime();
         ForkJoinPool pool = new ForkJoinPool();
-        Set<Path> processedPaths = new HashSet<>(); // suppresses duplicate paths
+        // Suppresses duplicate paths
+        Set<Path> processedPaths = new HashSet<>();
         List<Future<ModCandidateImpl>> futures = new ArrayList<>();
 
         ModCandidateConsumer taskSubmitter = (paths, requiresRemap, source) -> {
@@ -192,10 +192,14 @@ public final class ModDiscoverer {
         for (BuiltinMod mod : loader.getGameProvider().getBuiltinMods()) {
             if (!(mod.metadata.getVersion() instanceof SemanticVersion)) {
                 String error = String.format(
-                    "%s uses the non-semantic version %s, which doesn't support range comparisons and may cause mod dependencies against it to fail unexpectedly. Consider updating Leaf Loader or explicitly specifying the game version with the `leaf.gameVersion` system property.",
+                    "%s uses the non-semantic version %s, which doesn't support range comparisons"
+                        + " and may cause mod dependencies against it to fail unexpectedly."
+                        + " Consider updating Leaf Loader or explicitly specifying the game version"
+                        + " with the `leaf.gameVersion` system property.",
                     mod.metadata.getId(), mod.metadata.getVersion());
 
-                if (loader.isDevelopmentEnvironment()) { // fail hard in-dev
+                // fail hard in-dev
+                if (loader.isDevelopmentEnvironment()) {
                     throw new FormattedException("Invalid game version", error);
                 } else {
                     Log.warn(LogCategory.GENERAL, error);
@@ -212,8 +216,9 @@ public final class ModDiscoverer {
         ModResolutionException exception = null;
 
         int timeout = Integer.getInteger(SystemProperties.DEBUG_DISCOVERY_TIMEOUT, 60);
-        if (timeout <= 0)
+        if (timeout <= 0) {
             timeout = Integer.MAX_VALUE;
+        }
 
         try {
             pool.shutdown();
@@ -227,8 +232,9 @@ public final class ModDiscoverer {
 
                 try {
                     ModCandidateImpl candidate = future.get();
-                    if (candidate != null)
+                    if (candidate != null) {
                         candidates.add(candidate);
+                    }
                 } catch (ExecutionException e) {
                     exception = ExceptionUtil.gatherExceptions(e, exception, exc -> new ModResolutionException(
                         "Mod discovery failed!", exc));
@@ -243,8 +249,9 @@ public final class ModDiscoverer {
 
                     try {
                         ModCandidateImpl candidate = future.get();
-                        if (candidate != null)
+                        if (candidate != null) {
                             data.target.add(candidate);
+                        }
                     } catch (ExecutionException e) {
                         exception = ExceptionUtil.gatherExceptions(e, exception, exc -> new ModResolutionException(
                             "Mod discovery failed!", exc));
@@ -253,7 +260,10 @@ public final class ModDiscoverer {
             }
         } catch (TimeoutException e) {
             throw new FormattedException("Mod discovery took too long!",
-                "Analyzing the mod folder contents took longer than %d seconds. This may be caused by unusually slow hardware, pathological antivirus interference or other issues. The timeout can be changed with the system property %s (-D%<s=<desired timeout in seconds>).",
+                "Analyzing the mod folder contents took longer than %d seconds."
+                    + " This may be caused by unusually slow hardware, pathological antivirus interference"
+                    + " or other issues. The timeout can be changed with the system property"
+                    + " %s (-D%<s=<desired timeout in seconds>).",
                 timeout, SystemProperties.DEBUG_DISCOVERY_TIMEOUT);
         } catch (InterruptedException e) {
             throw new FormattedException("Mod discovery interrupted!", e);
@@ -409,16 +419,20 @@ public final class ModDiscoverer {
 
         @Override
         protected ModCandidateImpl compute() {
-            if (is != null) { // nested jar
+            // nested jar
+            if (is != null) {
                 try {
                     return computeJarStream();
-                } catch (ParseMetadataException e) { // already contains all context
+                } catch (ParseMetadataException e) {
+                    // already contains all context
                     throw ExceptionUtil.wrap(e);
                 } catch (Throwable t) {
                     throw new RuntimeException(String.format("Error analyzing nested jar %s from %s: %s", localPath,
                         parentPaths, t), t);
                 }
-            } else { // regular classes-dir or jar
+            } else {
+                // regular classes-dir or jar
+
                 try {
                     for (Path path : paths) {
                         final ModCandidateImpl candidate;
@@ -433,7 +447,8 @@ public final class ModDiscoverer {
                             return candidate;
                         }
                     }
-                } catch (ParseMetadataException e) { // already contains all context
+                } catch (ParseMetadataException e) {
+                    // already contains all context
                     throw ExceptionUtil.wrap(e);
                 } catch (Throwable t) {
                     throw new RuntimeException(String.format("Error analyzing %s: %s", paths, t), t);
@@ -445,8 +460,9 @@ public final class ModDiscoverer {
 
         private ModCandidateImpl computeDir(Path path) throws IOException, ParseMetadataException {
             Path modJson = path.resolve("leaf.mod.json");
-            if (!Files.exists(modJson))
+            if (!Files.exists(modJson)) {
                 return null;
+            }
 
             LoaderModMetadata metadata;
 
@@ -546,8 +562,9 @@ public final class ModDiscoverer {
                 }
             }
 
-            if (metadata == null)
+            if (metadata == null) {
                 return null;
+            }
 
             if (!metadata.loadsInEnvironment(envType)) {
                 return ModCandidateImpl.createNested(localPath, hash, metadata, requiresRemap, Collections.emptyList(),
@@ -579,15 +596,16 @@ public final class ModDiscoverer {
 
                         @Override
                         public ZipEntry getNextEntry() throws IOException {
-                            if (nestedJarPaths.isEmpty())
+                            if (nestedJarPaths.isEmpty()) {
                                 return null;
+                            }
 
                             ZipEntry ret;
 
                             while ((ret = zis.getNextEntry()) != null) {
                                 if (isValidNestedJarEntry(ret) && nestedJarPaths.remove(ret.getName())) {
-                                    is = new RewindableInputStream(zis); // reads the entry, which completes the
-                                                                         // ZipEntry with any trailing header data
+                                    // reads the entry, which completes the ZipEntry with any trailing header data
+                                    is = new RewindableInputStream(zis);
                                     return ret;
                                 }
                             }
@@ -639,7 +657,8 @@ public final class ModDiscoverer {
 
                     if (prev != null) {
                         task = prev;
-                    } else if (localTask == null) { // don't fork first task, leave it for this thread
+                    } else if (localTask == null) {
+                        // don't fork first task, leave it for this thread
                         localTask = task;
                     } else {
                         task.fork();
@@ -649,11 +668,13 @@ public final class ModDiscoverer {
                 tasks.add(task);
             }
 
-            if (tasks.isEmpty())
+            if (tasks.isEmpty()) {
                 return Collections.emptyList();
+            }
 
-            if (localTask != null)
+            if (localTask != null) {
                 localTask.invoke();
+            }
 
             return tasks;
         }
@@ -678,7 +699,8 @@ public final class ModDiscoverer {
         private final ByteBuffer buffer;
         private int pos;
 
-        RewindableInputStream(InputStream parent) throws IOException { // no parent.close()
+        RewindableInputStream(InputStream parent) throws IOException {
+            // no parent.close()
             buffer = readMod(parent);
 
             assert buffer.hasArray() && buffer.arrayOffset() == 0 && buffer.position() == 0;

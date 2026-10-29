@@ -156,8 +156,9 @@ public final class LeafStatusTree {
             shouldClose = is.readBoolean();
             shouldContinue = is.readBoolean();
 
-            if (is.readBoolean())
+            if (is.readBoolean()) {
                 clipboard = is.readUTF();
+            }
         }
 
         public LeafStatusButton(String text, LeafBasicButtonType type) {
@@ -219,8 +220,9 @@ public final class LeafStatusTree {
             iconType = is.readUTF();
             warningLevel = LeafTreeWarningLevel.valueOf(is.readUTF());
             expandByDefault = is.readBoolean();
-            if (is.readBoolean())
+            if (is.readBoolean()) {
                 details = is.readUTF();
+            }
 
             for (int i = is.readInt(); i > 0; i--) {
                 children.add(new LeafStatusNode(this, is));
@@ -414,8 +416,9 @@ public final class LeafStatusTree {
             os.writeUTF(warningLevel.name());
             os.writeBoolean(expandByDefault);
             os.writeBoolean(details != null);
-            if (details != null)
+            if (details != null) {
                 os.writeUTF(details);
+            }
             os.writeInt(children.size());
 
             for (LeafStatusNode child : children) {
@@ -455,8 +458,9 @@ public final class LeafStatusTree {
 
             LeafStatusNode sub = addMessage(msg, LeafTreeWarningLevel.ERROR);
 
-            if (!showTrace)
+            if (!showTrace) {
                 return sub;
+            }
 
             StackTraceElement[] trace = exception.getStackTrace();
             int uniqueFrames = trace.length - 1;

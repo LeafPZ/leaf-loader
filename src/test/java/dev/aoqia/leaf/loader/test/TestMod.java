@@ -30,6 +30,7 @@
  */
 
 // spotless:on
+
 package dev.aoqia.leaf.loader.test;
 
 import java.util.LinkedHashSet;

@@ -104,13 +104,15 @@ final class BuiltinLogHandler extends ConsoleLogHandler {
             }
         }
 
-        if (output)
+        if (output) {
             super.log(time, level, category, msg, exc, fromReplay, wasSuppressed);
+        }
     }
 
     synchronized void configure(boolean buffer, boolean output) {
-        if (!buffer && !output)
+        if (!buffer && !output) {
             throw new IllegalArgumentException("can't both disable buffering and the output");
+        }
 
         if (output) {
             startOutput();
@@ -119,8 +121,9 @@ final class BuiltinLogHandler extends ConsoleLogHandler {
         }
 
         if (buffer) {
-            if (this.buffer == null)
+            if (this.buffer == null) {
                 this.buffer = new ArrayList<>();
+            }
         } else {
             this.buffer = null;
         }
@@ -129,16 +132,19 @@ final class BuiltinLogHandler extends ConsoleLogHandler {
     }
 
     synchronized void finishConfig() {
-        if (!configured)
+        if (!configured) {
             configure(false, true);
+        }
     }
 
     synchronized boolean replay(LogHandler target) {
-        if (buffer == null || buffer.isEmpty())
+        if (buffer == null || buffer.isEmpty()) {
             return false;
+        }
 
+        // index based loop to tolerate replay producing log output by itself
         // noinspection ForLoopReplaceableByForEach
-        for (int i = 0; i < buffer.size(); i++) { // index based loop to tolerate replay producing log output by itself
+        for (int i = 0; i < buffer.size(); i++) {
             ReplayEntry entry = buffer.get(i);
             target.log(entry.time, entry.level, entry.category, entry.msg, entry.exc, true, !enableOutput);
         }
@@ -147,13 +153,14 @@ final class BuiltinLogHandler extends ConsoleLogHandler {
     }
 
     private void startOutput() {
-        if (enableOutput)
+        if (enableOutput) {
             return;
+        }
 
         if (buffer != null) {
+            // index based loop to tolerate replay producing log output by itself
             // noinspection ForLoopReplaceableByForEach
-            for (int i = 0; i < buffer.size(); i++) { // index based loop to tolerate replay producing log output by
-                                                      // itself
+            for (int i = 0; i < buffer.size(); i++) {
                 ReplayEntry entry = buffer.get(i);
                 super.log(entry.time, entry.level, entry.category, entry.msg, entry.exc, true, true);
             }
@@ -194,18 +201,22 @@ final class BuiltinLogHandler extends ConsoleLogHandler {
                 if (!enableOutput) {
                     enableOutput = true;
 
+                    // index based loop to tolerate replay producing log output by itself
                     // noinspection ForLoopReplaceableByForEach
-                    for (int i = 0; i < buffer.size(); i++) { // index based loop to tolerate replay producing log
-                                                              // output by itself
+                    for (int i = 0; i < buffer.size(); i++) {
                         ReplayEntry entry = buffer.get(i);
                         BuiltinLogHandler.super.log(entry.time, entry.level, entry.category, entry.msg, entry.exc, true,
                             true);
                     }
                 }
 
+                // FIXME(leaf): This seems a bit verbose. We should probably have some uniform methods of getting the
+                // desired log path as a static func or something.
                 String fileName = System.getProperty(SystemProperties.LOG_FILE,
-                    Paths.get(System.getProperty("leaf.log.file", System.getProperty("leaf.runDir",
-                        ((LeafLoaderImpl) LeafLoader.getInstance()).getCacheDir().toString())))
+                    Paths
+                        .get(System.getProperty("leaf.log.file",
+                            System.getProperty("leaf.runDir",
+                                ((LeafLoaderImpl) LeafLoader.getInstance()).getCacheDir().toString())))
                         .resolve(DEFAULT_LOG_FILE)
                         .toString());
                 if (fileName.isEmpty()) {
@@ -219,9 +230,9 @@ final class BuiltinLogHandler extends ConsoleLogHandler {
                     try (Writer writer = Files.newBufferedWriter(file, StandardOpenOption.WRITE,
                         StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE))
                     {
+                        // index based loop to tolerate replay producing log output by itself
                         // noinspection ForLoopReplaceableByForEach
-                        for (int i = 0; i < buffer.size(); i++) { // index based loop to tolerate replay producing log
-                                                                  // output by itself
+                        for (int i = 0; i < buffer.size(); i++) {
                             ReplayEntry entry = buffer.get(i);
                             writer.write(formatLog(entry.time, entry.level, entry.category, entry.msg, entry.exc));
                         }

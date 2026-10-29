@@ -1605,7 +1605,9 @@ public class JsonReader implements Closeable {
 	private boolean rewindEnabled;
 
 	public void rewind() {
-		if (!rewindEnabled) throw new IllegalStateException("rewind disabled");
+		if (!rewindEnabled) {
+		    throw new IllegalStateException("rewind disabled");
+		}
 
 		pos = 0;
 		lineNumber = 0;
@@ -1616,7 +1618,9 @@ public class JsonReader implements Closeable {
 	}
 
 	public void setRewindEnabled(boolean value) {
-		if (value && (pos > 0 || lineNumber > 0)) throw new IllegalStateException("already read some data");
+		if (value && (pos > 0 || lineNumber > 0)) {
+		    throw new IllegalStateException("already read some data");
+		}
 
 		rewindEnabled = value;
 	}

@@ -93,15 +93,17 @@ final class MixinLogger extends LoggerAdapterAbstract {
     @Override
     public void log(Level level, String message, Object... params) {
         LogLevel fabricLevel = translateLevel(level);
-        if (!Log.shouldLog(fabricLevel, logCategory))
+        if (!Log.shouldLog(fabricLevel, logCategory)) {
             return;
+        }
 
         Throwable exc = null;
 
         if (params != null && params.length > 0) {
             if (message == null) {
-                if (params[0] instanceof Throwable)
+                if (params[0] instanceof Throwable) {
                     exc = (Throwable) params[0];
+                }
             } else {
                 // emulate Log4J's {} tokens and \ escapes
                 StringBuilder sb = new StringBuilder(message.length() + 20);
@@ -116,14 +118,10 @@ final class MixinLogger extends LoggerAdapterAbstract {
                         escaped = false;
                     } else if (c == '\\' && i + 1 < max) {
                         escaped = true;
-                    } else if (c == '{' && i + 1 < max && message.charAt(i + 1) == '}' && paramIdx < params.length) { // unescaped
-                                                                                                                      // {}
-                                                                                                                      // with
-                                                                                                                      // matching
-                                                                                                                      // param
-                                                                                                                      // idx
-                        Object param = params[paramIdx++];
+                    } else if (c == '{' && i + 1 < max && message.charAt(i + 1) == '}' && paramIdx < params.length) {
+                        // unescaped {} with matching param idx
 
+                        Object param = params[paramIdx++];
                         if (param == null) {
                             sb.append("null");
                         } else if (param.getClass().isArray()) {
@@ -133,7 +131,8 @@ final class MixinLogger extends LoggerAdapterAbstract {
                             sb.append(param);
                         }
 
-                        i++; // skip over }
+                        // skip over }
+                        i++;
                     } else {
                         sb.append(c);
                     }

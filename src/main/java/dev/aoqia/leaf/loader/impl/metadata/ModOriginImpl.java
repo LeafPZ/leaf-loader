@@ -68,24 +68,27 @@ public final class ModOriginImpl implements ModOrigin {
 
     @Override
     public String getParentModId() {
-        if (kind != Kind.NESTED)
+        if (kind != Kind.NESTED) {
             throw new UnsupportedOperationException("kind " + kind.name() + " doesn't have a parent mod");
+        }
 
         return parentModId;
     }
 
     @Override
     public String getParentSubLocation() {
-        if (kind != Kind.NESTED)
+        if (kind != Kind.NESTED) {
             throw new UnsupportedOperationException("kind " + kind.name() + " doesn't have a parent sub-location");
+        }
 
         return parentSubLocation;
     }
 
     @Override
     public List<Path> getPaths() {
-        if (kind != Kind.PATH)
+        if (kind != Kind.PATH) {
             throw new UnsupportedOperationException("kind " + kind.name() + " doesn't have paths");
+        }
 
         return paths;
     }

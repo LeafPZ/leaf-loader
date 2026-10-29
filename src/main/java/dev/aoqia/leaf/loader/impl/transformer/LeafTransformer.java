@@ -67,8 +67,9 @@ public final class LeafTransformer {
         int visitorCount = 0;
 
         if (applyClassTweaker) {
-            visitor = LeafLoaderImpl.INSTANCE.getClassTweaker()
-                .createClassVisitor(LeafLoaderImpl.ASM_VERSION, visitor, null); // TODO: generated classes?
+            // TODO: generated classes?
+            visitor =
+                LeafLoaderImpl.INSTANCE.getClassTweaker().createClassVisitor(LeafLoaderImpl.ASM_VERSION, visitor, null);
             visitorCount++;
         }
 
@@ -78,8 +79,8 @@ public final class LeafTransformer {
         }
 
         if (environmentStrip) {
-            EnvironmentStrippingData stripData = new EnvironmentStrippingData(LeafLoaderImpl.ASM_VERSION, envType
-                .toString());
+            EnvironmentStrippingData stripData =
+                new EnvironmentStrippingData(LeafLoaderImpl.ASM_VERSION, envType.toString());
             classReader.accept(stripData, ClassReader.SKIP_CODE | ClassReader.SKIP_FRAMES);
 
             if (stripData.stripEntireClass()) {

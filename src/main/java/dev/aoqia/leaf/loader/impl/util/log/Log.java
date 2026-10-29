@@ -104,8 +104,9 @@ public final class Log {
     }
 
     public static void init(LogHandler handler) {
-        if (handler == null)
+        if (handler == null) {
             throw new NullPointerException("null log handler");
+        }
 
         LogHandler oldHandler = Log.handler;
 
@@ -119,20 +120,23 @@ public final class Log {
 
     public static void log(LogLevel level, LogCategory category, String msg) {
         LogHandler handler = Log.handler;
-        if (handler.shouldLog(level, category))
+        if (handler.shouldLog(level, category)) {
             log(handler, level, category, msg, null);
+        }
     }
 
     public static void log(LogLevel level, LogCategory category, String msg, Throwable exc) {
         LogHandler handler = Log.handler;
-        if (handler.shouldLog(level, category))
+        if (handler.shouldLog(level, category)) {
             log(handler, level, category, msg, exc);
+        }
     }
 
     public static void logFormat(LogLevel level, LogCategory category, String format, Object... args) {
         LogHandler handler = Log.handler;
-        if (!handler.shouldLog(level, category))
+        if (!handler.shouldLog(level, category)) {
             return;
+        }
 
         String msg;
         Throwable exc;
@@ -144,8 +148,9 @@ public final class Log {
             exc = null;
         } else {
             if (CHECK_FOR_BRACKETS) {
-                if (format.indexOf("{}") != -1)
+                if (format.indexOf("{}") != -1) {
                     throw new IllegalArgumentException("log message containing {}: " + format);
+                }
             }
 
             Object lastArg = args[args.length - 1];
@@ -213,11 +218,13 @@ public final class Log {
             } else if (wasPct) {
                 wasPct = false;
 
-                if (c == 'n' || c == '<') { // not %n or %<x
+                // not %n or %<x
+                if (c == 'n' || c == '<') {
                     continue;
                 }
 
-                if (c >= '0' && c <= '9') { // abs indexing %12$
+                // abs indexing %12$
+                if (c >= '0' && c <= '9') {
                     int start = i;
 
                     while (i + 1 < format.length()

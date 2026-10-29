@@ -50,8 +50,7 @@ public enum VersionComparisonOperator {
             return a.compareTo((Version) b) >= 0;
         }
     },
-    LESS_EQUAL("<=", false, true)
-    {
+    LESS_EQUAL("<=", false, true) {
         @Override
         public SemanticVersion maxVersion(SemanticVersion version) {
             return version;
@@ -62,8 +61,7 @@ public enum VersionComparisonOperator {
             return a.compareTo((Version) b) <= 0;
         }
     },
-    GREATER(">", false, false)
-    {
+    GREATER(">", false, false) {
         @Override
         public SemanticVersion minVersion(SemanticVersion version) {
             return version;
@@ -74,8 +72,7 @@ public enum VersionComparisonOperator {
             return a.compareTo((Version) b) > 0;
         }
     },
-    LESS("<", false, false)
-    {
+    LESS("<", false, false) {
         @Override
         public SemanticVersion maxVersion(SemanticVersion version) {
             return version;
@@ -86,8 +83,7 @@ public enum VersionComparisonOperator {
             return a.compareTo((Version) b) < 0;
         }
     },
-    EQUAL("=", true, true)
-    {
+    EQUAL("=", true, true) {
         @Override
         public SemanticVersion maxVersion(SemanticVersion version) {
             return version;
@@ -103,8 +99,7 @@ public enum VersionComparisonOperator {
             return a.compareTo((Version) b) == 0;
         }
     },
-    SAME_TO_NEXT_MINOR("~", true, false)
-    {
+    SAME_TO_NEXT_MINOR("~", true, false) {
         @Override
         public SemanticVersion maxVersion(SemanticVersion version) {
             return new SemanticVersionImpl(new int[] {
@@ -124,8 +119,7 @@ public enum VersionComparisonOperator {
                 && a.getVersionComponent(1) == b.getVersionComponent(1);
         }
     },
-    SAME_TO_NEXT_MAJOR("^", true, false)
-    {
+    SAME_TO_NEXT_MAJOR("^", true, false) {
         @Override
         public SemanticVersion maxVersion(SemanticVersion version) {
             return new SemanticVersionImpl(new int[] { version.getVersionComponent(0) + 1 }, "", null);

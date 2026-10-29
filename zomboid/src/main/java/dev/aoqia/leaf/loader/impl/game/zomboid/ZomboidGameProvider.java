@@ -246,7 +246,9 @@ public class ZomboidGameProvider implements GameProvider {
 		share.put("leaf-loader:inputGameJars", Collections.unmodifiableList(new ArrayList<>(gameJars)));
 
 		String version = arguments.remove(Arguments.GAME_VERSION);
-		if (version == null) version = System.getProperty(SystemProperties.GAME_VERSION);
+		if (version == null) {
+		    version = System.getProperty(SystemProperties.GAME_VERSION);
+		}
 		versionData = ZomboidVersionLookup.getVersion(gameJars, entrypoint, version);
 
 		processArgumentMap(arguments, envType);
@@ -333,7 +335,9 @@ public class ZomboidGameProvider implements GameProvider {
 				Path newJar = obfJars.get(names[i]);
 				Path oldJar = gameJars.set(i, newJar);
 
-				if (logJars.remove(oldJar)) logJars.add(newJar);
+				if (logJars.remove(oldJar)) {
+				    logJars.add(newJar);
+				}
 			}
 		}
 
@@ -407,10 +411,14 @@ public class ZomboidGameProvider implements GameProvider {
 
 	@Override
 	public String[] getLaunchArguments(boolean sanitize) {
-		if (arguments == null) return new String[0];
+		if (arguments == null) {
+		    return new String[0];
+		}
 
 		String[] ret = arguments.toArray();
-		if (!sanitize) return ret;
+		if (!sanitize) {
+		    return ret;
+		}
 
 		int writeIdx = 0;
 
@@ -426,7 +434,9 @@ public class ZomboidGameProvider implements GameProvider {
 			}
 		}
 
-		if (writeIdx < ret.length) ret = Arrays.copyOf(ret, writeIdx);
+		if (writeIdx < ret.length) {
+		    ret = Arrays.copyOf(ret, writeIdx);
+		}
 
 		return ret;
 	}

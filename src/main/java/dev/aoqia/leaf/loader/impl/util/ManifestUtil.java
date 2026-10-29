@@ -52,8 +52,9 @@ import java.util.jar.Manifest;
 public final class ManifestUtil {
     public static List<URL> getClassPath(Manifest manifest, Path baseDir) throws MalformedURLException {
         String cp = ManifestUtil.getManifestValue(manifest, Name.CLASS_PATH);
-        if (cp == null)
+        if (cp == null) {
             return null;
+        }
 
         StringTokenizer tokenizer = new StringTokenizer(cp);
         List<URL> ret = new ArrayList<>();
@@ -72,12 +73,14 @@ public final class ManifestUtil {
 
     public static Manifest readManifest(Class<?> cls) throws IOException, URISyntaxException {
         CodeSource cs = cls.getProtectionDomain().getCodeSource();
-        if (cs == null)
+        if (cs == null) {
             return null;
+        }
 
         URL url = cs.getLocation();
-        if (url == null)
+        if (url == null) {
             return null;
+        }
 
         return readManifest(url);
     }
@@ -94,8 +97,9 @@ public final class ManifestUtil {
 
     public static Manifest readManifestFromBasePath(Path basePath) throws IOException {
         Path path = basePath.resolve("META-INF").resolve("MANIFEST.MF");
-        if (!Files.exists(path))
+        if (!Files.exists(path)) {
             return null;
+        }
 
         try (InputStream stream = Files.newInputStream(path)) {
             return new Manifest(stream);

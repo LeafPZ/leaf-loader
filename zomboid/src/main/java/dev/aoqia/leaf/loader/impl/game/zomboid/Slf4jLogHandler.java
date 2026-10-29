@@ -61,7 +61,9 @@ public final class Slf4jLogHandler implements LogHandler {
 		Logger logger = getLogger(category);
 
 		if (msg == null) {
-			if (exc == null) return;
+			if (exc == null) {
+			    return;
+			}
 			msg = "Exception";
 		}
 

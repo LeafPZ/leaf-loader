@@ -91,10 +91,12 @@ public final class VersionPredicateParser {
             if (version instanceof SemanticVersion) {
                 SemanticVersion semVer = (SemanticVersion) version;
 
-                if (semVer.hasWildcard()) { // .x version -> replace with conventional version by replacing the operator
+                // .x version -> replace with conventional version by replacing the operator
+                if (semVer.hasWildcard()) {
                     if (operator != VersionComparisonOperator.EQUAL) {
                         throw new VersionParsingException("Invalid predicate: " + predicate
-                            + ", version ranges with wildcards (.X) require using the equality operator or no operator at all!");
+                            + ", version ranges with wildcards (.X) require using the equality operator or no operator"
+                            + " at all!");
                     }
 
                     assert !semVer.getPrereleaseKey().isPresent();
@@ -113,10 +115,12 @@ public final class VersionPredicateParser {
 
                     version = new SemanticVersionImpl(newComponents, "", semVer.getBuildKey().orElse(null));
                 }
-            } else if (!operator.isMinInclusive() && !operator.isMaxInclusive()) { // non-semver without inclusive bound
+            } else if (!operator.isMinInclusive() && !operator.isMaxInclusive()) {
+                // non-semver without inclusive bound
                 throw new VersionParsingException("Invalid predicate: " + predicate
-                    + ", version ranges need to be semantic version compatible to use operators that exclude the bound!");
-            } else { // non-semver with inclusive bound
+                    + ", version ranges need to be semver compatible to use operators that exclude the bound!");
+            } else {
+                // non-semver with inclusive bound
                 operator = VersionComparisonOperator.EQUAL;
             }
 
@@ -179,8 +183,9 @@ public final class VersionPredicateParser {
 
         @Override
         public VersionInterval getInterval() {
-            if (predicates.isEmpty())
+            if (predicates.isEmpty()) {
                 return AnyVersionPredicate.INSTANCE.getInterval();
+            }
 
             VersionInterval ret = predicates.get(0).getInterval();
 
@@ -206,8 +211,9 @@ public final class VersionPredicateParser {
             Objects.requireNonNull(version, "null version");
 
             for (SingleVersionPredicate predicate : predicates) {
-                if (!predicate.test(version))
+                if (!predicate.test(version)) {
                     return false;
+                }
             }
 
             return true;
@@ -218,8 +224,9 @@ public final class VersionPredicateParser {
             StringBuilder ret = new StringBuilder();
 
             for (SingleVersionPredicate predicate : predicates) {
-                if (ret.length() > 0)
+                if (ret.length() > 0) {
                     ret.append(' ');
+                }
                 ret.append(predicate.toString());
             }
 

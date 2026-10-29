@@ -126,7 +126,8 @@ class LeafMainWindow {
         DefaultTreeModel model = new DefaultTreeModel(treeNode);
         JTree tree = new JTree(model);
         tree.setRootVisible(false);
-        tree.setRowHeight(0); // Allow rows to be multiple lines tall
+        // Allow rows to be multiple lines tall
+        tree.setRowHeight(0);
 
         for (int row = 0; row < tree.getRowCount(); row++) {
             if (!tree.isVisible(tree.getPathForRow(row))) {
@@ -210,8 +211,9 @@ class LeafMainWindow {
                 JButton btn = new JButton(button.text);
                 buttons.add(btn);
                 btn.addActionListener(event -> {
-                    if (button.type == LeafBasicButtonType.CLICK_ONCE)
+                    if (button.type == LeafBasicButtonType.CLICK_ONCE) {
                         btn.setEnabled(false);
+                    }
 
                     if (button.clipboard != null) {
                         try {

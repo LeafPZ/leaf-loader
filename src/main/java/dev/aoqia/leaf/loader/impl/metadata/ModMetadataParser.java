@@ -84,8 +84,9 @@ public final class ModMetadataParser {
     }
 
     static void logWarningMessages(String id, List<ParseWarning> warnings) {
-        if (warnings.isEmpty())
+        if (warnings.isEmpty()) {
             return;
+        }
 
         final StringBuilder message = new StringBuilder();
 

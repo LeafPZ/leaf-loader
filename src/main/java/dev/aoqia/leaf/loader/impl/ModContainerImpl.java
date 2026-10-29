@@ -115,8 +115,9 @@ public class ModContainerImpl implements ModContainer {
 
     @Override
     public Collection<ModContainer> getContainedMods() {
-        if (childModIds.isEmpty())
+        if (childModIds.isEmpty()) {
             return Collections.emptyList();
+        }
 
         List<ModContainer> ret = new ArrayList<>(childModIds.size());
 
@@ -152,8 +153,9 @@ public class ModContainerImpl implements ModContainer {
 
     public Path getPath(String file) {
         Optional<Path> res = findPath(file);
-        if (res.isPresent())
+        if (res.isPresent()) {
             return res.get();
+        }
 
         List<Path> roots = this.roots;
 
@@ -162,9 +164,8 @@ public class ModContainerImpl implements ModContainer {
 
             return root.resolve(file.replace("/", root.getFileSystem().getSeparator()));
         } else {
-            return Paths.get(".").resolve("missing_ae236f4970ce").resolve(file.replace('/', File.separatorChar)); // missing
-                                                                                                                  // dummy
-                                                                                                                  // path
+            // missing dummy path
+            return Paths.get(".").resolve("missing_ae236f4970ce").resolve(file.replace('/', File.separatorChar));
         }
     }
 
@@ -172,10 +173,12 @@ public class ModContainerImpl implements ModContainer {
         List<Path> paths = getRootPaths();
 
         if (paths.size() != 1 && !warnedMultiPath) {
-            if (!LeafLoaderImpl.INSTANCE.isDevelopmentEnvironment())
+            if (!LeafLoaderImpl.INSTANCE.isDevelopmentEnvironment()) {
                 warnedMultiPath = true;
+            }
             Log.warn(LogCategory.GENERAL,
-                "getRootPath access for %s with multiple paths, returning only one which may incur unexpected behavior!",
+                "getRootPath access for %s with multiple paths"
+                    + ", returning only one which may incur unexpected behavior!",
                 this);
         }
 
@@ -187,8 +190,8 @@ public class ModContainerImpl implements ModContainer {
         List<Path> ret = roots;
 
         if (ret == null || !checkFsOpen(ret)) {
-            roots = ret = obtainRootPaths(); // obtainRootPaths is thread safe, but we need to avoid plain or repeated
-                                             // reads to root
+            // obtainRootPaths is thread safe, but we need to avoid plain or repeated reads to root
+            roots = ret = obtainRootPaths();
         }
 
         return ret;
@@ -201,12 +204,15 @@ public class ModContainerImpl implements ModContainer {
 
     private boolean checkFsOpen(List<Path> paths) {
         for (Path path : paths) {
-            if (path.getFileSystem().isOpen())
+            if (path.getFileSystem().isOpen()) {
                 continue;
+            }
 
             if (!warnedClose) {
-                if (!LeafLoaderImpl.INSTANCE.isDevelopmentEnvironment())
+                if (!LeafLoaderImpl.INSTANCE.isDevelopmentEnvironment()) {
                     warnedClose = true;
+                }
+
                 Log.warn(LogCategory.GENERAL,
                     "FileSystem for %s has been closed unexpectedly, existing root path references may break!", this);
             }
@@ -227,8 +233,9 @@ public class ModContainerImpl implements ModContainer {
             }
         }
 
-        if (allDirs)
+        if (allDirs) {
             return codeSourcePaths;
+        }
 
         try {
             if (codeSourcePaths.size() == 1) {

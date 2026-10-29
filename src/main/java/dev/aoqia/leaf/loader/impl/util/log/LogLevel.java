@@ -42,12 +42,14 @@ public enum LogLevel {
 
     public static LogLevel getDefault() {
         String val = System.getProperty(SystemProperties.LOG_LEVEL);
-        if (val == null)
+        if (val == null) {
             return INFO;
+        }
 
         LogLevel ret = LogLevel.valueOf(val.toUpperCase(Locale.ENGLISH));
-        if (ret == null)
+        if (ret == null) {
             throw new IllegalArgumentException("invalid log level: " + val);
+        }
 
         return ret;
     }

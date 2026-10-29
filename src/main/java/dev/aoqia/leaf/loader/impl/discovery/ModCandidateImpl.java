@@ -52,7 +52,7 @@ import java.util.zip.ZipFile;
 import java.util.zip.ZipInputStream;
 
 import org.apache.commons.codec.digest.DigestUtils;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import dev.aoqia.leaf.loader.api.Version;
 import dev.aoqia.leaf.loader.api.metadata.ModDependency;
@@ -144,8 +144,9 @@ public final class ModCandidateImpl implements DomainObject.Mod {
     }
 
     static long hash(ZipEntry entry) {
-        if (entry.getSize() < 0 || entry.getCrc() < 0)
+        if (entry.getSize() < 0 || entry.getCrc() < 0) {
             throw new IllegalArgumentException("uninitialized entry: " + entry);
+        }
 
         return entry.getCrc() << 32 | entry.getSize();
     }
@@ -185,8 +186,9 @@ public final class ModCandidateImpl implements DomainObject.Mod {
 
             copyToFile(ret);
         } catch (Throwable t) {
-            if (ret != null)
+            if (ret != null) {
                 Files.deleteIfExists(ret);
+            }
 
             throw t;
         }
@@ -266,8 +268,9 @@ public final class ModCandidateImpl implements DomainObject.Mod {
     }
 
     public List<Path> getPaths() {
-        if (paths == null)
+        if (paths == null) {
             throw new IllegalStateException("no path set");
+        }
 
         return paths;
     }
@@ -310,8 +313,9 @@ public final class ModCandidateImpl implements DomainObject.Mod {
     }
 
     public void setPaths(List<Path> paths) {
-        if (paths == null)
+        if (paths == null) {
             throw new NullPointerException("null paths");
+        }
 
         this.paths = paths;
         clearCachedData();
@@ -323,10 +327,12 @@ public final class ModCandidateImpl implements DomainObject.Mod {
     }
 
     boolean addParent(ModCandidateImpl parent) {
-        if (minNestLevel == 0)
+        if (minNestLevel == 0) {
             return false;
-        if (parentMods.contains(parent))
+        }
+        if (parentMods.contains(parent)) {
             return false;
+        }
 
         parentMods.add(parent);
         updateMinNestLevel(parent);
@@ -365,8 +371,9 @@ public final class ModCandidateImpl implements DomainObject.Mod {
     }
 
     boolean updateMinNestLevel(ModCandidateImpl parent) {
-        if (minNestLevel <= parent.minNestLevel)
+        if (minNestLevel <= parent.minNestLevel) {
             return false;
+        }
 
         this.minNestLevel = parent.minNestLevel + 1;
 
@@ -387,8 +394,9 @@ public final class ModCandidateImpl implements DomainObject.Mod {
         }
 
         if (paths != null) {
-            if (paths.size() != 1)
+            if (paths.size() != 1) {
                 throw new UnsupportedOperationException("multiple paths for " + this);
+            }
 
             Files.copy(paths.get(0), out);
 
@@ -398,13 +406,15 @@ public final class ModCandidateImpl implements DomainObject.Mod {
         ModCandidateImpl parent = getBestSourcingParent();
 
         if (parent.paths != null) {
-            if (parent.paths.size() != 1)
+            if (parent.paths.size() != 1) {
                 throw new UnsupportedOperationException("multiple parent paths for " + this);
+            }
 
             try (ZipFile zf = new ZipFile(parent.paths.get(0).toFile())) {
                 ZipEntry entry = zf.getEntry(localPath);
-                if (entry == null)
+                if (entry == null) {
                     throw new IOException(String.format("can't find nested mod %s in its parent mod %s", this, parent));
+                }
 
                 Files.copy(zf.getInputStream(entry), out);
             }
@@ -429,14 +439,16 @@ public final class ModCandidateImpl implements DomainObject.Mod {
     }
 
     private ModCandidateImpl getBestSourcingParent() {
-        if (parentMods.isEmpty())
+        if (parentMods.isEmpty()) {
             return null;
+        }
 
         ModCandidateImpl ret = null;
 
         for (ModCandidateImpl parent : parentMods) {
-            if (parent.minNestLevel >= minNestLevel)
+            if (parent.minNestLevel >= minNestLevel) {
                 continue;
+            }
 
             if (parent.paths != null && parent.paths.size() == 1
                 || parent.dataRef != null && parent.dataRef.get() != null)
@@ -444,12 +456,14 @@ public final class ModCandidateImpl implements DomainObject.Mod {
                 return parent;
             }
 
-            if (ret == null)
+            if (ret == null) {
                 ret = parent;
+            }
         }
 
-        if (ret == null)
+        if (ret == null) {
             throw new IllegalStateException("invalid nesting?");
+        }
 
         return ret;
     }
@@ -459,29 +473,33 @@ public final class ModCandidateImpl implements DomainObject.Mod {
 
         if (dataRef != null) {
             ByteBuffer ret = dataRef.get();
-            if (ret != null)
+            if (ret != null) {
                 return ret;
+            }
         }
 
         ByteBuffer ret;
 
         if (paths != null) {
-            if (paths.size() != 1)
+            if (paths.size() != 1) {
                 throw new UnsupportedOperationException("multiple paths for " + this);
+            }
 
             ret = ByteBuffer.wrap(Files.readAllBytes(paths.get(0)));
         } else {
             ModCandidateImpl parent = getBestSourcingParent();
 
             if (parent.paths != null) {
-                if (parent.paths.size() != 1)
+                if (parent.paths.size() != 1) {
                     throw new UnsupportedOperationException("multiple parent paths for " + this);
+                }
 
                 try (ZipFile zf = new ZipFile(parent.paths.get(0).toFile())) {
                     ZipEntry entry = zf.getEntry(localPath);
-                    if (entry == null)
+                    if (entry == null) {
                         throw new IOException(String.format("can't find nested mod %s in its parent mod %s", this,
                             parent));
+                    }
 
                     ret = ModDiscoverer.readMod(zf.getInputStream(entry));
                 }
@@ -502,9 +520,10 @@ public final class ModCandidateImpl implements DomainObject.Mod {
                     }
                 }
 
-                if (ret == null)
+                if (ret == null) {
                     throw new IOException(String.format("can't find nested mod %s in its parent mods %s", this,
                         parent));
+                }
             }
         }
 

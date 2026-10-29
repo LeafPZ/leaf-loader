@@ -53,7 +53,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipException;
 import java.util.zip.ZipFile;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import net.fabricmc.mappingio.MappingReader;
 import net.fabricmc.mappingio.MappingVisitor;
@@ -98,13 +98,15 @@ public final class MappingConfiguration {
 
     public String getDefaultModDistributionNamespace() {
         String ret = System.getProperty(SystemProperties.DEFAULT_MOD_DISTRIBUTION_NAMESPACE);
-        if (ret != null)
+        if (ret != null) {
             return ret;
+        }
 
         ret = getRuntimeNamespace();
 
-        if (!ret.equals(OFFICIAL_NAMESPACE))
+        if (!ret.equals(OFFICIAL_NAMESPACE)) {
             ret = INTERMEDIARY_NAMESPACE;
+        }
 
         return LeafLoaderImpl.INSTANCE.getGameProvider().getDefaultModDistributionNamespace(ret);
     }
@@ -172,23 +174,27 @@ public final class MappingConfiguration {
 
     private String computeRuntimeNamespace() {
         String ret = System.getProperty(SystemProperties.RUNTIME_MAPPING_NAMESPACE);
-        if (ret != null)
+        if (ret != null) {
             return ret;
+        }
 
-        ret = OFFICIAL_NAMESPACE; // default
+        ret = OFFICIAL_NAMESPACE;
 
-        if (hasAnyMappings()) { // switch to named or intermediary if they are supplied
+        // switch to named or intermediary if they are supplied
+        if (hasAnyMappings()) {
             String newNs = LeafLauncherBase.getLauncher().isDevelopment() ? NAMED_NAMESPACE : INTERMEDIARY_NAMESPACE;
-            if (getNamespaces().contains(newNs))
+            if (getNamespaces().contains(newNs)) {
                 ret = newNs;
+            }
         }
 
         return LeafLoaderImpl.INSTANCE.getGameProvider().getRuntimeNamespace(ret);
     }
 
     private MappingSource getMappingSource() {
-        if (mappingSource != null)
+        if (mappingSource != null) {
             return mappingSource;
+        }
 
         final String zipMappingPath = "mappings/mappings.tiny";
         String pathStr = System.getProperty(SystemProperties.MAPPING_PATH);
@@ -203,7 +209,8 @@ public final class MappingConfiguration {
             if (!Files.exists(path)) {
                 Log.warn(LogCategory.MAPPINGS, "Mapping file %s supplied by the system property doesn't exist", path);
                 path = null;
-            } else if (!Files.isDirectory(path)) { // check for zip packaging
+            } else if (!Files.isDirectory(path)) {
+                // check for zip packaging
                 try (ZipFile zf = new ZipFile(path.toFile())) {
                     ZipEntry entry = zf.getEntry(zipMappingPath);
 
@@ -234,8 +241,9 @@ public final class MappingConfiguration {
     }
 
     private void initializeMappings(boolean metaOnly) {
-        if (initializedMappings || initializedMetadata && metaOnly)
+        if (initializedMappings || initializedMetadata && metaOnly) {
             return;
+        }
 
         long time = System.nanoTime();
         MappingSource source = getMappingSource();
@@ -277,7 +285,8 @@ public final class MappingConfiguration {
                         MappingReader.read(reader, out);
                     }
                 }
-            } else { // no mappings
+            } else {
+                // no mappings
                 Log.info(LogCategory.MAPPINGS, "Mappings not present!");
                 mappings = new MemoryMappingTree();
                 initializedMappings = true;
@@ -286,9 +295,8 @@ public final class MappingConfiguration {
             throw new RuntimeException("Error reading mappings", e);
         }
 
-        if (!initializedMetadata && !metaOnly && mappings.getSrcNamespace() != null) { // copy namespaces from mapping
-                                                                                       // tree if metadata wasn't
-                                                                                       // initialized separately
+        // copy namespaces from mapping tree if metadata wasn't initialized separately
+        if (!initializedMetadata && !metaOnly && mappings.getSrcNamespace() != null) {
             namespaces = new ArrayList<>(mappings.getDstNamespaces().size() + 1);
             namespaces.add(mappings.getSrcNamespace());
             namespaces.addAll(mappings.getDstNamespaces());
@@ -298,8 +306,9 @@ public final class MappingConfiguration {
             .nanoTime() - time) * 1e-6);
 
         initializedMetadata = true;
-        if (!metaOnly)
+        if (!metaOnly) {
             initializedMappings = true;
+        }
     }
 
     private static final class MappingSource {

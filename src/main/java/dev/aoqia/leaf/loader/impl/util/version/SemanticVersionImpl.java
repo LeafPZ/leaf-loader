@@ -39,7 +39,7 @@ import java.util.Optional;
 import java.util.StringTokenizer;
 import java.util.regex.Pattern;
 
-import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.NonNull;
 
 import dev.aoqia.leaf.loader.api.SemanticVersion;
 import dev.aoqia.leaf.loader.api.Version;
@@ -66,8 +66,9 @@ public class SemanticVersionImpl implements SemanticVersion {
     private String friendlyName;
 
     public SemanticVersionImpl(int[] components, String prerelease, String build) {
-        if (components.length == 0 || components[0] == COMPONENT_WILDCARD)
+        if (components.length == 0 || components[0] == COMPONENT_WILDCARD) {
             throw new IllegalArgumentException("Invalid components: " + Arrays.toString(components));
+        }
 
         this.components = components;
         this.prerelease = prerelease;
@@ -124,8 +125,9 @@ public class SemanticVersionImpl implements SemanticVersion {
                     }
 
                     components[i] = COMPONENT_WILDCARD;
-                    if (firstWildcardIdx < 0)
+                    if (firstWildcardIdx < 0) {
                         firstWildcardIdx = i;
+                    }
                     continue;
                 } else if (i > 0 && components[i - 1] == COMPONENT_WILDCARD) {
                     throw new VersionParsingException("Interjacent wildcard (1.x.2) are disallowed!");
@@ -162,7 +164,7 @@ public class SemanticVersionImpl implements SemanticVersion {
     }
 
     @Override
-    public int compareTo(@NotNull Version other) {
+    public int compareTo(@NonNull Version other) {
         if (!(other instanceof SemanticVersion)) {
             return getFriendlyString().compareTo(other.getFriendlyString());
         }
@@ -178,8 +180,9 @@ public class SemanticVersionImpl implements SemanticVersion {
             }
 
             int compare = Integer.compare(first, second);
-            if (compare != 0)
+            if (compare != 0) {
                 return compare;
+            }
         }
 
         Optional<String> prereleaseA = getPrereleaseKey();
@@ -198,8 +201,9 @@ public class SemanticVersionImpl implements SemanticVersion {
                         if (UNSIGNED_INTEGER.matcher(partA).matches()) {
                             if (UNSIGNED_INTEGER.matcher(partB).matches()) {
                                 int compare = Integer.compare(partA.length(), partB.length());
-                                if (compare != 0)
+                                if (compare != 0) {
                                     return compare;
+                                }
                             } else {
                                 return -1;
                             }
@@ -210,8 +214,9 @@ public class SemanticVersionImpl implements SemanticVersion {
                         }
 
                         int compare = partA.compareTo(partB);
-                        if (compare != 0)
+                        if (compare != 0) {
                             return compare;
+                        }
                     } else {
                         return 1;
                     }
@@ -220,7 +225,8 @@ public class SemanticVersionImpl implements SemanticVersion {
                 return prereleaseBTokenizer.hasMoreElements() ? -1 : 0;
             } else if (prereleaseA.isPresent()) {
                 return o.hasWildcard() ? 0 : -1;
-            } else { // prereleaseB.isPresent()
+            } else {
+                // prereleaseB.isPresent()
                 return hasWildcard() ? 0 : 1;
             }
         } else {

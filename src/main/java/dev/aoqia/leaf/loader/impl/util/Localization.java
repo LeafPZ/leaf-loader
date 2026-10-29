@@ -67,7 +67,8 @@ public final class Localization {
     }
 
     private static ResourceBundle createBundle(String name, Locale locale) {
-        if (System.getProperty("java.version", "").startsWith("1.")) { // below java 9
+        // below java 9
+        if (System.getProperty("java.version", "").startsWith("1.")) {
             return ResourceBundle.getBundle(name, locale, new ResourceBundle.Control() {
                 @Override
                 public ResourceBundle newBundle(String baseName, Locale locale, String format, ClassLoader loader,
@@ -88,7 +89,8 @@ public final class Localization {
                     return super.newBundle(baseName, locale, format, loader, reload);
                 };
             });
-        } else { // java 9 and later
+        } else {
+            // java 9 and later
             return ResourceBundle.getBundle(name, locale);
         }
     }

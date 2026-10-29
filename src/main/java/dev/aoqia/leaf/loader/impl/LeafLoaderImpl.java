@@ -113,6 +113,7 @@ public final class LeafLoaderImpl implements LeafLoader {
     static {
         LoaderUtil.verifyNotInTargetCl(LeafLoaderImpl.class);
     }
+
     private final Map<String, ModContainerImpl> modMap = new HashMap<>();
     private List<ModCandidateImpl> modCandidates;
 
@@ -140,8 +141,9 @@ public final class LeafLoaderImpl implements LeafLoader {
 
     @VisibleForTesting
     public void dumpNonLeafMods(List<Path> mods) {
-        if (mods.isEmpty())
+        if (mods.isEmpty()) {
             return;
+        }
         StringBuilder outputText = new StringBuilder();
 
         for (Path mod : mods) {
@@ -294,12 +296,14 @@ public final class LeafLoaderImpl implements LeafLoader {
     }
 
     public ModCandidateImpl getModCandidate(String id) {
-        if (modCandidates == null)
+        if (modCandidates == null) {
             return null;
+        }
 
         for (ModCandidateImpl mod : modCandidates) {
-            if (mod.getId().equals(id))
+            if (mod.getId().equals(id)) {
                 return mod;
+            }
         }
 
         return null;
@@ -394,13 +398,15 @@ public final class LeafLoaderImpl implements LeafLoader {
         for (dev.aoqia.leaf.loader.api.ModContainer modContainer : getAllMods()) {
             LoaderModMetadata modMetadata = (LoaderModMetadata) modContainer.getMetadata();
             String location = modMetadata.getClassTweaker();
-            if (location == null)
+            if (location == null) {
                 continue;
+            }
 
             Path path = modContainer.findPath(location).orElse(null);
-            if (path == null)
+            if (path == null) {
                 throw new RuntimeException(String.format("Missing classTweaker file %s from mod %s", location,
                     modContainer.getMetadata().getId()));
+            }
 
             try (BufferedReader reader = Files.newBufferedReader(path)) {
                 ctReader.read(reader, LeafLauncherBase.getLauncher().getMappingConfiguration().getRuntimeNamespace());
@@ -703,7 +709,8 @@ public final class LeafLoaderImpl implements LeafLoader {
 
                 if (!config.getRuntimeNamespace().equals(config.getDefaultModDistributionNamespace())) {
                     Log.warn(LogCategory.MOD_REMAP,
-                        "Runtime mod remapping disabled due to no leaf.remapClasspathFile being specified. You may need to update loom.");
+                        "Runtime mod remapping disabled due to no leaf.remapClasspathFile being specified."
+                            + " You may need to update loom.");
                 }
             } else {
                 RuntimeModRemapper.remap(modCandidates, this.leafDir.resolve(TMP_DIR_NAME), processedModsDir);

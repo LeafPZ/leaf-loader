@@ -88,8 +88,9 @@ enum LoaderLibrary {
     }
 
     LoaderLibrary(Path path) {
-        if (path == null)
+        if (path == null) {
             throw new RuntimeException("missing loader library " + name());
+        }
 
         this.path = path;
         this.env = null;

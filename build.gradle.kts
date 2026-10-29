@@ -2,9 +2,10 @@ import groovy.xml.XmlSlurper
 import groovy.xml.slurpersupport.GPathResult
 import groovy.xml.slurpersupport.NodeChildren
 
+import java.io.FileNotFoundException
 import java.net.URI
 import java.nio.charset.Charset
-import java.io.FileNotFoundException
+import java.time.LocalDate
 
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import com.diffplug.spotless.LineEnding
@@ -53,7 +54,6 @@ base {
 allprojects {
     apply(plugin = "java-library")
     apply(plugin = "eclipse")
-//    apply(plugin = "com.diffplug.spotless")
 
     version = rootProject.version
 
@@ -75,13 +75,6 @@ allprojects {
     dependencies {
         compileOnly("org.jetbrains:annotations:23.0.0")
     }
-
-//    spotless {
-//        java {
-//            licenseHeaderFile(rootProject.file("HEADER"))
-//            targetExclude("**/lib/gson/*.java")
-//        }
-//    }
 }
 
 val include = configurations.register("include") {
@@ -215,20 +208,21 @@ val generateBuildInfo = tasks.register("generateBuildInfo") {
     description = "Generates build info used by loader classes"
 
     inputs.property("version", baseVersion)
+    inputs.property("header", file("HEADER"))
     outputs.dir(generatedDir)
 
     doLast {
         val file = generatedDir.asFile.resolve("dev/aoqia/leaf/loader/impl/util/BuildInfo.java")
         file.parentFile.mkdirs()
         file.writeText(
-            """
-            package dev.aoqia.leaf.loader.impl.util;
-            
-            public final class BuildInfo {
-                public static final String VERSION = "${inputs.properties["version"]}";
-                private BuildInfo() {}
-            }
-            """.trimIndent()
+"""${(inputs.properties["header"] as File).readText().replaceFirst($$"$YEAR", "${LocalDate.now().year}")}
+package dev.aoqia.leaf.loader.impl.util;
+
+public final class BuildInfo {
+    public static final String VERSION = "${inputs.properties["version"]}";
+    private BuildInfo() {}
+}
+"""
         )
     }
 }
@@ -452,7 +446,7 @@ spotless {
 
     java {
         targetExclude("**/*generated*/**")
-        targetExclude("**/src/main/java/${groupUrl}/${name}/impl/lib/gson")
+        targetExclude("**/lib/gson/**")
 
         eclipse().configFile(file("eclipse-formatter.xml"))
             .sortMembersEnabled(true)
@@ -471,9 +465,9 @@ spotless {
             "java|javax",
             "",
             "net.fabricmc",
-            "\\#net.fabricmc",
             "$group",
             "\\#",
+            "\\#net.fabricmc",
             "\\#$group",
             "zombie",
             "\\#zombie"

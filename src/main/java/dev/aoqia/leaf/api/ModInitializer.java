@@ -38,7 +38,9 @@ import dev.aoqia.leaf.loader.api.LeafLoader;
 /**
  * A mod initializer.
  *
- * <p>In {@code leaf.mod.json}, the entrypoint is defined with {@code main} key.</p>
+ * <p>
+ * In {@code leaf.mod.json}, the entrypoint is defined with {@code main} key.
+ * </p>
  *
  * @see ClientModInitializer
  * @see ServerModInitializer
@@ -46,8 +48,8 @@ import dev.aoqia.leaf.loader.api.LeafLoader;
  */
 @FunctionalInterface
 public interface ModInitializer {
-	/**
-	 * Runs the mod initializer.
-	 */
-	void onInitialize();
+    /**
+     * Runs the mod initializer.
+     */
+    void onInitialize();
 }

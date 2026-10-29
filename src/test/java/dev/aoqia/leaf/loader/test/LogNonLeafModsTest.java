@@ -49,25 +49,27 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 
 public class LogNonLeafModsTest {
-	private LogHandler logHandler;
+    private LogHandler logHandler;
 
-	/*
-	 * Setup log handler before each test.
-	 */
-	@BeforeEach
-	public void setUp() {
-		logHandler = mock();
-		Mockito.when(logHandler.shouldLog(Mockito.any(), Mockito.any())).thenReturn(true);
-		Mockito.doNothing().when(logHandler).log(Mockito.anyLong(), Mockito.any(), Mockito.any(), Mockito.any(),
-				Mockito.any(), Mockito.anyBoolean(), Mockito.anyBoolean());
-		Log.init(logHandler);
-	}
+    /*
+     * Setup log handler before each test.
+     */
+    @BeforeEach
+    public void setUp() {
+        logHandler = mock();
+        Mockito.when(logHandler.shouldLog(Mockito.any(), Mockito.any())).thenReturn(true);
+        Mockito.doNothing()
+            .when(logHandler)
+            .log(Mockito.anyLong(), Mockito.any(), Mockito.any(), Mockito.any(),
+                Mockito.any(), Mockito.anyBoolean(), Mockito.anyBoolean());
+        Log.init(logHandler);
+    }
 
-	/*
-	 * Test that the log handler is called with the correct message when there are
-	 * non-fabric mods found.
-	 */
-	@Test
+    /*
+     * Test that the log handler is called with the correct message when there are
+     * non-fabric mods found.
+     */
+    @Test
     public void testLogNonLeafMods() {
         List<Path> nonLeafMods = new ArrayList<>();
         nonLeafMods.add(Paths.get("mods/non_leaf_mod1.jar"));
@@ -76,12 +78,13 @@ public class LogNonLeafModsTest {
 
         LeafLoaderImpl.INSTANCE.dumpNonLeafMods(nonLeafMods);
 
-		String expectedLog = "Found 3 non-leaf mods:"
-                             + "\n\t- non_leaf_mod1.jar"
-                             + "\n\t- non_leaf_mod2.jar"
-                             + "\n\t- non_leaf_mod3.jar";
+        String expectedLog = "Found 3 non-leaf mods:"
+            + "\n\t- non_leaf_mod1.jar"
+            + "\n\t- non_leaf_mod2.jar"
+            + "\n\t- non_leaf_mod3.jar";
 
-		Mockito.verify(logHandler, Mockito.times(1)).log(Mockito.anyLong(), Mockito.any(), Mockito.any(),
-				eq(expectedLog), Mockito.any(), Mockito.anyBoolean(), Mockito.anyBoolean());
-	}
+        Mockito.verify(logHandler, Mockito.times(1))
+            .log(Mockito.anyLong(), Mockito.any(), Mockito.any(),
+                eq(expectedLog), Mockito.any(), Mockito.anyBoolean(), Mockito.anyBoolean());
+    }
 }

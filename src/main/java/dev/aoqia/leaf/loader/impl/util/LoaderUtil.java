@@ -46,79 +46,91 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 
 public final class LoaderUtil {
-	private static final ConcurrentMap<Path, Path> pathNormalizationCache = new ConcurrentHashMap<>();
-	private static final String LEAF_LOADER_CLASS = "dev/aoqia/leaf/loader/api/LeafLoader.class";
-	private static final String ASM_CLASS = "org/objectweb/asm/ClassReader.class";
+    private static final ConcurrentMap<Path, Path> pathNormalizationCache = new ConcurrentHashMap<>();
+    private static final String LEAF_LOADER_CLASS = "dev/aoqia/leaf/loader/api/LeafLoader.class";
+    private static final String ASM_CLASS = "org/objectweb/asm/ClassReader.class";
 
-	public static String getClassFileName(String className) {
-		return className.replace('.', '/').concat(".class");
-	}
+    public static String getClassFileName(String className) {
+        return className.replace('.', '/').concat(".class");
+    }
 
-	public static Path normalizePath(Path path) {
-		if (Files.exists(path)) {
-			return normalizeExistingPath(path);
-		} else {
-			return path.toAbsolutePath().normalize();
-		}
-	}
+    public static boolean hasAwtSupport() {
+        if (hasMacOs()) {
+            // check for JAVA_STARTED_ON_FIRST_THREAD_<pid> which is set if -XstartOnFirstThread is used
+            // -XstartOnFirstThread is incompatible with AWT (force enables embedded mode)
+            for (String key : System.getenv().keySet()) {
+                if (key.startsWith("JAVA_STARTED_ON_FIRST_THREAD_"))
+                    return false;
+            }
+        }
 
-	public static Path normalizeExistingPath(Path path) {
-		return pathNormalizationCache.computeIfAbsent(path, LoaderUtil::normalizeExistingPath0);
-	}
+        return true;
+    }
 
-	private static Path normalizeExistingPath0(Path path) {
-		try {
-			return path.toRealPath();
-		} catch (IOException e) {
-			throw new UncheckedIOException(e);
-		}
-	}
+    public static boolean hasMacOs() {
+        return System.getProperty("os.name").toLowerCase(Locale.ENGLISH).contains("mac");
+    }
 
-	public static void verifyNotInTargetCl(Class<?> cls) {
-		if (cls.getClassLoader().getClass().getName().equals("dev.aoqia.leaf.loader.impl.launch.knot.KnotClassLoader")) {
-			// This usually happens when fabric loader has been added to the target class loader. This is a bad state.
-			// Such additions may be indirect, a JAR can use the Class-Path manifest attribute to drag additional
-			// libraries with it, likely recursively.
-			throw new IllegalStateException("trying to load "+cls.getName()+" from target class loader");
-		}
-	}
+    public static Path normalizeExistingPath(Path path) {
+        return pathNormalizationCache.computeIfAbsent(path, LoaderUtil::normalizeExistingPath0);
+    }
 
-	public static void verifyClasspath() {
-		try {
-			List<URL> resources = Collections.list(LoaderUtil.class.getClassLoader().getResources(LEAF_LOADER_CLASS));
+    public static Path normalizePath(Path path) {
+        if (Files.exists(path)) {
+            return normalizeExistingPath(path);
+        } else {
+            return path.toAbsolutePath().normalize();
+        }
+    }
 
-			if (resources.size() > 1) {
-				// This usually happens when fabric loader has been added to the classpath more than once.
-				throw new IllegalStateException("duplicate leaf loader classes found on classpath: " + resources.stream().map(URL::toString).collect(Collectors.joining(", ")));
-			} else if (resources.size() < 1) {
-				throw new AssertionError(LEAF_LOADER_CLASS + " not detected on the classpath?! (perhaps it was renamed?)");
-			}
+    public static void verifyClasspath() {
+        try {
+            List<URL> resources = Collections.list(LoaderUtil.class.getClassLoader().getResources(LEAF_LOADER_CLASS));
 
-			resources = Collections.list(LoaderUtil.class.getClassLoader().getResources(ASM_CLASS));
+            if (resources.size() > 1) {
+                // This usually happens when fabric loader has been added to the classpath more than once.
+                throw new IllegalStateException("duplicate leaf loader classes found on classpath: " + resources
+                    .stream()
+                    .map(URL::toString)
+                    .collect(Collectors.joining(", ")));
+            } else if (resources.size() < 1) {
+                throw new AssertionError(LEAF_LOADER_CLASS
+                    + " not detected on the classpath?! (perhaps it was renamed?)");
+            }
 
-			if (resources.size() > 1) {
-				throw new IllegalStateException("duplicate ASM classes found on classpath: " + resources.stream().map(URL::toString).collect(Collectors.joining(", ")));
-			} else if (resources.size() < 1) {
-				throw new IllegalStateException("ASM not detected on the classpath (or perhaps " + ASM_CLASS + " was renamed?)");
-			}
-		} catch (IOException e) {
-			throw new UncheckedIOException("Failed to get resources", e);
-		}
-	}
+            resources = Collections.list(LoaderUtil.class.getClassLoader().getResources(ASM_CLASS));
 
-	public static boolean hasMacOs() {
-		return System.getProperty("os.name").toLowerCase(Locale.ENGLISH).contains("mac");
-	}
+            if (resources.size() > 1) {
+                throw new IllegalStateException("duplicate ASM classes found on classpath: " + resources.stream()
+                    .map(URL::toString)
+                    .collect(Collectors.joining(", ")));
+            } else if (resources.size() < 1) {
+                throw new IllegalStateException("ASM not detected on the classpath (or perhaps " + ASM_CLASS
+                    + " was renamed?)");
+            }
+        } catch (IOException e) {
+            throw new UncheckedIOException("Failed to get resources", e);
+        }
+    }
 
-	public static boolean hasAwtSupport() {
-		if (hasMacOs()) {
-			// check for JAVA_STARTED_ON_FIRST_THREAD_<pid> which is set if -XstartOnFirstThread is used
-			// -XstartOnFirstThread is incompatible with AWT (force enables embedded mode)
-			for (String key : System.getenv().keySet()) {
-				if (key.startsWith("JAVA_STARTED_ON_FIRST_THREAD_")) return false;
-			}
-		}
+    public static void verifyNotInTargetCl(Class<?> cls) {
+        if (cls.getClassLoader()
+            .getClass()
+            .getName()
+            .equals("dev.aoqia.leaf.loader.impl.launch.knot.KnotClassLoader"))
+        {
+            // This usually happens when fabric loader has been added to the target class loader. This is a bad state.
+            // Such additions may be indirect, a JAR can use the Class-Path manifest attribute to drag additional
+            // libraries with it, likely recursively.
+            throw new IllegalStateException("trying to load " + cls.getName() + " from target class loader");
+        }
+    }
 
-		return true;
-	}
+    private static Path normalizeExistingPath0(Path path) {
+        try {
+            return path.toRealPath();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
 }

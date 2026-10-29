@@ -56,95 +56,100 @@ import dev.aoqia.leaf.loader.impl.util.log.Log;
 import dev.aoqia.leaf.loader.impl.util.log.LogCategory;
 
 public class GameTransformer {
-	private final List<GamePatch> patches;
-	private Map<String, byte[]> patchedClasses;
-	private boolean entrypointsLocated = false;
+    private final List<GamePatch> patches;
+    private Map<String, byte[]> patchedClasses;
+    private boolean entrypointsLocated = false;
 
-	public GameTransformer(GamePatch... patches) {
-		this.patches = Arrays.asList(patches);
-	}
+    public GameTransformer(GamePatch... patches) {
+        this.patches = Arrays.asList(patches);
+    }
 
-	private void addPatchedClass(ClassNode node) {
-		String key = node.name.replace('/', '.');
+    private static ClassNode readClass(ClassReader reader) {
+        if (reader == null)
+            return null;
 
-		if (patchedClasses.containsKey(key)) {
-			throw new RuntimeException("Duplicate addPatchedClasses call: " + key);
-		}
+        ClassNode node = new ClassNode();
+        reader.accept(node, 0);
+        return node;
+    }
 
-		ClassWriter writer = new ClassWriter(0);
-		node.accept(writer);
-		patchedClasses.put(key, writer.toByteArray());
-	}
+    public void locateEntrypoints(LeafLauncher launcher, List<Path> gameJars) {
+        if (entrypointsLocated) {
+            return;
+        }
 
-	public void locateEntrypoints(LeafLauncher launcher, List<Path> gameJars) {
-		if (entrypointsLocated) {
-			return;
-		}
+        patchedClasses = new HashMap<>();
 
-		patchedClasses = new HashMap<>();
+        try (SimpleClassPath cp = new SimpleClassPath(gameJars)) {
+            Map<String, ClassNode> patchedClassNodes = new HashMap<>();
 
-		try (SimpleClassPath cp = new SimpleClassPath(gameJars)) {
-			Map<String, ClassNode> patchedClassNodes = new HashMap<>();
+            final Function<String, ClassNode> classSource = name -> {
+                // Reuse previously patched classes if available
+                if (patchedClassNodes.containsKey(name)) {
+                    return patchedClassNodes.get(name);
+                }
 
-			final Function<String, ClassNode> classSource = name -> {
-				// Reuse previously patched classes if available
-				if (patchedClassNodes.containsKey(name)) {
-					return patchedClassNodes.get(name);
-				}
+                return readClassNode(cp, name);
+            };
 
-				return readClassNode(cp, name);
-			};
+            for (GamePatch patch : patches) {
+                patch.process(launcher, classSource, classNode -> patchedClassNodes.put(classNode.name, classNode));
+            }
 
-			for (GamePatch patch : patches) {
-				patch.process(launcher, classSource, classNode -> patchedClassNodes.put(classNode.name, classNode));
-			}
+            for (ClassNode patchedClassNode : patchedClassNodes.values()) {
+                addPatchedClass(patchedClassNode);
+            }
+        } catch (IOException e) {
+            throw ExceptionUtil.wrap(e);
+        }
 
-			for (ClassNode patchedClassNode : patchedClassNodes.values()) {
-				addPatchedClass(patchedClassNode);
-			}
-		} catch (IOException e) {
-			throw ExceptionUtil.wrap(e);
-		}
+        Log.debug(LogCategory.GAME_PATCH, "Patched %d class%s", patchedClasses.size(), patchedClasses.size() != 1 ? "s"
+            : "");
+        entrypointsLocated = true;
+    }
 
-		Log.debug(LogCategory.GAME_PATCH, "Patched %d class%s", patchedClasses.size(), patchedClasses.size() != 1 ? "s" : "");
-		entrypointsLocated = true;
-	}
+    /**
+     * This must run first, contractually!
+     *
+     * @param className The class name,
+     * @return The transformed class data.
+     */
+    public byte[] transform(String className) {
+        return patchedClasses.get(className);
+    }
 
-	private ClassNode readClassNode(SimpleClassPath classpath, String name) {
-		byte[] data = patchedClasses.get(name);
+    private void addPatchedClass(ClassNode node) {
+        String key = node.name.replace('/', '.');
 
-		if (data != null) {
-			return readClass(new ClassReader(data));
-		}
+        if (patchedClasses.containsKey(key)) {
+            throw new RuntimeException("Duplicate addPatchedClasses call: " + key);
+        }
 
-		try {
-			CpEntry entry = classpath.getEntry(LoaderUtil.getClassFileName(name));
-			if (entry == null) return null;
+        ClassWriter writer = new ClassWriter(0);
+        node.accept(writer);
+        patchedClasses.put(key, writer.toByteArray());
+    }
 
-			try (InputStream is = entry.getInputStream()) {
-				return readClass(new ClassReader(is));
-			} catch (IOException | ZipError e) {
-				throw new RuntimeException(String.format("error reading %s in %s: %s", name, LoaderUtil.normalizePath(entry.getOrigin()), e), e);
-			}
-		} catch (IOException e) {
-			throw ExceptionUtil.wrap(e);
-		}
-	}
+    private ClassNode readClassNode(SimpleClassPath classpath, String name) {
+        byte[] data = patchedClasses.get(name);
 
-	/**
-	 * This must run first, contractually!
-	 * @param className The class name,
-	 * @return The transformed class data.
-	 */
-	public byte[] transform(String className) {
-		return patchedClasses.get(className);
-	}
+        if (data != null) {
+            return readClass(new ClassReader(data));
+        }
 
-	private static ClassNode readClass(ClassReader reader) {
-		if (reader == null) return null;
+        try {
+            CpEntry entry = classpath.getEntry(LoaderUtil.getClassFileName(name));
+            if (entry == null)
+                return null;
 
-		ClassNode node = new ClassNode();
-		reader.accept(node, 0);
-		return node;
-	}
+            try (InputStream is = entry.getInputStream()) {
+                return readClass(new ClassReader(is));
+            } catch (IOException | ZipError e) {
+                throw new RuntimeException(String.format("error reading %s in %s: %s", name, LoaderUtil.normalizePath(
+                    entry.getOrigin()), e), e);
+            }
+        } catch (IOException e) {
+            throw ExceptionUtil.wrap(e);
+        }
+    }
 }

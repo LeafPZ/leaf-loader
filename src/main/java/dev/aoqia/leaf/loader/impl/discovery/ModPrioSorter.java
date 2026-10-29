@@ -45,218 +45,233 @@ import java.util.Set;
 import dev.aoqia.leaf.loader.api.Version;
 
 final class ModPrioSorter {
-	/**
-	 * Sort the mod candidate list by priority.
-	 *
-	 * <p>This is implemented with two sorting passes, first sorting by isRoot/id/version/nesting/parent, then a best
-	 * effort pass to prioritize mods that have overall newer id:version pairs.
-	 *
-	 * <p>The second pass won't prioritize non-root mods over root mods or above a mod with the same main id but a newer
-	 * version as these cases are deemed deliberately influenced by the end user or mod author. Since there may be
-	 * multiple id:version pairs the choice can only be best effort, but the SAT solver will ensure all hard constraints
-	 * are still met later on.
-	 *
-	 * @param mods mods to sort
-	 * @param modsById grouped mods output
-	 */
-	static void sort(List<ModCandidateImpl> mods, Map<String, List<ModCandidateImpl>> modsById) {
-		// sort all mods by priority
+    private static final Comparator<ModCandidateImpl> comparator = new Comparator<ModCandidateImpl>() {
+        @Override
+        public int compare(ModCandidateImpl a, ModCandidateImpl b) {
+            return ModPrioSorter.compare(a, b);
+        }
+    };
 
-		mods.sort(comparator);
+    /**
+     * Sort the mod candidate list by priority.
+     *
+     * <p>
+     * This is implemented with two sorting passes, first sorting by isRoot/id/version/nesting/parent, then a best
+     * effort pass to prioritize mods that have overall newer id:version pairs.
+     *
+     * <p>
+     * The second pass won't prioritize non-root mods over root mods or above a mod with the same main id but a newer
+     * version as these cases are deemed deliberately influenced by the end user or mod author. Since there may be
+     * multiple id:version pairs the choice can only be best effort, but the SAT solver will ensure all hard constraints
+     * are still met later on.
+     *
+     * @param mods mods to sort
+     * @param modsById grouped mods output
+     */
+    static void sort(List<ModCandidateImpl> mods, Map<String, List<ModCandidateImpl>> modsById) {
+        // sort all mods by priority
 
-		// group/index all mods by id, gather provided mod ids
+        mods.sort(comparator);
 
-		Set<String> providedMods = new HashSet<>();
+        // group/index all mods by id, gather provided mod ids
 
-		for (ModCandidateImpl mod : mods) {
-			modsById.computeIfAbsent(mod.getId(), ignore -> new ArrayList<>()).add(mod);
+        Set<String> providedMods = new HashSet<>();
 
-			for (String provided : mod.getProvides()) {
-				modsById.computeIfAbsent(provided, ignore -> new ArrayList<>()).add(mod);
-				providedMods.add(provided);
-			}
-		}
+        for (ModCandidateImpl mod : mods) {
+            modsById.computeIfAbsent(mod.getId(), ignore -> new ArrayList<>()).add(mod);
 
-		// strip any provided mod ids that don't have any effect (only 1 candidate for the id)
+            for (String provided : mod.getProvides()) {
+                modsById.computeIfAbsent(provided, ignore -> new ArrayList<>()).add(mod);
+                providedMods.add(provided);
+            }
+        }
 
-		for (Iterator<String> it = providedMods.iterator(); it.hasNext(); ) {
-			if (modsById.get(it.next()).size() <= 1) {
-				it.remove();
-			}
-		}
+        // strip any provided mod ids that don't have any effect (only 1 candidate for the id)
 
-		// handle overlapping mod ids that need higher priority than the standard comparator handles
-		// this is implemented through insertion sort which allows for skipping over unrelated mods that aren't properly comparable
+        for (Iterator<String> it = providedMods.iterator(); it.hasNext();) {
+            if (modsById.get(it.next()).size() <= 1) {
+                it.remove();
+            }
+        }
 
-		if (providedMods.isEmpty()) return; // no overlapping id mods
+        // handle overlapping mod ids that need higher priority than the standard comparator handles
+        // this is implemented through insertion sort which allows for skipping over unrelated mods that aren't properly
+        // comparable
 
-		// float overlapping ids up as needed
+        if (providedMods.isEmpty())
+            return; // no overlapping id mods
 
-		boolean movedPastRoots = false;
-		int startIdx = 0;
-		Set<String> potentiallyOverlappingIds = new HashSet<>();
+        // float overlapping ids up as needed
 
-		for (int i = 0, size = mods.size(); i < size; i++) {
-			ModCandidateImpl mod = mods.get(i);
-			String id = mod.getId();
+        boolean movedPastRoots = false;
+        int startIdx = 0;
+        Set<String> potentiallyOverlappingIds = new HashSet<>();
 
-			//System.out.printf("%d: %s%n", i, mod);
+        for (int i = 0, size = mods.size(); i < size; i++) {
+            ModCandidateImpl mod = mods.get(i);
+            String id = mod.getId();
 
-			if (!movedPastRoots && !mod.isRoot()) { // update start index to avoid mixing root and non-root mods (root always has higher prio)
-				movedPastRoots = true;
-				startIdx = i;
-			}
+            // System.out.printf("%d: %s%n", i, mod);
 
-			// gather ids for mod that might overlap other mods
+            if (!movedPastRoots && !mod.isRoot()) { // update start index to avoid mixing root and non-root mods (root
+                                                    // always has higher prio)
+                movedPastRoots = true;
+                startIdx = i;
+            }
 
-			if (providedMods.contains(id)) {
-				potentiallyOverlappingIds.add(id);
-			}
+            // gather ids for mod that might overlap other mods
 
-			if (!mod.getProvides().isEmpty()) {
-				for (String provId : mod.getProvides()) {
-					if (providedMods.contains(provId)) {
-						potentiallyOverlappingIds.add(provId);
-					}
-				}
-			}
+            if (providedMods.contains(id)) {
+                potentiallyOverlappingIds.add(id);
+            }
 
-			if (potentiallyOverlappingIds.isEmpty()) continue;
+            if (!mod.getProvides().isEmpty()) {
+                for (String provId : mod.getProvides()) {
+                    if (providedMods.contains(provId)) {
+                        potentiallyOverlappingIds.add(provId);
+                    }
+                }
+            }
 
-			// search for a suitable mod that overlaps mod but has a lower version
+            if (potentiallyOverlappingIds.isEmpty())
+                continue;
 
-			int earliestIdx = -1;
+            // search for a suitable mod that overlaps mod but has a lower version
 
-			for (int j = i - 1; j >= startIdx; j--) {
-				ModCandidateImpl cmpMod = mods.get(j);
-				String cmpId = cmpMod.getId();
-				if (cmpId.equals(id)) break; // can't move mod past another mod with the same id since that mod since that mod would have a higher version due to the previous sorting step and thus always has higher prio
+            int earliestIdx = -1;
 
-				// quick check if it might match
-				if (!potentiallyOverlappingIds.contains(cmpId)
-						&& (cmpMod.getProvides().isEmpty() || Collections.disjoint(potentiallyOverlappingIds, cmpMod.getProvides()))) {
-					continue;
-				}
+            for (int j = i - 1; j >= startIdx; j--) {
+                ModCandidateImpl cmpMod = mods.get(j);
+                String cmpId = cmpMod.getId();
+                if (cmpId.equals(id))
+                    break; // can't move mod past another mod with the same id since that mod since that mod would have
+                           // a higher version due to the previous sorting step and thus always has higher prio
 
-				int cmp = compareOverlappingIds(mod, cmpMod, Integer.MAX_VALUE);
+                // quick check if it might match
+                if (!potentiallyOverlappingIds.contains(cmpId)
+                    && (cmpMod.getProvides().isEmpty() || Collections.disjoint(potentiallyOverlappingIds, cmpMod
+                        .getProvides())))
+                {
+                    continue;
+                }
 
-				if (cmp < 0) { // mod needs to be after cmpMod, move mod forward
-					//System.out.printf("found candidate for %d at %d (before %s)%n", i, j, cmpMod);
-					earliestIdx = j;
-				} else if (cmp != Integer.MAX_VALUE) { // cmpMod has at least the same prio, don't search past it
-					break;
-				}
-			}
+                int cmp = compareOverlappingIds(mod, cmpMod, Integer.MAX_VALUE);
 
-			if (earliestIdx >= 0) {
-				//System.out.printf("move %d to %d (before %s)%n", i, earliestIdx, mods.get(earliestIdx));
-				mods.remove(i);
-				mods.add(earliestIdx, mod);
-			}
+                if (cmp < 0) { // mod needs to be after cmpMod, move mod forward
+                    // System.out.printf("found candidate for %d at %d (before %s)%n", i, j, cmpMod);
+                    earliestIdx = j;
+                } else if (cmp != Integer.MAX_VALUE) { // cmpMod has at least the same prio, don't search past it
+                    break;
+                }
+            }
 
-			potentiallyOverlappingIds.clear();
-		}
-	}
+            if (earliestIdx >= 0) {
+                // System.out.printf("move %d to %d (before %s)%n", i, earliestIdx, mods.get(earliestIdx));
+                mods.remove(i);
+                mods.add(earliestIdx, mod);
+            }
 
-	private static final Comparator<ModCandidateImpl> comparator = new Comparator<ModCandidateImpl>() {
-		@Override
-		public int compare(ModCandidateImpl a, ModCandidateImpl b) {
-			return ModPrioSorter.compare(a, b);
-		}
-	};
+            potentiallyOverlappingIds.clear();
+        }
+    }
 
-	private static int compare(ModCandidateImpl a, ModCandidateImpl b) {
-		// descending sort prio (less/earlier is higher prio):
-		// root mods first, lower id first, higher version first, less nesting first, parent cmp
+    private static int compare(ModCandidateImpl a, ModCandidateImpl b) {
+        // descending sort prio (less/earlier is higher prio):
+        // root mods first, lower id first, higher version first, less nesting first, parent cmp
 
-		if (a.isRoot()) {
-			if (!b.isRoot()) {
-				return -1; // only a is root
-			}
-		} else if (b.isRoot()) {
-			return 1; // only b is root
-		}
+        if (a.isRoot()) {
+            if (!b.isRoot()) {
+                return -1; // only a is root
+            }
+        } else if (b.isRoot()) {
+            return 1; // only b is root
+        }
 
-		// sort id asc
+        // sort id asc
 
-		int idCmp = a.getId().compareTo(b.getId());
-		if (idCmp != 0) return idCmp;
+        int idCmp = a.getId().compareTo(b.getId());
+        if (idCmp != 0)
+            return idCmp;
 
-		// sort version desc (lower version later)
-		int versionCmp = b.getVersion().compareTo(a.getVersion());
-		if (versionCmp != 0) return versionCmp;
+        // sort version desc (lower version later)
+        int versionCmp = b.getVersion().compareTo(a.getVersion());
+        if (versionCmp != 0)
+            return versionCmp;
 
-		// sort nestLevel asc
-		int nestCmp = a.getMinNestLevel() - b.getMinNestLevel(); // >0 if nest(a) > nest(b)
-		if (nestCmp != 0) return nestCmp;
+        // sort nestLevel asc
+        int nestCmp = a.getMinNestLevel() - b.getMinNestLevel(); // >0 if nest(a) > nest(b)
+        if (nestCmp != 0)
+            return nestCmp;
 
-		if (a.isRoot()) return 0; // both root
+        if (a.isRoot())
+            return 0; // both root
 
-		// find highest priority parent, if it is not shared by both a+b the one that has it is deemed higher prio
-		return compareParents(a, b);
-	}
+        // find highest priority parent, if it is not shared by both a+b the one that has it is deemed higher prio
+        return compareParents(a, b);
+    }
 
-	private static int compareParents(ModCandidateImpl a, ModCandidateImpl b) {
-		assert !a.getParentMods().isEmpty() && !b.getParentMods().isEmpty();
+    private static int compareOverlappingIds(ModCandidateImpl a, ModCandidateImpl b, int noMatchResult) {
+        assert !a.getId().equals(b.getId()); // should have been handled before
 
-		ModCandidateImpl minParent = null;
+        int ret = 0; // sum of individual normalized pair comparisons, may cancel each other out
+        boolean matched = false; // whether any ids overlap, for falling back to main id comparison as if there were no
+                                 // provides
 
-		for (ModCandidateImpl mod : a.getParentMods()) {
-			if (minParent == null || mod != minParent && compare(minParent, mod) > 0) {
-				minParent = mod;
-			}
-		}
+        for (String provIdA : a.getProvides()) { // a-provides vs b
+            if (provIdA.equals(b.getId())) {
+                Version providedVersionA = a.getVersion();
+                ret += Integer.signum(b.getVersion().compareTo(providedVersionA));
+                matched = true;
+            }
+        }
 
-		assert minParent != null;
-		boolean found = false;
+        for (String provIdB : b.getProvides()) {
+            if (provIdB.equals(a.getId())) { // a vs b-provides
+                Version providedVersionB = b.getVersion();
+                ret += Integer.signum(providedVersionB.compareTo(a.getVersion()));
+                matched = true;
 
-		for (ModCandidateImpl mod : b.getParentMods()) {
-			if (mod == minParent) { // both a and b have minParent
-				found = true;
-			} else if (compare(minParent, mod) > 0) { // b has a higher prio parent than a
-				return 1;
-			}
-		}
+                continue;
+            }
 
-		return found ? 0 : -1; // only a has minParent if !found, so only a has the highest prio parent
-	}
+            for (String provIdA : a.getProvides()) { // a-provides vs b-provides
+                if (provIdB.equals(provIdA)) {
+                    Version providedVersionA = a.getVersion();
+                    Version providedVersionB = b.getVersion();
 
-	private static int compareOverlappingIds(ModCandidateImpl a, ModCandidateImpl b, int noMatchResult) {
-		assert !a.getId().equals(b.getId()); // should have been handled before
+                    ret += Integer.signum(providedVersionB.compareTo(providedVersionA));
+                    matched = true;
 
-		int ret = 0; // sum of individual normalized pair comparisons, may cancel each other out
-		boolean matched = false; // whether any ids overlap, for falling back to main id comparison as if there were no provides
+                    break;
+                }
+            }
+        }
 
-		for (String provIdA : a.getProvides()) { // a-provides vs b
-			if (provIdA.equals(b.getId())) {
-				Version providedVersionA = a.getVersion();
-				ret += Integer.signum(b.getVersion().compareTo(providedVersionA));
-				matched = true;
-			}
-		}
+        return matched ? ret : noMatchResult;
+    }
 
-		for (String provIdB : b.getProvides()) {
-			if (provIdB.equals(a.getId())) { // a vs b-provides
-				Version providedVersionB = b.getVersion();
-				ret += Integer.signum(providedVersionB.compareTo(a.getVersion()));
-				matched = true;
+    private static int compareParents(ModCandidateImpl a, ModCandidateImpl b) {
+        assert !a.getParentMods().isEmpty() && !b.getParentMods().isEmpty();
 
-				continue;
-			}
+        ModCandidateImpl minParent = null;
 
-			for (String provIdA : a.getProvides()) { // a-provides vs b-provides
-				if (provIdB.equals(provIdA)) {
-					Version providedVersionA = a.getVersion();
-					Version providedVersionB = b.getVersion();
+        for (ModCandidateImpl mod : a.getParentMods()) {
+            if (minParent == null || mod != minParent && compare(minParent, mod) > 0) {
+                minParent = mod;
+            }
+        }
 
-					ret += Integer.signum(providedVersionB.compareTo(providedVersionA));
-					matched = true;
+        assert minParent != null;
+        boolean found = false;
 
-					break;
-				}
-			}
-		}
+        for (ModCandidateImpl mod : b.getParentMods()) {
+            if (mod == minParent) { // both a and b have minParent
+                found = true;
+            } else if (compare(minParent, mod) > 0) { // b has a higher prio parent than a
+                return 1;
+            }
+        }
 
-		return matched ? ret : noMatchResult;
-	}
+        return found ? 0 : -1; // only a has minParent if !found, so only a has the highest prio parent
+    }
 }

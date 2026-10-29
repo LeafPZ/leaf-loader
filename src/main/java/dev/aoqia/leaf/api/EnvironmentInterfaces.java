@@ -46,8 +46,8 @@ import java.lang.annotation.Target;
 @Target(ElementType.TYPE)
 @Documented
 public @interface EnvironmentInterfaces {
-	/**
-	 * Returns the {@link EnvironmentInterface} annotations it holds.
-	 */
-	EnvironmentInterface[] value();
+    /**
+     * Returns the {@link EnvironmentInterface} annotations it holds.
+     */
+    EnvironmentInterface[] value();
 }

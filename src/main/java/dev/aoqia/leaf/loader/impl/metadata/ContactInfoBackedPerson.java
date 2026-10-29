@@ -36,15 +36,15 @@ package dev.aoqia.leaf.loader.impl.metadata;
 import dev.aoqia.leaf.loader.api.metadata.ContactInformation;
 
 final class ContactInfoBackedPerson extends SimplePerson {
-	private final ContactInformation contact;
+    private final ContactInformation contact;
 
-	ContactInfoBackedPerson(String name, ContactInformation contact) {
-		super(name);
-		this.contact = contact;
-	}
+    ContactInfoBackedPerson(String name, ContactInformation contact) {
+        super(name);
+        this.contact = contact;
+    }
 
-	@Override
-	public ContactInformation getContact() {
-		return this.contact;
-	}
+    @Override
+    public ContactInformation getContact() {
+        return this.contact;
+    }
 }

@@ -58,87 +58,102 @@ import dev.aoqia.leaf.loader.impl.util.log.Log;
 import dev.aoqia.leaf.loader.impl.util.log.LogCategory;
 
 public class ClasspathModCandidateFinder implements ModCandidateFinder {
-	@Override
-	public void findCandidates(ModCandidateConsumer out) {
-		if (LeafLauncherBase.getLauncher().isDevelopment()) {
-			Map<Path, List<Path>> pathGroups = getPathGroups();
+    /**
+     * Parse fabric.classPathGroups system property into a path group lookup map.
+     *
+     * <p>
+     * This transforms {@code a:b::c:d:e} into {@code a=[a,b],b=[a,b],c=[c,d,e],d=[c,d,e],e=[c,d,e]}
+     */
+    private static Map<Path, List<Path>> getPathGroups() {
+        String prop = System.getProperty(SystemProperties.PATH_GROUPS);
+        if (prop == null)
+            return Collections.emptyMap();
 
-			// Search for URLs which point to 'leaf.mod.json' entries, to be considered as mods.
-			try {
-				Enumeration<URL> mods = LeafLauncherBase.getLauncher().getTargetClassLoader().getResources("leaf.mod.json");
+        Set<Path> cp = new HashSet<>(LeafLauncherBase.getLauncher().getClassPath());
+        Map<Path, List<Path>> ret = new HashMap<>();
 
-				while (mods.hasMoreElements()) {
-					URL url = mods.nextElement();
+        for (String group : prop.split(File.pathSeparator + File.pathSeparator)) {
+            Set<Path> paths = new LinkedHashSet<>();
 
-					try {
-						Path path = LoaderUtil.normalizeExistingPath(UrlUtil.getCodeSource(url, "leaf.mod.json")); // code source may not be normalized if from app cl
-						List<Path> paths = pathGroups.get(path);
+            for (String path : group.split(File.pathSeparator)) {
+                if (path.isEmpty())
+                    continue;
 
-						if (paths == null) {
-							out.accept(path, false, ModSource.CLASSPATH);
-						} else {
-							out.accept(paths, false, ModSource.CLASSPATH);
-						}
-					} catch (UrlConversionException e) {
-						Log.debug(LogCategory.DISCOVERY, "Error determining location for leaf.mod.json from %s", url, e);
-					}
-				}
-			} catch (IOException e) {
-				throw new RuntimeException(e);
-			}
-		} else { // production, add loader as a mod
-			try {
-				out.accept(UrlUtil.LOADER_CODE_SOURCE, false, ModSource.CLASSPATH);
-			} catch (Throwable t) {
-				Log.debug(LogCategory.DISCOVERY, "Could not retrieve launcher code source!", t);
-			}
-		}
-	}
+                Path resolvedPath = Paths.get(path);
 
-	/**
-	 * Parse fabric.classPathGroups system property into a path group lookup map.
-	 *
-	 * <p>This transforms {@code a:b::c:d:e} into {@code a=[a,b],b=[a,b],c=[c,d,e],d=[c,d,e],e=[c,d,e]}
-	 */
-	private static Map<Path, List<Path>> getPathGroups() {
-		String prop = System.getProperty(SystemProperties.PATH_GROUPS);
-		if (prop == null) return Collections.emptyMap();
+                if (!Files.exists(resolvedPath)) {
+                    Log.debug(LogCategory.DISCOVERY, "Skipping missing class path group entry %s", path);
+                    continue;
+                }
 
-		Set<Path> cp = new HashSet<>(LeafLauncherBase.getLauncher().getClassPath());
-		Map<Path, List<Path>> ret = new HashMap<>();
+                resolvedPath = LoaderUtil.normalizeExistingPath(resolvedPath);
 
-		for (String group : prop.split(File.pathSeparator+File.pathSeparator)) {
-			Set<Path> paths = new LinkedHashSet<>();
+                if (cp.contains(resolvedPath)) {
+                    paths.add(resolvedPath);
+                }
+            }
 
-			for (String path : group.split(File.pathSeparator)) {
-				if (path.isEmpty()) continue;
+            if (paths.size() < 2) {
+                Log.debug(LogCategory.DISCOVERY, "Skipping class path group with no effect: %s", group);
+                continue;
+            }
 
-				Path resolvedPath = Paths.get(path);
+            List<Path> pathList = new ArrayList<>(paths);
 
-				if (!Files.exists(resolvedPath)) {
-					Log.debug(LogCategory.DISCOVERY, "Skipping missing class path group entry %s", path);
-					continue;
-				}
+            for (Path path : pathList) {
+                ret.put(path, pathList);
+            }
+        }
 
-				resolvedPath = LoaderUtil.normalizeExistingPath(resolvedPath);
+        return ret;
+    }
 
-				if (cp.contains(resolvedPath)) {
-					paths.add(resolvedPath);
-				}
-			}
+    @Override
+    public void findCandidates(ModCandidateConsumer out) {
+        if (LeafLauncherBase.getLauncher().isDevelopment()) {
+            Map<Path, List<Path>> pathGroups = getPathGroups();
 
-			if (paths.size() < 2) {
-				Log.debug(LogCategory.DISCOVERY, "Skipping class path group with no effect: %s", group);
-				continue;
-			}
+            // Search for URLs which point to 'leaf.mod.json' entries, to be considered as mods.
+            try {
+                Enumeration<URL> mods = LeafLauncherBase.getLauncher()
+                    .getTargetClassLoader()
+                    .getResources("leaf.mod.json");
 
-			List<Path> pathList = new ArrayList<>(paths);
+                while (mods.hasMoreElements()) {
+                    URL url = mods.nextElement();
 
-			for (Path path : pathList) {
-				ret.put(path, pathList);
-			}
-		}
+                    try {
+                        Path path = LoaderUtil.normalizeExistingPath(UrlUtil.getCodeSource(url, "leaf.mod.json")); // code
+                                                                                                                   // source
+                                                                                                                   // may
+                                                                                                                   // not
+                                                                                                                   // be
+                                                                                                                   // normalized
+                                                                                                                   // if
+                                                                                                                   // from
+                                                                                                                   // app
+                                                                                                                   // cl
+                        List<Path> paths = pathGroups.get(path);
 
-		return ret;
-	}
+                        if (paths == null) {
+                            out.accept(path, false, ModSource.CLASSPATH);
+                        } else {
+                            out.accept(paths, false, ModSource.CLASSPATH);
+                        }
+                    } catch (UrlConversionException e) {
+                        Log.debug(LogCategory.DISCOVERY, "Error determining location for leaf.mod.json from %s", url,
+                            e);
+                    }
+                }
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        } else { // production, add loader as a mod
+            try {
+                out.accept(UrlUtil.LOADER_CODE_SOURCE, false, ModSource.CLASSPATH);
+            } catch (Throwable t) {
+                Log.debug(LogCategory.DISCOVERY, "Could not retrieve launcher code source!", t);
+            }
+        }
+    }
 }

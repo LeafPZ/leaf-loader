@@ -45,50 +45,59 @@ import dev.aoqia.leaf.loader.impl.game.GameProvider.BuiltinTransform;
 import dev.aoqia.leaf.loader.impl.launch.LeafLauncherBase;
 
 public final class LeafTransformer {
-	public static byte[] transform(boolean isDevelopment, EnvType envType, String name, byte[] bytes) {
-		Set<BuiltinTransform> transforms = LeafLoaderImpl.INSTANCE.getGameProvider().getBuiltinTransforms(name);
-		boolean transformAccess = transforms.contains(BuiltinTransform.WIDEN_ALL_PACKAGE_ACCESS) && LeafLauncherBase.getLauncher().getMappingConfiguration().requiresPackageAccessHack();
-		boolean environmentStrip = transforms.contains(BuiltinTransform.STRIP_ENVIRONMENT);
-		boolean applyClassTweaker = transforms.contains(BuiltinTransform.CLASS_TWEAKS) && LeafLoaderImpl.INSTANCE.getClassTweaker().getTargets().contains(name.replace('.', '/'));
+    public static byte[] transform(boolean isDevelopment, EnvType envType, String name, byte[] bytes) {
+        Set<BuiltinTransform> transforms = LeafLoaderImpl.INSTANCE.getGameProvider().getBuiltinTransforms(name);
+        boolean transformAccess = transforms.contains(BuiltinTransform.WIDEN_ALL_PACKAGE_ACCESS) && LeafLauncherBase
+            .getLauncher()
+            .getMappingConfiguration()
+            .requiresPackageAccessHack();
+        boolean environmentStrip = transforms.contains(BuiltinTransform.STRIP_ENVIRONMENT);
+        boolean applyClassTweaker = transforms.contains(BuiltinTransform.CLASS_TWEAKS) && LeafLoaderImpl.INSTANCE
+            .getClassTweaker()
+            .getTargets()
+            .contains(name.replace('.', '/'));
 
-		if (!transformAccess && !environmentStrip && !applyClassTweaker) {
-			return bytes;
-		}
+        if (!transformAccess && !environmentStrip && !applyClassTweaker) {
+            return bytes;
+        }
 
-		ClassReader classReader = new ClassReader(bytes);
-		ClassWriter classWriter = new ClassWriter(classReader, 0);
-		ClassVisitor visitor = classWriter;
-		int visitorCount = 0;
+        ClassReader classReader = new ClassReader(bytes);
+        ClassWriter classWriter = new ClassWriter(classReader, 0);
+        ClassVisitor visitor = classWriter;
+        int visitorCount = 0;
 
-		if (applyClassTweaker) {
-			visitor = LeafLoaderImpl.INSTANCE.getClassTweaker().createClassVisitor(LeafLoaderImpl.ASM_VERSION, visitor, null); // TODO: generated classes?
-			visitorCount++;
-		}
+        if (applyClassTweaker) {
+            visitor = LeafLoaderImpl.INSTANCE.getClassTweaker()
+                .createClassVisitor(LeafLoaderImpl.ASM_VERSION, visitor, null); // TODO: generated classes?
+            visitorCount++;
+        }
 
-		if (transformAccess) {
-			visitor = new PackageAccessFixer(LeafLoaderImpl.ASM_VERSION, visitor);
-			visitorCount++;
-		}
+        if (transformAccess) {
+            visitor = new PackageAccessFixer(LeafLoaderImpl.ASM_VERSION, visitor);
+            visitorCount++;
+        }
 
-		if (environmentStrip) {
-			EnvironmentStrippingData stripData = new EnvironmentStrippingData(LeafLoaderImpl.ASM_VERSION, envType.toString());
-			classReader.accept(stripData, ClassReader.SKIP_CODE | ClassReader.SKIP_FRAMES);
+        if (environmentStrip) {
+            EnvironmentStrippingData stripData = new EnvironmentStrippingData(LeafLoaderImpl.ASM_VERSION, envType
+                .toString());
+            classReader.accept(stripData, ClassReader.SKIP_CODE | ClassReader.SKIP_FRAMES);
 
-			if (stripData.stripEntireClass()) {
-				throw new RuntimeException("Cannot load class " + name + " in environment type " + envType);
-			}
+            if (stripData.stripEntireClass()) {
+                throw new RuntimeException("Cannot load class " + name + " in environment type " + envType);
+            }
 
-			if (!stripData.isEmpty()) {
-				visitor = new ClassStripper(LeafLoaderImpl.ASM_VERSION, visitor, stripData.getStripInterfaces(), stripData.getStripFields(), stripData.getStripMethods());
-				visitorCount++;
-			}
-		}
+            if (!stripData.isEmpty()) {
+                visitor = new ClassStripper(LeafLoaderImpl.ASM_VERSION, visitor, stripData.getStripInterfaces(),
+                    stripData.getStripFields(), stripData.getStripMethods());
+                visitorCount++;
+            }
+        }
 
-		if (visitorCount <= 0) {
-			return bytes;
-		}
+        if (visitorCount <= 0) {
+            return bytes;
+        }
 
-		classReader.accept(visitor, 0);
-		return classWriter.toByteArray();
-	}
+        classReader.accept(visitor, 0);
+        return classWriter.toByteArray();
+    }
 }

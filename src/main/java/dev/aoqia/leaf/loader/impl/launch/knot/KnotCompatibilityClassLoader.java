@@ -42,74 +42,76 @@ import dev.aoqia.leaf.loader.impl.game.GameProvider;
 import dev.aoqia.leaf.loader.impl.launch.knot.KnotClassDelegate.ClassLoaderAccess;
 
 class KnotCompatibilityClassLoader extends URLClassLoader implements ClassLoaderAccess {
-	private final KnotClassDelegate<KnotCompatibilityClassLoader> delegate;
+    static {
+        registerAsParallelCapable();
+    }
 
-	KnotCompatibilityClassLoader(boolean isDevelopment, EnvType envType, GameProvider provider) {
-		super(new URL[0], KnotCompatibilityClassLoader.class.getClassLoader());
-		this.delegate = new KnotClassDelegate<>(isDevelopment, envType, this, getParent(), provider);
-	}
+    private final KnotClassDelegate<KnotCompatibilityClassLoader> delegate;
 
-	KnotClassDelegate<?> getDelegate() {
-		return delegate;
-	}
+    KnotCompatibilityClassLoader(boolean isDevelopment, EnvType envType, GameProvider provider) {
+        super(new URL[0], KnotCompatibilityClassLoader.class.getClassLoader());
+        this.delegate = new KnotClassDelegate<>(isDevelopment, envType, this, getParent(), provider);
+    }
 
-	@Override
-	protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
-		return delegate.loadClass(name, resolve);
-	}
+    @Override
+    public void addUrlFwd(URL url) {
+        super.addURL(url);
+    }
 
-	@Override
-	protected Class<?> findClass(String name) throws ClassNotFoundException {
-		return delegate.tryLoadClass(name, false);
-	}
+    @Override
+    public Class<?> defineClassFwd(String name, byte[] b, int off, int len, CodeSource cs) {
+        return super.defineClass(name, b, off, len, cs);
+    }
 
-	@Override
-	protected String findLibrary(String libname) {
-		return delegate.findLibrary(libname);
-	}
+    @Override
+    public Package definePackageFwd(String name, String specTitle, String specVersion, String specVendor,
+        String implTitle, String implVersion, String implVendor, URL sealBase) throws IllegalArgumentException
+    {
+        return super.definePackage(name, specTitle, specVersion, specVendor, implTitle, implVersion, implVendor,
+            sealBase);
+    }
 
-	@Override
-	public void addUrlFwd(URL url) {
-		super.addURL(url);
-	}
+    @Override
+    public Class<?> findLoadedClassFwd(String name) {
+        return super.findLoadedClass(name);
+    }
 
-	@Override
-	public URL findResourceFwd(String name) {
-		return findResource(name);
-	}
+    @Override
+    public URL findResourceFwd(String name) {
+        return findResource(name);
+    }
 
-	@Override
-	public Package getPackageFwd(String name) {
-		return super.getPackage(name);
-	}
+    @Override
+    public Object getClassLoadingLockFwd(String name) {
+        return super.getClassLoadingLock(name);
+    }
 
-	@Override
-	public Package definePackageFwd(String name, String specTitle, String specVersion, String specVendor,
-			String implTitle, String implVersion, String implVendor, URL sealBase) throws IllegalArgumentException {
-		return super.definePackage(name, specTitle, specVersion, specVendor, implTitle, implVersion, implVendor, sealBase);
-	}
+    @Override
+    public Package getPackageFwd(String name) {
+        return super.getPackage(name);
+    }
 
-	@Override
-	public Object getClassLoadingLockFwd(String name) {
-		return super.getClassLoadingLock(name);
-	}
+    @Override
+    public void resolveClassFwd(Class<?> cls) {
+        super.resolveClass(cls);
+    }
 
-	@Override
-	public Class<?> findLoadedClassFwd(String name) {
-		return super.findLoadedClass(name);
-	}
+    @Override
+    protected Class<?> findClass(String name) throws ClassNotFoundException {
+        return delegate.tryLoadClass(name, false);
+    }
 
-	@Override
-	public Class<?> defineClassFwd(String name, byte[] b, int off, int len, CodeSource cs) {
-		return super.defineClass(name, b, off, len, cs);
-	}
+    @Override
+    protected String findLibrary(String libname) {
+        return delegate.findLibrary(libname);
+    }
 
-	@Override
-	public void resolveClassFwd(Class<?> cls) {
-		super.resolveClass(cls);
-	}
+    @Override
+    protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
+        return delegate.loadClass(name, resolve);
+    }
 
-	static {
-		registerAsParallelCapable();
-	}
+    KnotClassDelegate<?> getDelegate() {
+        return delegate;
+    }
 }

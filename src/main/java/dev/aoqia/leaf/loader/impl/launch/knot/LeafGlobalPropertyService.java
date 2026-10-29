@@ -39,35 +39,35 @@ import org.spongepowered.asm.service.IPropertyKey;
 import dev.aoqia.leaf.loader.impl.launch.LeafLauncherBase;
 
 public class LeafGlobalPropertyService implements IGlobalPropertyService {
-	@Override
-	public IPropertyKey resolveKey(String name) {
-		return new MixinStringPropertyKey(name);
-	}
+    @Override
+    @SuppressWarnings("unchecked")
+    public <T> T getProperty(IPropertyKey key) {
+        return (T) LeafLauncherBase.getProperties().get(keyString(key));
+    }
 
-	private String keyString(IPropertyKey key) {
-		return ((MixinStringPropertyKey) key).key;
-	}
+    @Override
+    @SuppressWarnings("unchecked")
+    public <T> T getProperty(IPropertyKey key, T defaultValue) {
+        return (T) LeafLauncherBase.getProperties().getOrDefault(keyString(key), defaultValue);
+    }
 
-	@Override
-	@SuppressWarnings("unchecked")
-	public <T> T getProperty(IPropertyKey key) {
-		return (T) LeafLauncherBase.getProperties().get(keyString(key));
-	}
+    @Override
+    public String getPropertyString(IPropertyKey key, String defaultValue) {
+        Object o = LeafLauncherBase.getProperties().get(keyString(key));
+        return o != null ? o.toString() : defaultValue;
+    }
 
-	@Override
-	public void setProperty(IPropertyKey key, Object value) {
-		LeafLauncherBase.getProperties().put(keyString(key), value);
-	}
+    @Override
+    public IPropertyKey resolveKey(String name) {
+        return new MixinStringPropertyKey(name);
+    }
 
-	@Override
-	@SuppressWarnings("unchecked")
-	public <T> T getProperty(IPropertyKey key, T defaultValue) {
-		return (T) LeafLauncherBase.getProperties().getOrDefault(keyString(key), defaultValue);
-	}
+    @Override
+    public void setProperty(IPropertyKey key, Object value) {
+        LeafLauncherBase.getProperties().put(keyString(key), value);
+    }
 
-	@Override
-	public String getPropertyString(IPropertyKey key, String defaultValue) {
-		Object o = LeafLauncherBase.getProperties().get(keyString(key));
-		return o != null ? o.toString() : defaultValue;
-	}
+    private String keyString(IPropertyKey key) {
+        return ((MixinStringPropertyKey) key).key;
+    }
 }

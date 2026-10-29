@@ -42,88 +42,91 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.EnumSet;
 
-import dev.aoqia.leaf.loader.impl.util.LoaderUtil;
-import dev.aoqia.leaf.loader.impl.util.log.Log;
-import dev.aoqia.leaf.loader.impl.util.log.LogCategory;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import dev.aoqia.leaf.loader.impl.util.LoaderUtil;
+import dev.aoqia.leaf.loader.impl.util.log.Log;
+import dev.aoqia.leaf.loader.impl.util.log.LogCategory;
+
 public class DirectoryModCandidateFinder implements ModCandidateFinder {
-	private final Path path;
-	private final boolean requiresRemap;
-	private final int depth;
-	private final @Nullable Path subpath;
+    private final Path path;
+    private final boolean requiresRemap;
+    private final int depth;
+    private final @Nullable Path subpath;
 
-	public DirectoryModCandidateFinder(Path path, boolean requiresRemap, int depth) {
-		this.path = LoaderUtil.normalizePath(path);
-		this.requiresRemap = requiresRemap;
-		this.depth = depth;
-		this.subpath = null;
-	}
+    public DirectoryModCandidateFinder(Path path, boolean requiresRemap, int depth) {
+        this.path = LoaderUtil.normalizePath(path);
+        this.requiresRemap = requiresRemap;
+        this.depth = depth;
+        this.subpath = null;
+    }
 
-	public DirectoryModCandidateFinder(Path path, boolean requiresRemap, int depth, @Nullable Path subpath) {
-		this.path = LoaderUtil.normalizePath(path);
-		this.requiresRemap = requiresRemap;
-		this.depth = depth;
-		this.subpath = subpath;
-	}
+    public DirectoryModCandidateFinder(Path path, boolean requiresRemap, int depth, @Nullable Path subpath) {
+        this.path = LoaderUtil.normalizePath(path);
+        this.requiresRemap = requiresRemap;
+        this.depth = depth;
+        this.subpath = subpath;
+    }
 
-	@Override
-	public void findCandidates(ModCandidateConsumer out) {
-		if (!Files.exists(path)) {
-			try {
-				Files.createDirectory(path);
-				return;
-			} catch (IOException e) {
-				throw new RuntimeException("Could not create directory " + path, e);
-			}
-		}
+    static boolean isValidFile(Path path) {
+        /*
+         * We only propose a file as a possible mod in the following scenarios:
+         * General: Must be a jar file
+         *
+         * Some OSes Generate metadata so consider the following because of OSes:
+         * UNIX: Exclude if file is hidden; this occurs when starting a file name with `.`
+         * MacOS: Exclude hidden + startsWith "." since Mac OS names their metadata files in the form of `.mod.jar`
+         */
 
-		if (!Files.isDirectory(path)) {
-			throw new RuntimeException(path + " is not a directory!");
-		}
+        if (!Files.isRegularFile(path)) {
+            return false;
+        }
 
-		try {
-			Files.walkFileTree(this.path, EnumSet.of(FileVisitOption.FOLLOW_LINKS), depth, new SimpleFileVisitor<Path>() {
-				@Override
-				public @NotNull FileVisitResult visitFile(@NotNull Path file, @NotNull BasicFileAttributes attrs) {
-					if (isValidFile(file) && (subpath == null || file.getParent().endsWith(subpath))) {
-						out.accept(file, requiresRemap, ModSource.UNKNOWN);
-					}
+        try {
+            if (Files.isHidden(path)) {
+                return false;
+            }
+        } catch (IOException e) {
+            Log.warn(LogCategory.DISCOVERY, "Error checking if file %s is hidden", path, e);
+            return false;
+        }
 
-					return FileVisitResult.CONTINUE;
-				}
-			});
-		} catch (IOException e) {
-			throw new RuntimeException("Exception while searching for mods in '" + path + "'!", e);
-		}
-	}
+        String fileName = path.getFileName().toString();
 
-	static boolean isValidFile(Path path) {
-		/*
-		 * We only propose a file as a possible mod in the following scenarios:
-		 * General: Must be a jar file
-		 *
-		 * Some OSes Generate metadata so consider the following because of OSes:
-		 * UNIX: Exclude if file is hidden; this occurs when starting a file name with `.`
-		 * MacOS: Exclude hidden + startsWith "." since Mac OS names their metadata files in the form of `.mod.jar`
-		 */
+        return fileName.endsWith(".jar") && !fileName.startsWith(".");
+    }
 
-		if (!Files.isRegularFile(path)) {
-			return false;
-		}
+    @Override
+    public void findCandidates(ModCandidateConsumer out) {
+        if (!Files.exists(path)) {
+            try {
+                Files.createDirectory(path);
+                return;
+            } catch (IOException e) {
+                throw new RuntimeException("Could not create directory " + path, e);
+            }
+        }
 
-		try {
-			if (Files.isHidden(path)) {
-				return false;
-			}
-		} catch (IOException e) {
-			Log.warn(LogCategory.DISCOVERY, "Error checking if file %s is hidden", path, e);
-			return false;
-		}
+        if (!Files.isDirectory(path)) {
+            throw new RuntimeException(path + " is not a directory!");
+        }
 
-		String fileName = path.getFileName().toString();
+        try {
+            Files.walkFileTree(this.path, EnumSet.of(FileVisitOption.FOLLOW_LINKS), depth, new SimpleFileVisitor<
+                Path>()
+            {
+                @Override
+                public @NotNull FileVisitResult visitFile(@NotNull Path file, @NotNull BasicFileAttributes attrs) {
+                    if (isValidFile(file) && (subpath == null || file.getParent().endsWith(subpath))) {
+                        out.accept(file, requiresRemap, ModSource.UNKNOWN);
+                    }
 
-		return fileName.endsWith(".jar") && !fileName.startsWith(".");
-	}
+                    return FileVisitResult.CONTINUE;
+                }
+            });
+        } catch (IOException e) {
+            throw new RuntimeException("Exception while searching for mods in '" + path + "'!", e);
+        }
+    }
 }

@@ -48,286 +48,295 @@ import dev.aoqia.leaf.loader.api.VersionParsingException;
 /**
  * Parser for a superset of the semantic version format described at <a href="https://semver.org">semver.org</a>.
  *
- * <p>This superset allows additionally
- * <ul><li>Arbitrary number of {@code <version core>} components, but at least 1
- * <li>{@code x}, {@code X} or {@code *} for the last {@code <version core>} component with {@code storeX} if not the first
+ * <p>
+ * This superset allows additionally
+ * <ul>
+ * <li>Arbitrary number of {@code <version core>} components, but at least 1
+ * <li>{@code x}, {@code X} or {@code *} for the last {@code <version core>} component with {@code storeX} if not the
+ * first
  * <li>Arbitrary {@code <build>} contents
  * </ul>
  */
 public class SemanticVersionImpl implements SemanticVersion {
-	private static final Pattern DOT_SEPARATED_ID = Pattern.compile("|[-0-9A-Za-z]+(\\.[-0-9A-Za-z]+)*");
-	private static final Pattern UNSIGNED_INTEGER = Pattern.compile("0|[1-9][0-9]*");
-	private final int[] components;
-	private final String prerelease;
-	private final String build;
-	private String friendlyName;
+    private static final Pattern DOT_SEPARATED_ID = Pattern.compile("|[-0-9A-Za-z]+(\\.[-0-9A-Za-z]+)*");
+    private static final Pattern UNSIGNED_INTEGER = Pattern.compile("0|[1-9][0-9]*");
+    private final int[] components;
+    private final String prerelease;
+    private final String build;
+    private String friendlyName;
 
-	public SemanticVersionImpl(String version, boolean storeX) throws VersionParsingException {
-		int buildDelimPos = version.indexOf('+');
+    public SemanticVersionImpl(int[] components, String prerelease, String build) {
+        if (components.length == 0 || components[0] == COMPONENT_WILDCARD)
+            throw new IllegalArgumentException("Invalid components: " + Arrays.toString(components));
 
-		if (buildDelimPos >= 0) {
-			build = version.substring(buildDelimPos + 1);
-			version = version.substring(0, buildDelimPos);
-		} else {
-			build = null;
-		}
+        this.components = components;
+        this.prerelease = prerelease;
+        this.build = build;
 
-		int dashDelimPos = version.indexOf('-');
+        buildFriendlyName();
+    }
 
-		if (dashDelimPos >= 0) {
-			prerelease = version.substring(dashDelimPos + 1);
-			version = version.substring(0, dashDelimPos);
-		} else {
-			prerelease = null;
-		}
+    public SemanticVersionImpl(String version, boolean storeX) throws VersionParsingException {
+        int buildDelimPos = version.indexOf('+');
 
-		if (prerelease != null && !DOT_SEPARATED_ID.matcher(prerelease).matches()) {
-			throw new VersionParsingException("Invalid prerelease string '" + prerelease + "'!");
-		}
+        if (buildDelimPos >= 0) {
+            build = version.substring(buildDelimPos + 1);
+            version = version.substring(0, buildDelimPos);
+        } else {
+            build = null;
+        }
 
-		if (version.endsWith(".")) {
-			throw new VersionParsingException("Negative version number component found!");
-		} else if (version.startsWith(".")) {
-			throw new VersionParsingException("Missing version component!");
-		}
+        int dashDelimPos = version.indexOf('-');
 
-		String[] componentStrings = version.split("\\.");
+        if (dashDelimPos >= 0) {
+            prerelease = version.substring(dashDelimPos + 1);
+            version = version.substring(0, dashDelimPos);
+        } else {
+            prerelease = null;
+        }
 
-		if (componentStrings.length < 1) {
-			throw new VersionParsingException("Did not provide version numbers!");
-		}
+        if (prerelease != null && !DOT_SEPARATED_ID.matcher(prerelease).matches()) {
+            throw new VersionParsingException("Invalid prerelease string '" + prerelease + "'!");
+        }
 
-		int[] components = new int[componentStrings.length];
-		int firstWildcardIdx = -1;
+        if (version.endsWith(".")) {
+            throw new VersionParsingException("Negative version number component found!");
+        } else if (version.startsWith(".")) {
+            throw new VersionParsingException("Missing version component!");
+        }
 
-		for (int i = 0; i < componentStrings.length; i++) {
-			String compStr = componentStrings[i];
+        String[] componentStrings = version.split("\\.");
 
-			if (storeX) {
-				if (compStr.equals("x") || compStr.equals("X") || compStr.equals("*")) {
-					if (prerelease != null) {
-						throw new VersionParsingException("Pre-release versions are not allowed to use X-ranges!");
-					}
+        if (componentStrings.length < 1) {
+            throw new VersionParsingException("Did not provide version numbers!");
+        }
 
-					components[i] = COMPONENT_WILDCARD;
-					if (firstWildcardIdx < 0) firstWildcardIdx = i;
-					continue;
-				} else if (i > 0 && components[i - 1] == COMPONENT_WILDCARD) {
-					throw new VersionParsingException("Interjacent wildcard (1.x.2) are disallowed!");
-				}
-			}
+        int[] components = new int[componentStrings.length];
+        int firstWildcardIdx = -1;
 
-			if (compStr.trim().isEmpty()) {
-				throw new VersionParsingException("Missing version number component!");
-			}
+        for (int i = 0; i < componentStrings.length; i++) {
+            String compStr = componentStrings[i];
 
-			try {
-				components[i] = Integer.parseInt(compStr);
+            if (storeX) {
+                if (compStr.equals("x") || compStr.equals("X") || compStr.equals("*")) {
+                    if (prerelease != null) {
+                        throw new VersionParsingException("Pre-release versions are not allowed to use X-ranges!");
+                    }
 
-				if (components[i] < 0) {
-					throw new VersionParsingException("Negative version number component '" + compStr + "'!");
-				}
-			} catch (NumberFormatException e) {
-				throw new VersionParsingException("Could not parse version number component '" + compStr + "'!", e);
-			}
-		}
+                    components[i] = COMPONENT_WILDCARD;
+                    if (firstWildcardIdx < 0)
+                        firstWildcardIdx = i;
+                    continue;
+                } else if (i > 0 && components[i - 1] == COMPONENT_WILDCARD) {
+                    throw new VersionParsingException("Interjacent wildcard (1.x.2) are disallowed!");
+                }
+            }
 
-		if (storeX && components.length == 1 && components[0] == COMPONENT_WILDCARD) {
-			throw new VersionParsingException("Versions of form 'x' or 'X' not allowed!");
-		}
+            if (compStr.trim().isEmpty()) {
+                throw new VersionParsingException("Missing version number component!");
+            }
 
-		// strip extra wildcards (1.x.x -> 1.x)
-		if (firstWildcardIdx > 0 && components.length > firstWildcardIdx + 1) {
-			components = Arrays.copyOf(components, firstWildcardIdx + 1);
-		}
+            try {
+                components[i] = Integer.parseInt(compStr);
 
-		this.components = components;
+                if (components[i] < 0) {
+                    throw new VersionParsingException("Negative version number component '" + compStr + "'!");
+                }
+            } catch (NumberFormatException e) {
+                throw new VersionParsingException("Could not parse version number component '" + compStr + "'!", e);
+            }
+        }
 
-		buildFriendlyName();
-	}
+        if (storeX && components.length == 1 && components[0] == COMPONENT_WILDCARD) {
+            throw new VersionParsingException("Versions of form 'x' or 'X' not allowed!");
+        }
 
-	public SemanticVersionImpl(int[] components, String prerelease, String build) {
-		if (components.length == 0 || components[0] == COMPONENT_WILDCARD) throw new IllegalArgumentException("Invalid components: "+Arrays.toString(components));
+        // strip extra wildcards (1.x.x -> 1.x)
+        if (firstWildcardIdx > 0 && components.length > firstWildcardIdx + 1) {
+            components = Arrays.copyOf(components, firstWildcardIdx + 1);
+        }
 
-		this.components = components;
-		this.prerelease = prerelease;
-		this.build = build;
+        this.components = components;
 
-		buildFriendlyName();
-	}
+        buildFriendlyName();
+    }
 
-	private void buildFriendlyName() {
-		StringBuilder fnBuilder = new StringBuilder();
-		boolean first = true;
+    @Override
+    public int compareTo(@NotNull Version other) {
+        if (!(other instanceof SemanticVersion)) {
+            return getFriendlyString().compareTo(other.getFriendlyString());
+        }
 
-		for (int i : components) {
-			if (first) {
-				first = false;
-			} else {
-				fnBuilder.append('.');
-			}
+        SemanticVersion o = (SemanticVersion) other;
 
-			if (i == COMPONENT_WILDCARD) {
-				fnBuilder.append('x');
-			} else {
-				fnBuilder.append(i);
-			}
-		}
+        for (int i = 0; i < Math.max(getVersionComponentCount(), o.getVersionComponentCount()); i++) {
+            int first = getVersionComponent(i);
+            int second = o.getVersionComponent(i);
 
-		if (prerelease != null) {
-			fnBuilder.append('-').append(prerelease);
-		}
+            if (first == COMPONENT_WILDCARD || second == COMPONENT_WILDCARD) {
+                continue;
+            }
 
-		if (build != null) {
-			fnBuilder.append('+').append(build);
-		}
+            int compare = Integer.compare(first, second);
+            if (compare != 0)
+                return compare;
+        }
 
-		friendlyName = fnBuilder.toString();
-	}
+        Optional<String> prereleaseA = getPrereleaseKey();
+        Optional<String> prereleaseB = o.getPrereleaseKey();
 
-	@Override
-	public int getVersionComponentCount() {
-		return components.length;
-	}
+        if (prereleaseA.isPresent() || prereleaseB.isPresent()) {
+            if (prereleaseA.isPresent() && prereleaseB.isPresent()) {
+                StringTokenizer prereleaseATokenizer = new StringTokenizer(prereleaseA.get(), ".");
+                StringTokenizer prereleaseBTokenizer = new StringTokenizer(prereleaseB.get(), ".");
 
-	@Override
-	public int getVersionComponent(int pos) {
-		if (pos < 0) {
-			throw new RuntimeException("Tried to access negative version number component!");
-		} else if (pos >= components.length) {
-			// Repeat "x" if x-range, otherwise repeat "0".
-			return components[components.length - 1] == COMPONENT_WILDCARD ? COMPONENT_WILDCARD : 0;
-		} else {
-			return components[pos];
-		}
-	}
+                while (prereleaseATokenizer.hasMoreElements()) {
+                    if (prereleaseBTokenizer.hasMoreElements()) {
+                        String partA = prereleaseATokenizer.nextToken();
+                        String partB = prereleaseBTokenizer.nextToken();
 
-	public int[] getVersionComponents() {
-		return components.clone();
-	}
+                        if (UNSIGNED_INTEGER.matcher(partA).matches()) {
+                            if (UNSIGNED_INTEGER.matcher(partB).matches()) {
+                                int compare = Integer.compare(partA.length(), partB.length());
+                                if (compare != 0)
+                                    return compare;
+                            } else {
+                                return -1;
+                            }
+                        } else {
+                            if (UNSIGNED_INTEGER.matcher(partB).matches()) {
+                                return 1;
+                            }
+                        }
 
-	@Override
-	public Optional<String> getPrereleaseKey() {
-		return Optional.ofNullable(prerelease);
-	}
+                        int compare = partA.compareTo(partB);
+                        if (compare != 0)
+                            return compare;
+                    } else {
+                        return 1;
+                    }
+                }
 
-	@Override
-	public Optional<String> getBuildKey() {
-		return Optional.ofNullable(build);
-	}
+                return prereleaseBTokenizer.hasMoreElements() ? -1 : 0;
+            } else if (prereleaseA.isPresent()) {
+                return o.hasWildcard() ? 0 : -1;
+            } else { // prereleaseB.isPresent()
+                return hasWildcard() ? 0 : 1;
+            }
+        } else {
+            return 0;
+        }
+    }
 
-	@Override
-	public String getFriendlyString() {
-		return friendlyName;
-	}
+    @Override
+    public boolean equals(Object o) {
+        if (!(o instanceof SemanticVersionImpl)) {
+            return false;
+        } else {
+            SemanticVersionImpl other = (SemanticVersionImpl) o;
 
-	@Override
-	public boolean equals(Object o) {
-		if (!(o instanceof SemanticVersionImpl)) {
-			return false;
-		} else {
-			SemanticVersionImpl other = (SemanticVersionImpl) o;
+            if (!equalsComponentsExactly(other)) {
+                return false;
+            }
 
-			if (!equalsComponentsExactly(other)) {
-				return false;
-			}
+            return Objects.equals(prerelease, other.prerelease) && Objects.equals(build, other.build);
+        }
+    }
 
-			return Objects.equals(prerelease, other.prerelease) && Objects.equals(build, other.build);
-		}
-	}
+    public boolean equalsComponentsExactly(SemanticVersionImpl other) {
+        for (int i = 0; i < Math.max(getVersionComponentCount(), other.getVersionComponentCount()); i++) {
+            if (getVersionComponent(i) != other.getVersionComponent(i)) {
+                return false;
+            }
+        }
 
-	@Override
-	public int hashCode() {
-		return Arrays.hashCode(components) * 73 + (prerelease != null ? prerelease.hashCode() * 11 : 0) + (build != null ? build.hashCode() : 0);
-	}
+        return true;
+    }
 
-	@Override
-	public String toString() {
-		return getFriendlyString();
-	}
+    @Override
+    public Optional<String> getBuildKey() {
+        return Optional.ofNullable(build);
+    }
 
-	@Override
-	public boolean hasWildcard() {
-		for (int i : components) {
-			if (i < 0) {
-				return true;
-			}
-		}
+    @Override
+    public String getFriendlyString() {
+        return friendlyName;
+    }
 
-		return false;
-	}
+    @Override
+    public Optional<String> getPrereleaseKey() {
+        return Optional.ofNullable(prerelease);
+    }
 
-	public boolean equalsComponentsExactly(SemanticVersionImpl other) {
-		for (int i = 0; i < Math.max(getVersionComponentCount(), other.getVersionComponentCount()); i++) {
-			if (getVersionComponent(i) != other.getVersionComponent(i)) {
-				return false;
-			}
-		}
+    @Override
+    public int getVersionComponent(int pos) {
+        if (pos < 0) {
+            throw new RuntimeException("Tried to access negative version number component!");
+        } else if (pos >= components.length) {
+            // Repeat "x" if x-range, otherwise repeat "0".
+            return components[components.length - 1] == COMPONENT_WILDCARD ? COMPONENT_WILDCARD : 0;
+        } else {
+            return components[pos];
+        }
+    }
 
-		return true;
-	}
+    @Override
+    public int getVersionComponentCount() {
+        return components.length;
+    }
 
-	@Override
-	public int compareTo(@NotNull Version other) {
-		if (!(other instanceof SemanticVersion)) {
-			return getFriendlyString().compareTo(other.getFriendlyString());
-		}
+    public int[] getVersionComponents() {
+        return components.clone();
+    }
 
-		SemanticVersion o = (SemanticVersion) other;
+    @Override
+    public int hashCode() {
+        return Arrays.hashCode(components) * 73 + (prerelease != null ? prerelease.hashCode() * 11 : 0) + (build != null
+            ? build.hashCode() : 0);
+    }
 
-		for (int i = 0; i < Math.max(getVersionComponentCount(), o.getVersionComponentCount()); i++) {
-			int first = getVersionComponent(i);
-			int second = o.getVersionComponent(i);
+    @Override
+    public boolean hasWildcard() {
+        for (int i : components) {
+            if (i < 0) {
+                return true;
+            }
+        }
 
-			if (first == COMPONENT_WILDCARD || second == COMPONENT_WILDCARD) {
-				continue;
-			}
+        return false;
+    }
 
-			int compare = Integer.compare(first, second);
-			if (compare != 0) return compare;
-		}
+    @Override
+    public String toString() {
+        return getFriendlyString();
+    }
 
-		Optional<String> prereleaseA = getPrereleaseKey();
-		Optional<String> prereleaseB = o.getPrereleaseKey();
+    private void buildFriendlyName() {
+        StringBuilder fnBuilder = new StringBuilder();
+        boolean first = true;
 
-		if (prereleaseA.isPresent() || prereleaseB.isPresent()) {
-			if (prereleaseA.isPresent() && prereleaseB.isPresent()) {
-				StringTokenizer prereleaseATokenizer = new StringTokenizer(prereleaseA.get(), ".");
-				StringTokenizer prereleaseBTokenizer = new StringTokenizer(prereleaseB.get(), ".");
+        for (int i : components) {
+            if (first) {
+                first = false;
+            } else {
+                fnBuilder.append('.');
+            }
 
-				while (prereleaseATokenizer.hasMoreElements()) {
-					if (prereleaseBTokenizer.hasMoreElements()) {
-						String partA = prereleaseATokenizer.nextToken();
-						String partB = prereleaseBTokenizer.nextToken();
+            if (i == COMPONENT_WILDCARD) {
+                fnBuilder.append('x');
+            } else {
+                fnBuilder.append(i);
+            }
+        }
 
-						if (UNSIGNED_INTEGER.matcher(partA).matches()) {
-							if (UNSIGNED_INTEGER.matcher(partB).matches()) {
-								int compare = Integer.compare(partA.length(), partB.length());
-								if (compare != 0) return compare;
-							} else {
-								return -1;
-							}
-						} else {
-							if (UNSIGNED_INTEGER.matcher(partB).matches()) {
-								return 1;
-							}
-						}
+        if (prerelease != null) {
+            fnBuilder.append('-').append(prerelease);
+        }
 
-						int compare = partA.compareTo(partB);
-						if (compare != 0) return compare;
-					} else {
-						return 1;
-					}
-				}
+        if (build != null) {
+            fnBuilder.append('+').append(build);
+        }
 
-				return prereleaseBTokenizer.hasMoreElements() ? -1 : 0;
-			} else if (prereleaseA.isPresent()) {
-				return o.hasWildcard() ? 0 : -1;
-			} else { // prereleaseB.isPresent()
-				return hasWildcard() ? 0 : 1;
-			}
-		} else {
-			return 0;
-		}
-	}
+        friendlyName = fnBuilder.toString();
+    }
 }

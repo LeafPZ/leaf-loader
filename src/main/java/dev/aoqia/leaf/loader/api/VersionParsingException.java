@@ -38,15 +38,15 @@ public class VersionParsingException extends Exception {
         super();
     }
 
-    public VersionParsingException(Throwable t) {
-        super(t);
-    }
-
     public VersionParsingException(String s) {
         super(s);
     }
 
     public VersionParsingException(String s, Throwable t) {
         super(s, t);
+    }
+
+    public VersionParsingException(Throwable t) {
+        super(t);
     }
 }

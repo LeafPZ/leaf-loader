@@ -46,22 +46,27 @@ import dev.aoqia.leaf.loader.api.metadata.ModMetadata;
  * Internal variant of the ModMetadata interface.
  */
 public interface LoaderModMetadata extends ModMetadata {
-	int getSchemaVersion();
+    void emitFormatWarnings();
 
-	Map<String, String> getLanguageAdapterDefinitions();
-	Collection<NestedJarEntry> getJars();
-	Collection<String> getMixinConfigs(EnvType type);
-	/* @Nullable */
-	String getClassTweaker();
+    /* @Nullable */
+    String getClassTweaker();
 
-	@SuppressWarnings("BooleanMethodIsAlwaysInverted")
+    Collection<String> getEntrypointKeys();
+
+    List<EntrypointMetadata> getEntrypoints(String type);
+
+    Collection<NestedJarEntry> getJars();
+
+    Map<String, String> getLanguageAdapterDefinitions();
+
+    Collection<String> getMixinConfigs(EnvType type);
+
+    int getSchemaVersion();
+
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     boolean loadsInEnvironment(EnvType type);
 
-	List<EntrypointMetadata> getEntrypoints(String type);
-	Collection<String> getEntrypointKeys();
+    void setDependencies(Collection<ModDependency> dependencies);
 
-	void emitFormatWarnings();
-
-	void setVersion(Version version);
-	void setDependencies(Collection<ModDependency> dependencies);
+    void setVersion(Version version);
 }

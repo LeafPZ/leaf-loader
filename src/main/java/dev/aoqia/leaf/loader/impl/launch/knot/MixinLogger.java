@@ -47,110 +47,118 @@ import dev.aoqia.leaf.loader.impl.util.log.LogCategory;
 import dev.aoqia.leaf.loader.impl.util.log.LogLevel;
 
 final class MixinLogger extends LoggerAdapterAbstract {
-	private static final Map<String, ILogger> LOGGER_MAP = new ConcurrentHashMap<>();
-	private static final Map<Level, LogLevel> LEVEL_MAP = createLevelMap();
+    private static final Map<String, ILogger> LOGGER_MAP = new ConcurrentHashMap<>();
+    private static final Map<Level, LogLevel> LEVEL_MAP = createLevelMap();
 
-	private final LogCategory logCategory;
+    private final LogCategory logCategory;
 
-	static ILogger get(String name) {
-		return LOGGER_MAP.computeIfAbsent(name, MixinLogger::new);
-	}
+    MixinLogger(String name) {
+        super(name);
 
-	MixinLogger(String name) {
-		super(name);
+        this.logCategory = LogCategory.create(name.replace("mixin", LogCategory.MIXIN.name)
+            .replace(".", LogCategory.SEPARATOR));
+    }
 
-		this.logCategory = LogCategory.create(name.replace("mixin", LogCategory.MIXIN.name).replace(".", LogCategory.SEPARATOR));
-	}
+    static ILogger get(String name) {
+        return LOGGER_MAP.computeIfAbsent(name, MixinLogger::new);
+    }
 
-	@Override
-	public String getType() {
-		return "Leaf Mixin Logger";
-	}
+    private static Map<Level, LogLevel> createLevelMap() {
+        Map<Level, LogLevel> ret = new EnumMap<>(Level.class);
 
-	@Override
-	public void catching(Level level, Throwable t) {
-		log(level, "Catching ".concat(t.toString()), t);
-	}
+        ret.put(Level.FATAL, LogLevel.ERROR);
+        ret.put(Level.ERROR, LogLevel.ERROR);
+        ret.put(Level.WARN, LogLevel.WARN);
+        ret.put(Level.INFO, LogLevel.INFO);
+        ret.put(Level.DEBUG, LogLevel.DEBUG);
+        ret.put(Level.TRACE, LogLevel.TRACE);
 
-	@Override
-	public void log(Level level, String message, Object... params) {
-		LogLevel fabricLevel = translateLevel(level);
-		if (!Log.shouldLog(fabricLevel, logCategory)) return;
+        return ret;
+    }
 
-		Throwable exc = null;
+    private static LogLevel translateLevel(Level level) {
+        return LEVEL_MAP.getOrDefault(level, LogLevel.INFO);
+    }
 
-		if (params != null && params.length > 0) {
-			if (message == null) {
-				if (params[0] instanceof Throwable) exc = (Throwable) params[0];
-			} else {
-				// emulate Log4J's {} tokens and \ escapes
-				StringBuilder sb = new StringBuilder(message.length() + 20);
-				int paramIdx = 0;
-				boolean escaped = false;
+    @Override
+    public void catching(Level level, Throwable t) {
+        log(level, "Catching ".concat(t.toString()), t);
+    }
 
-				for (int i = 0, max = message.length(); i < max; i++) {
-					char c = message.charAt(i);
+    @Override
+    public String getType() {
+        return "Leaf Mixin Logger";
+    }
 
-					if (escaped) {
-						sb.append(c);
-						escaped = false;
-					} else if (c == '\\' && i + 1 < max) {
-						escaped = true;
-					} else if (c == '{' && i + 1 < max && message.charAt(i + 1) == '}' && paramIdx < params.length) { // unescaped {} with matching param idx
-						Object param = params[paramIdx++];
+    @Override
+    public void log(Level level, String message, Object... params) {
+        LogLevel fabricLevel = translateLevel(level);
+        if (!Log.shouldLog(fabricLevel, logCategory))
+            return;
 
-						if (param == null) {
-							sb.append("null");
-						} else if (param.getClass().isArray()) {
-							String val = Arrays.deepToString(new Object[] { param });
-							sb.append(val, 1, val.length() - 1);
-						} else {
-							sb.append(param);
-						}
+        Throwable exc = null;
 
-						i++; // skip over }
-					} else {
-						sb.append(c);
-					}
-				}
+        if (params != null && params.length > 0) {
+            if (message == null) {
+                if (params[0] instanceof Throwable)
+                    exc = (Throwable) params[0];
+            } else {
+                // emulate Log4J's {} tokens and \ escapes
+                StringBuilder sb = new StringBuilder(message.length() + 20);
+                int paramIdx = 0;
+                boolean escaped = false;
 
-				message = sb.toString();
+                for (int i = 0, max = message.length(); i < max; i++) {
+                    char c = message.charAt(i);
 
-				if (paramIdx < params.length && params[params.length - 1] instanceof Throwable) {
-					exc = (Throwable) params[params.length - 1];
-				}
-			}
-		}
+                    if (escaped) {
+                        sb.append(c);
+                        escaped = false;
+                    } else if (c == '\\' && i + 1 < max) {
+                        escaped = true;
+                    } else if (c == '{' && i + 1 < max && message.charAt(i + 1) == '}' && paramIdx < params.length) { // unescaped
+                                                                                                                      // {}
+                                                                                                                      // with
+                                                                                                                      // matching
+                                                                                                                      // param
+                                                                                                                      // idx
+                        Object param = params[paramIdx++];
 
-		Log.log(fabricLevel, logCategory, message, exc);
-	}
+                        if (param == null) {
+                            sb.append("null");
+                        } else if (param.getClass().isArray()) {
+                            String val = Arrays.deepToString(new Object[] { param });
+                            sb.append(val, 1, val.length() - 1);
+                        } else {
+                            sb.append(param);
+                        }
 
-	@Override
-	public void log(Level level, String message, Throwable t) {
-		Log.log(translateLevel(level), logCategory, message, t);
-	}
+                        i++; // skip over }
+                    } else {
+                        sb.append(c);
+                    }
+                }
 
-	@Override
-	public <T extends Throwable> T throwing(T t) {
-		log(Level.ERROR, "Throwing ".concat(t.toString()), t);
+                message = sb.toString();
 
-		return t;
-	}
+                if (paramIdx < params.length && params[params.length - 1] instanceof Throwable) {
+                    exc = (Throwable) params[params.length - 1];
+                }
+            }
+        }
 
-	private static LogLevel translateLevel(Level level) {
-		return LEVEL_MAP.getOrDefault(level, LogLevel.INFO);
-	}
+        Log.log(fabricLevel, logCategory, message, exc);
+    }
 
-	private static Map<Level, LogLevel> createLevelMap() {
-		Map<Level, LogLevel> ret = new EnumMap<>(Level.class);
+    @Override
+    public void log(Level level, String message, Throwable t) {
+        Log.log(translateLevel(level), logCategory, message, t);
+    }
 
-		ret.put(Level.FATAL, LogLevel.ERROR);
-		ret.put(Level.ERROR, LogLevel.ERROR);
-		ret.put(Level.WARN, LogLevel.WARN);
-		ret.put(Level.INFO, LogLevel.INFO);
-		ret.put(Level.DEBUG, LogLevel.DEBUG);
-		ret.put(Level.TRACE, LogLevel.TRACE);
+    @Override
+    public <T extends Throwable> T throwing(T t) {
+        log(Level.ERROR, "Throwing ".concat(t.toString()), t);
 
-		return ret;
-	}
+        return t;
+    }
 }

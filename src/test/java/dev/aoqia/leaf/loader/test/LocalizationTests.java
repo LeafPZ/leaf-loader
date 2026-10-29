@@ -38,9 +38,9 @@ import org.junit.jupiter.api.Test;
 import dev.aoqia.leaf.loader.impl.util.Localization;
 
 public class LocalizationTests {
-	@Test
-	public void formatRoot() {
-		Assertions.assertEquals("client", Localization.formatRoot("environment.client"));
-		Assertions.assertEquals("Install A, B.", Localization.formatRoot("resolution.solution.addMod", "A", "B"));
-	}
+    @Test
+    public void formatRoot() {
+        Assertions.assertEquals("client", Localization.formatRoot("environment.client"));
+        Assertions.assertEquals("Install A, B.", Localization.formatRoot("resolution.solution.addMod", "A", "B"));
+    }
 }

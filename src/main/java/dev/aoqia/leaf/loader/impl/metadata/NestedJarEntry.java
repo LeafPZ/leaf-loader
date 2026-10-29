@@ -34,5 +34,5 @@
 package dev.aoqia.leaf.loader.impl.metadata;
 
 public interface NestedJarEntry {
-	String getFile();
+    String getFile();
 }

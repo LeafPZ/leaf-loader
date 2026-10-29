@@ -36,7 +36,7 @@ package dev.aoqia.leaf.loader.impl.launch.knot;
 import dev.aoqia.leaf.api.EnvType;
 
 public class KnotClient {
-	public static void main(String[] args) {
-		Knot.launch(args, EnvType.CLIENT);
-	}
+    public static void main(String[] args) {
+        Knot.launch(args, EnvType.CLIENT);
+    }
 }

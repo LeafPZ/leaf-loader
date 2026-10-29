@@ -63,247 +63,268 @@ import dev.aoqia.leaf.loader.impl.util.log.Log;
 import dev.aoqia.leaf.loader.impl.util.log.LogCategory;
 
 public final class LibClassifier<L extends Enum<L> & LibraryType> {
-	private static final boolean DEBUG = SystemProperties.isSet(SystemProperties.DEBUG_LOG_LIB_CLASSIFICATION);
+    private static final boolean DEBUG = SystemProperties.isSet(SystemProperties.DEBUG_LOG_LIB_CLASSIFICATION);
 
-	private final List<L> libs;
-	private final Map<L, Path> origins;
-	private final Map<L, String> localPaths;
-	private final Set<Path> systemLibraries = new HashSet<>();
-	private final List<Path> unmatchedOrigins = new ArrayList<>();
+    private final List<L> libs;
+    private final Map<L, Path> origins;
+    private final Map<L, String> localPaths;
+    private final Set<Path> systemLibraries = new HashSet<>();
+    private final List<Path> unmatchedOrigins = new ArrayList<>();
 
-	public LibClassifier(Class<L> cls, EnvType env, GameProvider gameProvider) throws IOException {
-		L[] libs = cls.getEnumConstants();
+    public LibClassifier(Class<L> cls, EnvType env, GameProvider gameProvider) throws IOException {
+        L[] libs = cls.getEnumConstants();
 
-		this.libs = new ArrayList<>(libs.length);
-		this.origins = new EnumMap<>(cls);
-		this.localPaths = new EnumMap<>(cls);
+        this.libs = new ArrayList<>(libs.length);
+        this.origins = new EnumMap<>(cls);
+        this.localPaths = new EnumMap<>(cls);
 
-		// game provider libs
+        // game provider libs
 
-		for (L lib : libs) {
-			if (lib.isApplicable(env)) {
-				this.libs.add(lib);
-			}
-		}
+        for (L lib : libs) {
+            if (lib.isApplicable(env)) {
+                this.libs.add(lib);
+            }
+        }
 
-		// system libs configured through system property
+        // system libs configured through system property
 
-		StringBuilder sb = DEBUG ? new StringBuilder() : null;
-		List<Path> systemLibs = GameProviderHelper.getLibraries(SystemProperties.SYSTEM_LIBRARIES);
+        StringBuilder sb = DEBUG ? new StringBuilder() : null;
+        List<Path> systemLibs = GameProviderHelper.getLibraries(SystemProperties.SYSTEM_LIBRARIES);
 
-		if (systemLibs != null) {
-			for (Path lib : systemLibs) {
-				assert lib.equals(LoaderUtil.normalizeExistingPath(lib));
+        if (systemLibs != null) {
+            for (Path lib : systemLibs) {
+                assert lib.equals(LoaderUtil.normalizeExistingPath(lib));
 
-				if (systemLibraries.add(lib)) {
-					if (DEBUG) sb.append(String.format("🇸 %s%n", lib));
-				}
-			}
-		}
+                if (systemLibraries.add(lib)) {
+                    if (DEBUG)
+                        sb.append(String.format("🇸 %s%n", lib));
+                }
+            }
+        }
 
-		// loader libs
+        // loader libs
 
-		boolean junitRun = SystemProperties.isSet(SystemProperties.UNIT_TEST);
+        boolean junitRun = SystemProperties.isSet(SystemProperties.UNIT_TEST);
 
-		for (LoaderLibrary lib : LoaderLibrary.values()) {
-			if (!lib.isApplicable(env, junitRun)) continue;
+        for (LoaderLibrary lib : LoaderLibrary.values()) {
+            if (!lib.isApplicable(env, junitRun))
+                continue;
 
-			if (lib.path != null) {
-				Path path = LoaderUtil.normalizeExistingPath(lib.path);
-				systemLibraries.add(path);
+            if (lib.path != null) {
+                Path path = LoaderUtil.normalizeExistingPath(lib.path);
+                systemLibraries.add(path);
 
-				if (DEBUG) sb.append(String.format("✅ %s %s%n", lib.name(), path));
-			} else {
-				if (DEBUG) sb.append(String.format("❎ %s%n", lib.name()));
-			}
-		}
+                if (DEBUG)
+                    sb.append(String.format("✅ %s %s%n", lib.name(), path));
+            } else {
+                if (DEBUG)
+                    sb.append(String.format("❎ %s%n", lib.name()));
+            }
+        }
 
-		// game provider itself
+        // game provider itself
 
-		Path gameProviderPath = UrlUtil.getCodeSource(gameProvider.getClass());
+        Path gameProviderPath = UrlUtil.getCodeSource(gameProvider.getClass());
 
-		if (gameProviderPath != null) {
-			gameProviderPath = LoaderUtil.normalizeExistingPath(gameProviderPath);
+        if (gameProviderPath != null) {
+            gameProviderPath = LoaderUtil.normalizeExistingPath(gameProviderPath);
 
-			if (systemLibraries.add(gameProviderPath)) {
-				if (DEBUG) sb.append(String.format("✅ gameprovider %s%n", gameProviderPath));
-			}
-		} else {
-			if (DEBUG) sb.append("❎ gameprovider");
-		}
+            if (systemLibraries.add(gameProviderPath)) {
+                if (DEBUG)
+                    sb.append(String.format("✅ gameprovider %s%n", gameProviderPath));
+            }
+        } else {
+            if (DEBUG)
+                sb.append("❎ gameprovider");
+        }
 
-		if (DEBUG) Log.info(LogCategory.LIB_CLASSIFICATION, "Loader/system libraries:%n%s", sb);
+        if (DEBUG)
+            Log.info(LogCategory.LIB_CLASSIFICATION, "Loader/system libraries:%n%s", sb);
 
-		// game libraries
+        // game libraries
 
-		List<Path> gameLibs = GameProviderHelper.getLibraries(SystemProperties.GAME_LIBRARIES);
+        List<Path> gameLibs = GameProviderHelper.getLibraries(SystemProperties.GAME_LIBRARIES);
 
-		if (gameLibs != null) {
-			process(gameLibs);
-		}
-	}
+        if (gameLibs != null) {
+            process(gameLibs);
+        }
+    }
 
-	private void processManifestClassPath(LoaderLibrary lib, EnvType env, boolean junitRun) throws IOException {
-		if (lib.path == null || !lib.isApplicable(env, junitRun) || !Files.isRegularFile(lib.path)) return;
+    private static <L extends Enum<L>> Set<L> makeSet(L[] libs) {
+        if (libs.length == 0)
+            return Collections.emptySet();
 
-		Manifest manifest;
+        Set<L> ret = EnumSet.of(libs[0]);
 
-		try (ZipFile zf = new ZipFile(lib.path.toFile())) {
-			ZipEntry entry = zf.getEntry(JarFile.MANIFEST_NAME);
-			if (entry == null) return;
+        for (int i = 1; i < libs.length; i++) {
+            ret.add(libs[i]);
+        }
 
-			manifest = new Manifest(zf.getInputStream(entry));
-		}
+        return ret;
+    }
 
-		List<URL> cp = ManifestUtil.getClassPath(manifest, lib.path);
-		if (cp == null) return;
+    public String getClassName(L lib) {
+        String localPath = localPaths.get(lib);
+        if (localPath == null || !localPath.endsWith(".class"))
+            return null;
 
-		for (URL url : cp) {
-			process(url);
-		}
-	}
+        return localPath.substring(0, localPath.length() - 6).replace('/', '.');
+    }
 
-	public void process(URL url) throws IOException {
-		process(UrlUtil.asPath(url));
-	}
+    public String getLocalPath(L lib) {
+        return localPaths.get(lib);
+    }
 
-	@SafeVarargs
-	public final void process(Iterable<Path> paths, L... excludedLibs) throws IOException {
-		Set<L> excluded = makeSet(excludedLibs);
+    public Path getOrigin(L lib) {
+        return origins.get(lib);
+    }
 
-		for (Path path : paths) {
-			process(path, excluded);
-		}
-	}
+    /**
+     * Returns system level libraries, typically Loader and its dependencies.
+     */
+    public Collection<Path> getSystemLibraries() {
+        return systemLibraries;
+    }
 
-	@SafeVarargs
-	public final void process(Path path, L... excludedLibs) throws IOException {
-		process(path, makeSet(excludedLibs));
-	}
+    public List<Path> getUnmatchedOrigins() {
+        return unmatchedOrigins;
+    }
 
-	private static <L extends Enum<L>> Set<L> makeSet(L[] libs) {
-		if (libs.length == 0) return Collections.emptySet();
+    public boolean has(L lib) {
+        return origins.containsKey(lib);
+    }
 
-		Set<L> ret = EnumSet.of(libs[0]);
+    @SafeVarargs
+    public final boolean is(Path path, L... libs) {
+        for (L lib : libs) {
+            if (path.equals(origins.get(lib)))
+                return true;
+        }
 
-		for (int i = 1; i < libs.length; i++) {
-			ret.add(libs[i]);
-		}
+        return false;
+    }
 
-		return ret;
-	}
+    @SafeVarargs
+    public final void process(Iterable<Path> paths, L... excludedLibs) throws IOException {
+        Set<L> excluded = makeSet(excludedLibs);
 
-	private void process(Path path, Set<L> excludedLibs) throws IOException {
-		path = LoaderUtil.normalizeExistingPath(path);
-		if (systemLibraries.contains(path)) return;
+        for (Path path : paths) {
+            process(path, excluded);
+        }
+    }
 
-		boolean matched = false;
+    @SafeVarargs
+    public final void process(Path path, L... excludedLibs) throws IOException {
+        process(path, makeSet(excludedLibs));
+    }
 
-		if (Files.isDirectory(path)) {
-			for (L lib : libs) {
-				if (excludedLibs.contains(lib) || origins.containsKey(lib)) continue;
+    public void process(URL url) throws IOException {
+        process(UrlUtil.asPath(url));
+    }
 
-				for (String p : lib.getPaths()) {
-					if (Files.exists(path.resolve(p))) {
-						matched = true;
-						addLibrary(lib, path, p);
-						break;
-					}
-				}
-			}
-		} else {
-			try (ZipFile zf = new ZipFile(path.toFile())) {
-				for (L lib : libs) {
-					if (excludedLibs.contains(lib) || origins.containsKey(lib)) continue;
+    public boolean remove(Path path) {
+        if (unmatchedOrigins.remove(path))
+            return true;
 
-					for (String p : lib.getPaths()) {
-						if (zf.getEntry(p) != null) {
-							matched = true;
-							addLibrary(lib, path, p);
-							break;
-						}
-					}
-				}
-			} catch (ZipError | IOException e) {
-				throw new IOException("error reading "+path, e);
-			}
-		}
+        boolean ret = false;
 
-		if (!matched) {
-			unmatchedOrigins.add(path);
+        for (Iterator<Map.Entry<L, Path>> it = origins.entrySet().iterator(); it.hasNext();) {
+            Map.Entry<L, Path> entry = it.next();
 
-			if (DEBUG) Log.info(LogCategory.LIB_CLASSIFICATION, "unmatched %s", path);
-		}
-	}
+            if (entry.getValue().equals(path)) {
+                localPaths.remove(entry.getKey());
+                it.remove();
 
-	private void addLibrary(L lib, Path originPath, String localPath) {
-		Path prev = origins.put(lib, originPath);
-		if (prev != null) throw new IllegalStateException("lib "+lib+" was already added");
-		localPaths.put(lib, localPath);
+                ret = true;
+            }
+        }
 
-		if (DEBUG) Log.info(LogCategory.LIB_CLASSIFICATION, "%s %s (%s)", lib.name(), originPath, localPath);
-	}
+        return ret;
+    }
 
-	@SafeVarargs
-	public final boolean is(Path path, L... libs) {
-		for (L lib : libs) {
-			if (path.equals(origins.get(lib))) return true;
-		}
+    private void addLibrary(L lib, Path originPath, String localPath) {
+        Path prev = origins.put(lib, originPath);
+        if (prev != null)
+            throw new IllegalStateException("lib " + lib + " was already added");
+        localPaths.put(lib, localPath);
 
-		return false;
-	}
+        if (DEBUG)
+            Log.info(LogCategory.LIB_CLASSIFICATION, "%s %s (%s)", lib.name(), originPath, localPath);
+    }
 
-	public boolean has(L lib) {
-		return origins.containsKey(lib);
-	}
+    private void process(Path path, Set<L> excludedLibs) throws IOException {
+        path = LoaderUtil.normalizeExistingPath(path);
+        if (systemLibraries.contains(path))
+            return;
 
-	public Path getOrigin(L lib) {
-		return origins.get(lib);
-	}
+        boolean matched = false;
 
-	public String getLocalPath(L lib) {
-		return localPaths.get(lib);
-	}
+        if (Files.isDirectory(path)) {
+            for (L lib : libs) {
+                if (excludedLibs.contains(lib) || origins.containsKey(lib))
+                    continue;
 
-	public String getClassName(L lib) {
-		String localPath = localPaths.get(lib);
-		if (localPath == null || !localPath.endsWith(".class")) return null;
+                for (String p : lib.getPaths()) {
+                    if (Files.exists(path.resolve(p))) {
+                        matched = true;
+                        addLibrary(lib, path, p);
+                        break;
+                    }
+                }
+            }
+        } else {
+            try (ZipFile zf = new ZipFile(path.toFile())) {
+                for (L lib : libs) {
+                    if (excludedLibs.contains(lib) || origins.containsKey(lib))
+                        continue;
 
-		return localPath.substring(0, localPath.length() - 6).replace('/', '.');
-	}
+                    for (String p : lib.getPaths()) {
+                        if (zf.getEntry(p) != null) {
+                            matched = true;
+                            addLibrary(lib, path, p);
+                            break;
+                        }
+                    }
+                }
+            } catch (ZipError | IOException e) {
+                throw new IOException("error reading " + path, e);
+            }
+        }
 
-	public List<Path> getUnmatchedOrigins() {
-		return unmatchedOrigins;
-	}
+        if (!matched) {
+            unmatchedOrigins.add(path);
 
-	/**
-	 * Returns system level libraries, typically Loader and its dependencies.
-	 */
-	public Collection<Path> getSystemLibraries() {
-		return systemLibraries;
-	}
+            if (DEBUG)
+                Log.info(LogCategory.LIB_CLASSIFICATION, "unmatched %s", path);
+        }
+    }
 
-	public boolean remove(Path path) {
-		if (unmatchedOrigins.remove(path)) return true;
+    private void processManifestClassPath(LoaderLibrary lib, EnvType env, boolean junitRun) throws IOException {
+        if (lib.path == null || !lib.isApplicable(env, junitRun) || !Files.isRegularFile(lib.path))
+            return;
 
-		boolean ret = false;
+        Manifest manifest;
 
-		for (Iterator<Map.Entry<L, Path>> it = origins.entrySet().iterator(); it.hasNext(); ) {
-			Map.Entry<L, Path> entry = it.next();
+        try (ZipFile zf = new ZipFile(lib.path.toFile())) {
+            ZipEntry entry = zf.getEntry(JarFile.MANIFEST_NAME);
+            if (entry == null)
+                return;
 
-			if (entry.getValue().equals(path)) {
-				localPaths.remove(entry.getKey());
-				it.remove();
+            manifest = new Manifest(zf.getInputStream(entry));
+        }
 
-				ret = true;
-			}
-		}
+        List<URL> cp = ManifestUtil.getClassPath(manifest, lib.path);
+        if (cp == null)
+            return;
 
-		return ret;
-	}
+        for (URL url : cp) {
+            process(url);
+        }
+    }
 
-	public interface LibraryType {
-		boolean isApplicable(EnvType env);
-		String[] getPaths();
-	}
+    public interface LibraryType {
+        String[] getPaths();
+
+        boolean isApplicable(EnvType env);
+    }
 }

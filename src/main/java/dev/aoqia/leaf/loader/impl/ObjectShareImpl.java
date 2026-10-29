@@ -43,90 +43,95 @@ import java.util.function.BiConsumer;
 import dev.aoqia.leaf.loader.api.ObjectShare;
 
 final class ObjectShareImpl implements ObjectShare {
-	private final Map<String, Object> values = new HashMap<>();
-	private final Map<String, List<BiConsumer<String, Object>>> pendingMap = new HashMap<>();
+    private final Map<String, Object> values = new HashMap<>();
+    private final Map<String, List<BiConsumer<String, Object>>> pendingMap = new HashMap<>();
 
-	@Override
-	public synchronized Object get(String key) {
-		validateKey(key);
+    private static void invokePending(String key, Object value, List<BiConsumer<String, Object>> pending) {
+        for (BiConsumer<String, Object> consumer : pending) {
+            consumer.accept(key, value);
+        }
+    }
 
-		return values.get(key);
-	}
+    private static void validateKey(String key) {
+        Objects.requireNonNull(key, "null key");
 
-	@Override
-	public Object put(String key, Object value) {
-		validateKey(key);
-		Objects.requireNonNull(value, "null value");
+        int pos = key.indexOf(':');
+        if (pos <= 0 || pos >= key.length() - 1)
+            throw new IllegalArgumentException("invalid key, must be modid:subkey");
+    }
 
-		List<BiConsumer<String, Object>> pending;
+    @Override
+    public synchronized Object get(String key) {
+        validateKey(key);
 
-		synchronized (this) {
-			Object prev = values.put(key, value);
-			if (prev != null) return prev; // no new entry -> can't have pending entries for it
+        return values.get(key);
+    }
 
-			pending = pendingMap.remove(key);
-		}
+    @Override
+    public Object put(String key, Object value) {
+        validateKey(key);
+        Objects.requireNonNull(value, "null value");
 
-		if (pending != null) invokePending(key, value, pending);
+        List<BiConsumer<String, Object>> pending;
 
-		return null;
-	}
+        synchronized (this) {
+            Object prev = values.put(key, value);
+            if (prev != null)
+                return prev; // no new entry -> can't have pending entries for it
 
-	@Override
-	public Object putIfAbsent(String key, Object value) {
-		validateKey(key);
-		Objects.requireNonNull(value, "null value");
+            pending = pendingMap.remove(key);
+        }
 
-		List<BiConsumer<String, Object>> pending;
+        if (pending != null)
+            invokePending(key, value, pending);
 
-		synchronized (this) {
-			Object prev = values.putIfAbsent(key, value);
-			if (prev != null) return prev; // no new entry -> can't have pending entries for it
+        return null;
+    }
 
-			pending = pendingMap.remove(key);
-		}
+    @Override
+    public Object putIfAbsent(String key, Object value) {
+        validateKey(key);
+        Objects.requireNonNull(value, "null value");
 
-		if (pending != null) invokePending(key, value, pending);
+        List<BiConsumer<String, Object>> pending;
 
-		return null;
-	}
+        synchronized (this) {
+            Object prev = values.putIfAbsent(key, value);
+            if (prev != null)
+                return prev; // no new entry -> can't have pending entries for it
 
-	@Override
-	public synchronized Object remove(String key) {
-		validateKey(key);
+            pending = pendingMap.remove(key);
+        }
 
-		return values.remove(key);
-	}
+        if (pending != null)
+            invokePending(key, value, pending);
 
-	@Override
-	public void whenAvailable(String key, BiConsumer<String, Object> consumer) {
-		validateKey(key);
+        return null;
+    }
 
-		Object value;
+    @Override
+    public synchronized Object remove(String key) {
+        validateKey(key);
 
-		synchronized (this) {
-			value = values.get(key);
+        return values.remove(key);
+    }
 
-			if (value == null) { // value doesn't exist yet, queue invocation for when it gets added
-				pendingMap.computeIfAbsent(key, ignore -> new ArrayList<>()).add(consumer);
-				return;
-			}
-		}
+    @Override
+    public void whenAvailable(String key, BiConsumer<String, Object> consumer) {
+        validateKey(key);
 
-		// value exists already, invoke directly
-		consumer.accept(key, value);
-	}
+        Object value;
 
-	private static void validateKey(String key) {
-		Objects.requireNonNull(key, "null key");
+        synchronized (this) {
+            value = values.get(key);
 
-		int pos = key.indexOf(':');
-		if (pos <= 0 || pos >= key.length() - 1) throw new IllegalArgumentException("invalid key, must be modid:subkey");
-	}
+            if (value == null) { // value doesn't exist yet, queue invocation for when it gets added
+                pendingMap.computeIfAbsent(key, ignore -> new ArrayList<>()).add(consumer);
+                return;
+            }
+        }
 
-	private static void invokePending(String key, Object value, List<BiConsumer<String, Object>> pending) {
-		for (BiConsumer<String, Object> consumer : pending) {
-			consumer.accept(key, value);
-		}
-	}
+        // value exists already, invoke directly
+        consumer.accept(key, value);
+    }
 }

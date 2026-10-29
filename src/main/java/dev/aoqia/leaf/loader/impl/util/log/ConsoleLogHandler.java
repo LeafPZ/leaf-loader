@@ -40,46 +40,50 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 
 public class ConsoleLogHandler implements LogHandler {
-	private static final LogLevel MIN_STDERR_LEVEL = LogLevel.ERROR;
-	private static final LogLevel MIN_STDOUT_LEVEL = LogLevel.getDefault();
+    private static final LogLevel MIN_STDERR_LEVEL = LogLevel.ERROR;
+    private static final LogLevel MIN_STDOUT_LEVEL = LogLevel.getDefault();
 
     public static final PrintStream originalOut = new PrintStream(new FileOutputStream(FileDescriptor.out));
     public static final PrintStream originalErr = new PrintStream(new FileOutputStream(FileDescriptor.err));
 
-	@Override
-	public void log(long time, LogLevel level, LogCategory category, String msg, Throwable exc, boolean fromReplay, boolean wasSuppressed) {
-		String formatted = formatLog(time, level, category, msg, exc);
+    protected static String formatLog(long time, LogLevel level, LogCategory category, String msg, Throwable exc) {
+        String ret = String.format("[%tT] [%s] [%s/%s]: %s%n", time, level.name(), category.context, category.name,
+            msg);
+
+        if (exc != null) {
+            StringWriter writer = new StringWriter(ret.length() + 500);
+
+            try (PrintWriter pw = new PrintWriter(writer, false)) {
+                pw.print(ret);
+                exc.printStackTrace(pw);
+            }
+
+            ret = writer.toString();
+        }
+
+        return ret;
+    }
+
+    @Override
+    public void close() {
+    }
+
+    @Override
+    public void log(long time, LogLevel level, LogCategory category, String msg, Throwable exc, boolean fromReplay,
+        boolean wasSuppressed)
+    {
+        String formatted = formatLog(time, level, category, msg, exc);
 
         // Call original streams instead because the game hijacks stdout and stderr
-		if (level.isLessThan(MIN_STDERR_LEVEL)) {
-			originalOut.print(formatted);
-		} else {
-			originalErr.print(formatted);
-		}
-	}
+        if (level.isLessThan(MIN_STDERR_LEVEL)) {
+            originalOut.print(formatted);
+        } else {
+            originalErr.print(formatted);
+        }
+    }
 
-	protected static String formatLog(long time, LogLevel level, LogCategory category, String msg, Throwable exc) {
-		String ret = String.format("[%tT] [%s] [%s/%s]: %s%n", time, level.name(), category.context, category.name, msg);
-
-		if (exc != null) {
-			StringWriter writer = new StringWriter(ret.length() + 500);
-
-			try (PrintWriter pw = new PrintWriter(writer, false)) {
-				pw.print(ret);
-				exc.printStackTrace(pw);
-			}
-
-			ret = writer.toString();
-		}
-
-		return ret;
-	}
-
-	@Override
-	public boolean shouldLog(LogLevel level, LogCategory category) {
-		return !level.isLessThan(MIN_STDOUT_LEVEL);
-	}
-
-	@Override
-	public void close() { }
+    @Override
+    public boolean shouldLog(LogLevel level, LogCategory category) {
+        return !level.isLessThan(MIN_STDOUT_LEVEL);
+    }
 }

@@ -36,9 +36,9 @@ package dev.aoqia.leaf.loader.impl.discovery;
 import dev.aoqia.leaf.loader.api.Version;
 
 interface DomainObject {
-	String getId();
+    String getId();
 
-	interface Mod extends DomainObject {
-		Version getVersion();
-	}
+    interface Mod extends DomainObject {
+        Version getVersion();
+    }
 }

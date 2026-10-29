@@ -45,78 +45,80 @@ import org.sat4j.pb.SolverFactory;
 import org.sat4j.specs.ContradictionException;
 import org.spongepowered.asm.launch.MixinBootstrap;
 
-import dev.aoqia.leaf.api.EnvType;
 import net.fabricmc.classtweaker.api.ClassTweaker;
-import dev.aoqia.leaf.loader.impl.util.UrlConversionException;
-import dev.aoqia.leaf.loader.impl.util.UrlUtil;
 import net.fabricmc.mappingio.tree.MappingTree;
 import net.fabricmc.tinyremapper.TinyRemapper;
 
+import dev.aoqia.leaf.api.EnvType;
+import dev.aoqia.leaf.loader.impl.util.UrlConversionException;
+import dev.aoqia.leaf.loader.impl.util.UrlUtil;
+
 enum LoaderLibrary {
-	LEAF_LOADER(UrlUtil.LOADER_CODE_SOURCE),
-	MAPPING_IO(MappingTree.class),
-	SPONGE_MIXIN(MixinBootstrap.class),
-	TINY_REMAPPER(TinyRemapper.class),
-	CLASS_TWEAKER(ClassTweaker.class),
-	ASM(ClassReader.class),
-	ASM_ANALYSIS(Analyzer.class),
-	ASM_COMMONS(Remapper.class),
-	ASM_TREE(ClassNode.class),
-	ASM_UTIL(CheckClassAdapter.class),
-	SAT4J_CORE(ContradictionException.class),
-	SAT4J_PB(SolverFactory.class),
-	JUNIT_API("org/junit/jupiter/api/Test.class", null),
-	JUNIT_PLATFORM_ENGINE("org/junit/platform/engine/TestEngine.class", null),
-	JUNIT_PLATFORM_LAUNCHER("org/junit/platform/launcher/core/LauncherFactory.class", null),
-	JUNIT_JUPITER("org/junit/jupiter/engine/JupiterTestEngine.class", null),
-	LEAF_LOADER_JUNIT("dev/aoqia/leaf/loader/impl/junit/LeafLoaderLauncherSessionListener.class", null),
+    LEAF_LOADER(UrlUtil.LOADER_CODE_SOURCE),
+    MAPPING_IO(MappingTree.class),
+    SPONGE_MIXIN(MixinBootstrap.class),
+    TINY_REMAPPER(TinyRemapper.class),
+    CLASS_TWEAKER(ClassTweaker.class),
+    ASM(ClassReader.class),
+    ASM_ANALYSIS(Analyzer.class),
+    ASM_COMMONS(Remapper.class),
+    ASM_TREE(ClassNode.class),
+    ASM_UTIL(CheckClassAdapter.class),
+    SAT4J_CORE(ContradictionException.class),
+    SAT4J_PB(SolverFactory.class),
+    JUNIT_API("org/junit/jupiter/api/Test.class", null),
+    JUNIT_PLATFORM_ENGINE("org/junit/platform/engine/TestEngine.class", null),
+    JUNIT_PLATFORM_LAUNCHER("org/junit/platform/launcher/core/LauncherFactory.class", null),
+    JUNIT_JUPITER("org/junit/jupiter/engine/JupiterTestEngine.class", null),
+    LEAF_LOADER_JUNIT("dev/aoqia/leaf/loader/impl/junit/LeafLoaderLauncherSessionListener.class", null),
 
-	// Logging libraries are only loaded from the platform CL when running as a unit test.
-	// LOG4J_API("org/apache/logging/log4j/LogManager.class", true),
-	LOG4J_CORE("META-INF/services/org.apache.logging.log4j.spi.Provider", true),
-	LOG4J_CONFIG("log4j2.xml", true),
-	LOG4J_PLUGIN_3("net/minecrell/terminalconsole/util/LoggerNamePatternSelector.class", true);
-	// SLF4J_API("org/slf4j/Logger.class", true);
+    // Logging libraries are only loaded from the platform CL when running as a unit test.
+    // LOG4J_API("org/apache/logging/log4j/LogManager.class", true),
+    LOG4J_CORE("META-INF/services/org.apache.logging.log4j.spi.Provider", true),
+    LOG4J_CONFIG("log4j2.xml", true),
+    LOG4J_PLUGIN_3("net/minecrell/terminalconsole/util/LoggerNamePatternSelector.class", true);
+    // SLF4J_API("org/slf4j/Logger.class", true);
 
-	final Path path;
-	final EnvType env;
-	final boolean junitRunOnly;
+    final Path path;
+    final EnvType env;
+    final boolean junitRunOnly;
 
-	LoaderLibrary(Class<?> cls) {
-		this(UrlUtil.getCodeSource(cls));
-	}
+    LoaderLibrary(Class<?> cls) {
+        this(UrlUtil.getCodeSource(cls));
+    }
 
-	LoaderLibrary(Path path) {
-		if (path == null) throw new RuntimeException("missing loader library "+name());
+    LoaderLibrary(Path path) {
+        if (path == null)
+            throw new RuntimeException("missing loader library " + name());
 
-		this.path = path;
-		this.env = null;
-		this.junitRunOnly = false;
-	}
+        this.path = path;
+        this.env = null;
+        this.junitRunOnly = false;
+    }
 
-	LoaderLibrary(String file, EnvType env) {
-		this(file, env, false);
-	}
+    LoaderLibrary(String path, boolean loggerLibrary) {
+        this(path, null, loggerLibrary);
+    }
 
-	LoaderLibrary(String file, EnvType env, boolean junitRunOnly) {
-		URL url = LoaderLibrary.class.getClassLoader().getResource(file);
+    LoaderLibrary(String file, EnvType env) {
+        this(file, env, false);
+    }
 
-		try {
-			this.path = url != null ? UrlUtil.getCodeSource(url, file) : null;
-			this.env = env;
-		} catch (UrlConversionException e) {
-			throw new RuntimeException(e);
-		}
+    LoaderLibrary(String file, EnvType env, boolean junitRunOnly) {
+        URL url = LoaderLibrary.class.getClassLoader().getResource(file);
 
-		this.junitRunOnly = junitRunOnly;
-	}
+        try {
+            this.path = url != null ? UrlUtil.getCodeSource(url, file) : null;
+            this.env = env;
+        } catch (UrlConversionException e) {
+            throw new RuntimeException(e);
+        }
 
-	LoaderLibrary(String path, boolean loggerLibrary) {
-		this(path, null, loggerLibrary);
-	}
+        this.junitRunOnly = junitRunOnly;
+    }
 
-	boolean isApplicable(EnvType env, boolean junitRun) {
-		return (this.env == null || this.env == env)
-				&& (!junitRunOnly || junitRun);
-	}
+    boolean isApplicable(EnvType env, boolean junitRun) {
+        return (this.env == null || this.env == env)
+            && (!junitRunOnly || junitRun);
+    }
 }

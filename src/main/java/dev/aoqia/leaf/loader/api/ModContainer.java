@@ -46,70 +46,77 @@ import dev.aoqia.leaf.loader.api.metadata.ModOrigin;
  * Represents a mod.
  */
 public interface ModContainer {
-	/**
-	 * Returns the metadata of this mod.
-	 */
-	ModMetadata getMetadata();
+    /**
+     * Gets an NIO reference to a file inside the JAR/folder.
+     *
+     * <p>
+     * The path, if present, is guaranteed to exist!
+     *
+     * <p>
+     * A path returned by this method may be incompatible with {@link Path#toFile} as its FileSystem doesn't
+     * necessarily represent the OS file system, but potentially a virtual view of jar contents or another abstraction.
+     *
+     * @param file The location from a root path, using {@code /} as a separator.
+     * @return optional containing the path to a given file or empty if it can't be found
+     */
+    default Optional<Path> findPath(String file) {
+        for (Path root : getRootPaths()) {
+            Path path = root.resolve(file.replace("/", root.getFileSystem().getSeparator()));
+            if (Files.exists(path))
+                return Optional.of(path);
+        }
 
-	/**
-	 * Returns the root directories of the mod (inside JAR/folder), exposing its contents.
-	 *
-	 * <p>The paths may point to regular folders or into mod JARs. Multiple root paths may occur in development
-	 * environments with {@code -Dfabric.classPathGroups} as used in multi-project mod setups.
-	 *
-	 * <p>A path returned by this method may be incompatible with {@link Path#toFile} as its FileSystem doesn't
-	 * necessarily represent the OS file system, but potentially a virtual view of jar contents or another abstraction.
-	 *
-	 * @return the root directories of the mod, may be empty for builtin or other synthetic mods
-	 */
-	List<Path> getRootPaths();
+        return Optional.empty();
+    }
 
-	/**
-	 * Gets an NIO reference to a file inside the JAR/folder.
-	 *
-	 * <p>The path, if present, is guaranteed to exist!
-	 *
-	 * <p>A path returned by this method may be incompatible with {@link Path#toFile} as its FileSystem doesn't
-	 * necessarily represent the OS file system, but potentially a virtual view of jar contents or another abstraction.
-	 *
-	 * @param file The location from a root path, using {@code /} as a separator.
-	 * @return optional containing the path to a given file or empty if it can't be found
-	 */
-	default Optional<Path> findPath(String file) {
-		for (Path root : getRootPaths()) {
-			Path path = root.resolve(file.replace("/", root.getFileSystem().getSeparator()));
-			if (Files.exists(path)) return Optional.of(path);
-		}
+    /**
+     * Get the active mods contained within this mod (nested jar children).
+     *
+     * @return active contained mods within this mod's jar
+     */
+    Collection<ModContainer> getContainedMods();
 
-		return Optional.empty();
-	}
+    /**
+     * Get the mod containing this mod (nested jar parent).
+     *
+     * @return mod containing this mod or empty if not nested
+     */
+    Optional<ModContainer> getContainingMod();
 
-	/**
-	 * Gets where the mod was loaded from originally, the mod jar/folder itself.
-	 *
-	 * <p>This location is not necessarily identical to the code source used at runtime, a mod may get copied or
-	 * otherwise transformed before being put on the class path. It thus mostly represents the installation and initial
-	 * loading, not what is being directly accessed at runtime.
-	 *
-	 * <p>The mod origin is provided for working with the installation like telling the user where a mod has been
-	 * installed at. Accessing the files inside a mod jar/folder should use {@link #findPath} and {@link #getRootPaths}
-	 * instead. Those also abstract jar accesses through the virtual {@code ZipFileSystem} away.
-	 *
-	 * @return mod origin
-	 */
-	ModOrigin getOrigin();
+    /**
+     * Returns the metadata of this mod.
+     */
+    ModMetadata getMetadata();
 
-	/**
-	 * Get the mod containing this mod (nested jar parent).
-	 *
-	 * @return mod containing this mod or empty if not nested
-	 */
-	Optional<ModContainer> getContainingMod();
+    /**
+     * Gets where the mod was loaded from originally, the mod jar/folder itself.
+     *
+     * <p>
+     * This location is not necessarily identical to the code source used at runtime, a mod may get copied or
+     * otherwise transformed before being put on the class path. It thus mostly represents the installation and initial
+     * loading, not what is being directly accessed at runtime.
+     *
+     * <p>
+     * The mod origin is provided for working with the installation like telling the user where a mod has been
+     * installed at. Accessing the files inside a mod jar/folder should use {@link #findPath} and {@link #getRootPaths}
+     * instead. Those also abstract jar accesses through the virtual {@code ZipFileSystem} away.
+     *
+     * @return mod origin
+     */
+    ModOrigin getOrigin();
 
-	/**
-	 * Get the active mods contained within this mod (nested jar children).
-	 *
-	 * @return active contained mods within this mod's jar
-	 */
-	Collection<ModContainer> getContainedMods();
+    /**
+     * Returns the root directories of the mod (inside JAR/folder), exposing its contents.
+     *
+     * <p>
+     * The paths may point to regular folders or into mod JARs. Multiple root paths may occur in development
+     * environments with {@code -Dfabric.classPathGroups} as used in multi-project mod setups.
+     *
+     * <p>
+     * A path returned by this method may be incompatible with {@link Path#toFile} as its FileSystem doesn't
+     * necessarily represent the OS file system, but potentially a virtual view of jar contents or another abstraction.
+     *
+     * @return the root directories of the mod, may be empty for builtin or other synthetic mods
+     */
+    List<Path> getRootPaths();
 }

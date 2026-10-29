@@ -1,3 +1,21 @@
+/*
+ * Copyright (C) 2026 aoqia
+ *
+ * This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General
+ * Public License as published by the Free Software Foundation, either version 3 of the License, or any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied
+ * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+ * details.
+ *
+ * You should have received a copy of the GNU Affero General Public License along with this program. If not,
+ * see <https://www.gnu.org/licenses/>.
+ *
+ * This license and file are additionally subjected to the exceptions described in LICENSE_EXCEPTION.md.
+ *
+ * The exceptions permit independent software to use this project as a dependency under terms of its own choosing, but
+ * does not permit the copying or incorporation of covered source code into another work outside the terms of the AGPL.
+ */
 package dev.aoqia.leaf.loader.impl.models;
 
 import java.io.BufferedReader;
@@ -24,6 +42,26 @@ public class VerifiedModList {
     public VerifiedModList(Path path) {
         this.path = path;
         this.internal = new ArrayList<>();
+    }
+
+    public void add(ModCandidateImpl mod) {
+        this.internal.add(new Mod(mod));
+    }
+
+    public boolean contains(ModCandidateImpl mod) {
+        return this.internal.stream()
+            .anyMatch(m -> {
+                String workshopId = m.getWorkshopId();
+                return workshopId != null
+                    && workshopId.equals(mod.getWorkshopId())
+                    && m.getGameId().equals(mod.getGameId())
+                    && m.getId().equals(mod.getId())
+                    && m.getJarHash().equals(mod.getJarHash());
+            });
+    }
+
+    public boolean isVerified(ModCandidateImpl mod) {
+        return contains(mod);
     }
 
     public void readOrCreate() throws IOException {
@@ -62,6 +100,29 @@ public class VerifiedModList {
         }
     }
 
+    public void updateMod(ModCandidateImpl mod) {
+        Optional<Mod> stored = this.internal.stream()
+            .filter(m -> {
+                String workshopId = m.getWorkshopId();
+                return workshopId != null && workshopId.equals(mod.getWorkshopId());
+            })
+            .findFirst();
+
+        if (!stored.isPresent()) {
+            throw new FormattedException("Failed to update mod %s (%s/%s) after verifying", mod.getId(),
+                mod.getWorkshopId(), mod.getGameId());
+        }
+
+        stored.get().setWorkshopId(mod.getWorkshopId());
+        stored.get().setId(mod.getId());
+        stored.get().setGameId(mod.getGameId());
+        stored.get().setJarHash(mod.getJarHash());
+    }
+
+    public boolean wasVerified(ModCandidateImpl mod) {
+        return containsWithBadHash(mod);
+    }
+
     public void write() throws IOException {
         try (BufferedWriter bw = Files.newBufferedWriter(this.path, StandardOpenOption.CREATE)) {
             bw.write(VERSION + "\n");
@@ -73,22 +134,6 @@ public class VerifiedModList {
                     + "\n");
             }
         }
-    }
-
-    public void add(ModCandidateImpl mod) {
-        this.internal.add(new Mod(mod));
-    }
-
-    public boolean contains(ModCandidateImpl mod) {
-        return this.internal.stream()
-            .anyMatch(m -> {
-                String workshopId = m.getWorkshopId();
-                return workshopId != null
-                    && workshopId.equals(mod.getWorkshopId())
-                    && m.getGameId().equals(mod.getGameId())
-                    && m.getId().equals(mod.getId())
-                    && m.getJarHash().equals(mod.getJarHash());
-            });
     }
 
     private boolean containsIgnoreHash(ModCandidateImpl mod) {
@@ -114,45 +159,11 @@ public class VerifiedModList {
             });
     }
 
-    public boolean isVerified(ModCandidateImpl mod) {
-        return contains(mod);
-    }
-
-    public boolean wasVerified(ModCandidateImpl mod) {
-        return containsWithBadHash(mod);
-    }
-
-    public void updateMod(ModCandidateImpl mod) {
-        Optional<Mod> stored = this.internal.stream()
-            .filter(m -> {
-                String workshopId = m.getWorkshopId();
-                return workshopId != null && workshopId.equals(mod.getWorkshopId());
-            })
-            .findFirst();
-
-        if (!stored.isPresent()) {
-            throw new FormattedException("Failed to update mod %s (%s/%s) after verifying", mod.getId(),
-                mod.getWorkshopId(), mod.getGameId());
-        }
-
-        stored.get().setWorkshopId(mod.getWorkshopId());
-        stored.get().setId(mod.getId());
-        stored.get().setGameId(mod.getGameId());
-        stored.get().setJarHash(mod.getJarHash());
-    }
-
     public static class Mod {
         private @Nullable String workshopId;
         private String id;
         private String gameId;
         private String jarHash;
-
-        public Mod(@Nullable String workshopId, String id, String gameId, String jarHash) {
-            this.workshopId = workshopId;
-            this.id = id;
-            this.gameId = gameId;
-            this.jarHash = jarHash;
-        }
 
         public Mod(ModCandidateImpl candidate) {
             this.workshopId = candidate.getWorkshopId();
@@ -161,36 +172,43 @@ public class VerifiedModList {
             this.jarHash = candidate.getJarHash();
         }
 
-        public @Nullable String getWorkshopId() {
-            return workshopId;
-        }
-
-        public void setWorkshopId(@Nullable String workshopId) {
+        public Mod(@Nullable String workshopId, String id, String gameId, String jarHash) {
             this.workshopId = workshopId;
-        }
-
-        public String getId() {
-            return id;
-        }
-
-        public void setId(String id) {
             this.id = id;
+            this.gameId = gameId;
+            this.jarHash = jarHash;
         }
 
         public String getGameId() {
             return gameId;
         }
 
-        public void setGameId(String gameId) {
-            this.gameId = gameId;
+        public String getId() {
+            return id;
         }
 
         public String getJarHash() {
             return jarHash;
         }
 
+        public @Nullable String getWorkshopId() {
+            return workshopId;
+        }
+
+        public void setGameId(String gameId) {
+            this.gameId = gameId;
+        }
+
+        public void setId(String id) {
+            this.id = id;
+        }
+
         public void setJarHash(String jarHash) {
             this.jarHash = jarHash;
+        }
+
+        public void setWorkshopId(@Nullable String workshopId) {
+            this.workshopId = workshopId;
         }
     }
 }

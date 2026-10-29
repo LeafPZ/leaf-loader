@@ -57,240 +57,255 @@ import dev.aoqia.leaf.loader.impl.lib.gson.JsonToken;
 import dev.aoqia.leaf.loader.impl.util.LoaderUtil;
 
 public final class DependencyOverrides {
-	private final Map<String, List<Entry>> dependencyOverrides;
+    private final Map<String, List<Entry>> dependencyOverrides;
 
-	public DependencyOverrides(Path configDir) {
-		Path path = configDir.resolve("leaf_loader_dependencies.json");
+    public DependencyOverrides(Path configDir) {
+        Path path = configDir.resolve("leaf_loader_dependencies.json");
 
-		if (!Files.exists(path)) {
-			dependencyOverrides = Collections.emptyMap();
-			return;
-		}
+        if (!Files.exists(path)) {
+            dependencyOverrides = Collections.emptyMap();
+            return;
+        }
 
-		try (JsonReader reader = new JsonReader(new InputStreamReader(Files.newInputStream(path), StandardCharsets.UTF_8))) {
-			dependencyOverrides = parse(reader);
-		} catch (IOException | ParseMetadataException e) {
-			throw FormattedException.ofLocalized("exception.parsingOverride", "Failed to parse " + LoaderUtil.normalizePath(path), e);
-		}
-	}
+        try (JsonReader reader = new JsonReader(new InputStreamReader(Files.newInputStream(path),
+            StandardCharsets.UTF_8)))
+        {
+            dependencyOverrides = parse(reader);
+        } catch (IOException | ParseMetadataException e) {
+            throw FormattedException.ofLocalized("exception.parsingOverride", "Failed to parse " + LoaderUtil
+                .normalizePath(path), e);
+        }
+    }
 
-	private static Map<String, List<Entry>> parse(JsonReader reader) throws ParseMetadataException, IOException {
-		if (reader.peek() != JsonToken.BEGIN_OBJECT) {
-			throw new ParseMetadataException("Root must be an object", reader);
-		}
+    private static Map<String, List<Entry>> parse(JsonReader reader) throws ParseMetadataException, IOException {
+        if (reader.peek() != JsonToken.BEGIN_OBJECT) {
+            throw new ParseMetadataException("Root must be an object", reader);
+        }
 
-		Map<String, List<Entry>> ret = new HashMap<>();
-		reader.beginObject();
+        Map<String, List<Entry>> ret = new HashMap<>();
+        reader.beginObject();
 
-		if (!reader.nextName().equals("version")) {
-			throw new ParseMetadataException("First key must be \"version\"", reader);
-		}
+        if (!reader.nextName().equals("version")) {
+            throw new ParseMetadataException("First key must be \"version\"", reader);
+        }
 
-		if (reader.peek() != JsonToken.NUMBER || reader.nextInt() != 1) {
-			throw new ParseMetadataException("Unsupported \"version\", must be 1", reader);
-		}
+        if (reader.peek() != JsonToken.NUMBER || reader.nextInt() != 1) {
+            throw new ParseMetadataException("Unsupported \"version\", must be 1", reader);
+        }
 
-		while (reader.hasNext()) {
-			String key = reader.nextName();
+        while (reader.hasNext()) {
+            String key = reader.nextName();
 
-			if ("overrides".equals(key)) {
-				reader.beginObject();
+            if ("overrides".equals(key)) {
+                reader.beginObject();
 
-				while (reader.hasNext()) {
-					String modId = reader.nextName();
+                while (reader.hasNext()) {
+                    String modId = reader.nextName();
 
-					ret.put(modId, readKeys(reader));
-				}
+                    ret.put(modId, readKeys(reader));
+                }
 
-				reader.endObject();
-			} else {
-				throw new ParseMetadataException("Unsupported root key: " + key, reader);
-			}
-		}
+                reader.endObject();
+            } else {
+                throw new ParseMetadataException("Unsupported root key: " + key, reader);
+            }
+        }
 
-		reader.endObject();
+        reader.endObject();
 
-		return ret;
-	}
+        return ret;
+    }
 
-	private static List<Entry> readKeys(JsonReader reader) throws IOException, ParseMetadataException {
-		if (reader.peek() != JsonToken.BEGIN_OBJECT) {
-			throw new ParseMetadataException("Dependency container must be an object!", reader);
-		}
+    private static List<ModDependency> readDependencies(JsonReader reader, ModDependency.Kind kind) throws IOException,
+        ParseMetadataException
+    {
+        if (reader.peek() != JsonToken.BEGIN_OBJECT) {
+            throw new ParseMetadataException("Dependency container must be an object!", reader);
+        }
 
-		Map<ModDependency.Kind, Map<Operation, List<ModDependency>>> modOverrides = new EnumMap<>(ModDependency.Kind.class);
-		reader.beginObject();
+        List<ModDependency> ret = new ArrayList<>();
+        reader.beginObject();
 
-		while (reader.hasNext()) {
-			String key = reader.nextName();
-			Operation op = null;
+        while (reader.hasNext()) {
+            final String modId = reader.nextName();
+            final List<String> matcherStringList = new ArrayList<>();
 
-			for (Operation o : Operation.VALUES) {
-				if (key.startsWith(o.operator)) {
-					op = o;
-					key = key.substring(o.operator.length());
-					break;
-				}
-			}
+            switch (reader.peek()) {
+                case STRING:
+                    matcherStringList.add(reader.nextString());
+                    break;
+                case BEGIN_ARRAY:
+                    reader.beginArray();
 
-			assert op != null; // should always match since REPLACE has an empty operator string
+                    while (reader.hasNext()) {
+                        if (reader.peek() != JsonToken.STRING) {
+                            throw new ParseMetadataException(
+                                "Dependency version range array must only contain string values", reader);
+                        }
 
-			ModDependency.Kind kind = ModDependency.Kind.parse(key);
+                        matcherStringList.add(reader.nextString());
+                    }
 
-			if (kind == null) {
-				throw new ParseMetadataException(String.format("%s is not an allowed dependency key, must be one of: %s",
-						key, Arrays.stream(ModDependency.Kind.values()).map(ModDependency.Kind::getKey).collect(Collectors.joining(", "))),
-						reader);
-			}
+                    reader.endArray();
+                    break;
+                default:
+                    throw new ParseMetadataException("Dependency version range must be a string or string array!",
+                        reader);
+            }
 
-			List<ModDependency> deps = readDependencies(reader, kind);
+            try {
+                ret.add(new ModDependencyImpl(kind, modId, matcherStringList));
+            } catch (VersionParsingException e) {
+                throw new ParseMetadataException(e);
+            }
+        }
 
-			if (!deps.isEmpty() || op == Operation.REPLACE) {
-				modOverrides.computeIfAbsent(kind, ignore -> new EnumMap<>(Operation.class)).put(op, deps);
-			}
-		}
+        reader.endObject();
 
-		reader.endObject();
+        return ret;
+    }
 
-		List<Entry> ret = new ArrayList<>();
+    private static List<Entry> readKeys(JsonReader reader) throws IOException, ParseMetadataException {
+        if (reader.peek() != JsonToken.BEGIN_OBJECT) {
+            throw new ParseMetadataException("Dependency container must be an object!", reader);
+        }
 
-		for (Map.Entry<ModDependency.Kind, Map<Operation, List<ModDependency>>> entry : modOverrides.entrySet()) {
-			ModDependency.Kind kind = entry.getKey();
-			Map<Operation, List<ModDependency>> map = entry.getValue();
+        Map<ModDependency.Kind, Map<Operation, List<ModDependency>>> modOverrides = new EnumMap<>(
+            ModDependency.Kind.class);
+        reader.beginObject();
 
-			List<ModDependency> values = map.get(Operation.REPLACE);
+        while (reader.hasNext()) {
+            String key = reader.nextName();
+            Operation op = null;
 
-			if (values != null) {
-				ret.add(new Entry(Operation.REPLACE, kind, values)); // suppresses add+remove
-			} else {
-				values = map.get(Operation.REMOVE);
-				if (values != null) ret.add(new Entry(Operation.REMOVE, kind, values));
+            for (Operation o : Operation.VALUES) {
+                if (key.startsWith(o.operator)) {
+                    op = o;
+                    key = key.substring(o.operator.length());
+                    break;
+                }
+            }
 
-				values = map.get(Operation.ADD); // after remove
-				if (values != null) ret.add(new Entry(Operation.ADD, kind, values));
-			}
-		}
+            assert op != null; // should always match since REPLACE has an empty operator string
 
-		return ret;
-	}
+            ModDependency.Kind kind = ModDependency.Kind.parse(key);
 
-	private static List<ModDependency> readDependencies(JsonReader reader, ModDependency.Kind kind) throws IOException, ParseMetadataException {
-		if (reader.peek() != JsonToken.BEGIN_OBJECT) {
-			throw new ParseMetadataException("Dependency container must be an object!", reader);
-		}
+            if (kind == null) {
+                throw new ParseMetadataException(String.format(
+                    "%s is not an allowed dependency key, must be one of: %s",
+                    key, Arrays.stream(ModDependency.Kind.values())
+                        .map(ModDependency.Kind::getKey)
+                        .collect(Collectors.joining(", "))),
+                    reader);
+            }
 
-		List<ModDependency> ret = new ArrayList<>();
-		reader.beginObject();
+            List<ModDependency> deps = readDependencies(reader, kind);
 
-		while (reader.hasNext()) {
-			final String modId = reader.nextName();
-			final List<String> matcherStringList = new ArrayList<>();
+            if (!deps.isEmpty() || op == Operation.REPLACE) {
+                modOverrides.computeIfAbsent(kind, ignore -> new EnumMap<>(Operation.class)).put(op, deps);
+            }
+        }
 
-			switch (reader.peek()) {
-			case STRING:
-				matcherStringList.add(reader.nextString());
-				break;
-			case BEGIN_ARRAY:
-				reader.beginArray();
+        reader.endObject();
 
-				while (reader.hasNext()) {
-					if (reader.peek() != JsonToken.STRING) {
-						throw new ParseMetadataException("Dependency version range array must only contain string values", reader);
-					}
+        List<Entry> ret = new ArrayList<>();
 
-					matcherStringList.add(reader.nextString());
-				}
+        for (Map.Entry<ModDependency.Kind, Map<Operation, List<ModDependency>>> entry : modOverrides.entrySet()) {
+            ModDependency.Kind kind = entry.getKey();
+            Map<Operation, List<ModDependency>> map = entry.getValue();
 
-				reader.endArray();
-				break;
-			default:
-				throw new ParseMetadataException("Dependency version range must be a string or string array!", reader);
-			}
+            List<ModDependency> values = map.get(Operation.REPLACE);
 
-			try {
-				ret.add(new ModDependencyImpl(kind, modId, matcherStringList));
-			} catch (VersionParsingException e) {
-				throw new ParseMetadataException(e);
-			}
-		}
+            if (values != null) {
+                ret.add(new Entry(Operation.REPLACE, kind, values)); // suppresses add+remove
+            } else {
+                values = map.get(Operation.REMOVE);
+                if (values != null)
+                    ret.add(new Entry(Operation.REMOVE, kind, values));
 
-		reader.endObject();
+                values = map.get(Operation.ADD); // after remove
+                if (values != null)
+                    ret.add(new Entry(Operation.ADD, kind, values));
+            }
+        }
 
-		return ret;
-	}
+        return ret;
+    }
 
-	public void apply(LoaderModMetadata metadata) {
-		if (dependencyOverrides.isEmpty()) return;
+    public void apply(LoaderModMetadata metadata) {
+        if (dependencyOverrides.isEmpty())
+            return;
 
-		List<Entry> modOverrides = dependencyOverrides.get(metadata.getId());
-		if (modOverrides == null) return;
+        List<Entry> modOverrides = dependencyOverrides.get(metadata.getId());
+        if (modOverrides == null)
+            return;
 
-		List<ModDependency> deps = new ArrayList<>(metadata.getDependencies());
+        List<ModDependency> deps = new ArrayList<>(metadata.getDependencies());
 
-		for (Entry entry : modOverrides) {
-			switch (entry.operation) {
-			case REPLACE:
-				for (Iterator<ModDependency> it = deps.iterator(); it.hasNext(); ) {
-					ModDependency dep = it.next();
+        for (Entry entry : modOverrides) {
+            switch (entry.operation) {
+                case REPLACE:
+                    for (Iterator<ModDependency> it = deps.iterator(); it.hasNext();) {
+                        ModDependency dep = it.next();
 
-					if (dep.getKind() == entry.kind) {
-						it.remove();
-					}
-				}
+                        if (dep.getKind() == entry.kind) {
+                            it.remove();
+                        }
+                    }
 
-				deps.addAll(entry.values);
-				break;
-			case REMOVE:
-				for (Iterator<ModDependency> it = deps.iterator(); it.hasNext(); ) {
-					ModDependency dep = it.next();
+                    deps.addAll(entry.values);
+                    break;
+                case REMOVE:
+                    for (Iterator<ModDependency> it = deps.iterator(); it.hasNext();) {
+                        ModDependency dep = it.next();
 
-					if (dep.getKind() == entry.kind) {
-						for (ModDependency value : entry.values) {
-							if (value.getModId().equals(dep.getModId())) {
-								it.remove();
-								break;
-							}
-						}
-					}
-				}
+                        if (dep.getKind() == entry.kind) {
+                            for (ModDependency value : entry.values) {
+                                if (value.getModId().equals(dep.getModId())) {
+                                    it.remove();
+                                    break;
+                                }
+                            }
+                        }
+                    }
 
-				break;
-			case ADD:
-				deps.addAll(entry.values);
-				break;
-			}
-		}
+                    break;
+                case ADD:
+                    deps.addAll(entry.values);
+                    break;
+            }
+        }
 
-		metadata.setDependencies(deps);
-	}
+        metadata.setDependencies(deps);
+    }
 
-	public Collection<String> getAffectedModIds() {
-		return dependencyOverrides.keySet();
-	}
+    public Collection<String> getAffectedModIds() {
+        return dependencyOverrides.keySet();
+    }
 
-	private static final class Entry {
-		final Operation operation;
-		final ModDependency.Kind kind;
-		final List<ModDependency> values;
+    private static final class Entry {
+        final Operation operation;
+        final ModDependency.Kind kind;
+        final List<ModDependency> values;
 
-		Entry(Operation operation, ModDependency.Kind kind, List<ModDependency> values) {
-			this.operation = operation;
-			this.kind = kind;
-			this.values = values;
-		}
-	}
+        Entry(Operation operation, ModDependency.Kind kind, List<ModDependency> values) {
+            this.operation = operation;
+            this.kind = kind;
+            this.values = values;
+        }
+    }
 
-	private enum Operation {
-		ADD("+"),
-		REMOVE("-"),
-		REPLACE(""); // needs to be last to properly match the operator (empty string would match everything)
+    private enum Operation {
+        ADD("+"),
+        REMOVE("-"),
+        REPLACE(""); // needs to be last to properly match the operator (empty string would match everything)
 
-		static final Operation[] VALUES = values();
+        static final Operation[] VALUES = values();
 
-		final String operator;
+        final String operator;
 
-		Operation(String operator) {
-			this.operator = operator;
-		}
-	}
+        Operation(String operator) {
+            this.operator = operator;
+        }
+    }
 }

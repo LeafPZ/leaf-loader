@@ -31,9 +31,12 @@
 
 // spotless:on
 
-/** The swing GUI shown if any major errors are thrown while obtaining the list of mods in
+/**
+ * The swing GUI shown if any major errors are thrown while obtaining the list of mods in
  * {@link dev.aoqia.leaf.loader.LeafLoader#load()}.
  *
- * <p>This could potentially be useful for showing an tree-like structure while in-game, however this usecase is rather
- * limited. */
+ * <p>
+ * This could potentially be useful for showing an tree-like structure while in-game, however this usecase is rather
+ * limited.
+ */
 package dev.aoqia.leaf.loader.impl.gui;

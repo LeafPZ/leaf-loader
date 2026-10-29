@@ -42,8 +42,8 @@ import java.util.Map;
 import org.jetbrains.annotations.VisibleForTesting;
 import org.spongepowered.asm.mixin.MixinEnvironment;
 
-import dev.aoqia.leaf.loader.impl.LeafLoaderImpl;
 import dev.aoqia.leaf.loader.impl.FormattedException;
+import dev.aoqia.leaf.loader.impl.LeafLoaderImpl;
 import dev.aoqia.leaf.loader.impl.game.GameProvider;
 import dev.aoqia.leaf.loader.impl.gui.LeafGuiEntry;
 import dev.aoqia.leaf.loader.impl.util.SystemProperties;
@@ -51,123 +51,124 @@ import dev.aoqia.leaf.loader.impl.util.log.Log;
 import dev.aoqia.leaf.loader.impl.util.log.LogCategory;
 
 public abstract class LeafLauncherBase implements LeafLauncher {
-	protected static final boolean IS_DEVELOPMENT = SystemProperties.isSet(SystemProperties.DEVELOPMENT);
+    protected static final boolean IS_DEVELOPMENT = SystemProperties.isSet(SystemProperties.DEVELOPMENT);
 
-	private static boolean mixinReady;
-	private static Map<String, Object> properties;
-	private static LeafLauncher launcher;
-	private static MappingConfiguration mappingConfiguration = new MappingConfiguration();
+    private static boolean mixinReady;
+    private static Map<String, Object> properties;
+    private static LeafLauncher launcher;
+    private static MappingConfiguration mappingConfiguration = new MappingConfiguration();
 
-	protected LeafLauncherBase() {
-		setLauncher(this);
-	}
+    protected LeafLauncherBase() {
+        setLauncher(this);
+    }
 
-	public static Class<?> getClass(String className) throws ClassNotFoundException {
-		return Class.forName(className, true, getLauncher().getTargetClassLoader());
-	}
+    public static Class<?> getClass(String className) throws ClassNotFoundException {
+        return Class.forName(className, true, getLauncher().getTargetClassLoader());
+    }
 
-	@Override
-	public final boolean isDevelopment() {
-		return IS_DEVELOPMENT;
-	}
+    public static LeafLauncher getLauncher() {
+        return launcher;
+    }
 
-	@Override
-	public MappingConfiguration getMappingConfiguration() {
-		return mappingConfiguration;
-	}
+    public static Map<String, Object> getProperties() {
+        return properties;
+    }
 
-	protected static void setProperties(Map<String, Object> propertiesA) {
-		if (properties != null && properties != propertiesA) {
-			throw new RuntimeException("Duplicate setProperties call!");
-		}
+    public static boolean isMixinReady() {
+        return mixinReady;
+    }
 
-		properties = propertiesA;
-	}
+    @VisibleForTesting
+    public static void setLauncher(LeafLauncher launcherA) {
+        if (launcher != null && launcher != launcherA) {
+            throw new RuntimeException("Duplicate setLauncher call!");
+        }
 
-	@VisibleForTesting
-	public static void setLauncher(LeafLauncher launcherA) {
-		if (launcher != null && launcher != launcherA) {
-			throw new RuntimeException("Duplicate setLauncher call!");
-		}
+        launcher = launcherA;
+    }
 
-		launcher = launcherA;
-	}
+    protected static void finishMixinBootstrapping() {
+        if (mixinReady) {
+            throw new RuntimeException("Must not call LeafLauncherBase.finishMixinBootstrapping() twice!");
+        }
 
-	public static LeafLauncher getLauncher() {
-		return launcher;
-	}
+        try {
+            Method m = MixinEnvironment.class.getDeclaredMethod("gotoPhase", MixinEnvironment.Phase.class);
+            m.setAccessible(true);
+            m.invoke(null, MixinEnvironment.Phase.INIT);
+            m.invoke(null, MixinEnvironment.Phase.DEFAULT);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
 
-	public static Map<String, Object> getProperties() {
-		return properties;
-	}
+        mixinReady = true;
+    }
 
-	protected static void handleFormattedException(FormattedException exc) {
-		Throwable actualExc = exc.getMessage() != null ? exc : exc.getCause();
-		Log.error(LogCategory.GENERAL, exc.getMainText(), actualExc);
+    protected static void handleFormattedException(FormattedException exc) {
+        Throwable actualExc = exc.getMessage() != null ? exc : exc.getCause();
+        Log.error(LogCategory.GENERAL, exc.getMainText(), actualExc);
 
-		GameProvider gameProvider = LeafLoaderImpl.INSTANCE.tryGetGameProvider();
+        GameProvider gameProvider = LeafLoaderImpl.INSTANCE.tryGetGameProvider();
 
-		if (gameProvider == null || !gameProvider.displayCrash(actualExc, exc.getDisplayedText())) {
-			LeafGuiEntry.displayError(exc.getDisplayedText(), actualExc, true);
-		} else {
-			System.exit(1);
-		}
+        if (gameProvider == null || !gameProvider.displayCrash(actualExc, exc.getDisplayedText())) {
+            LeafGuiEntry.displayError(exc.getDisplayedText(), actualExc, true);
+        } else {
+            System.exit(1);
+        }
 
-		throw new AssertionError("exited");
-	}
+        throw new AssertionError("exited");
+    }
 
-	protected static void setupUncaughtExceptionHandler() {
-		Thread mainThread = Thread.currentThread();
-		Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
-			@Override
-			public void uncaughtException(Thread t, Throwable e) {
-				try {
-					if (e instanceof FormattedException) {
-						handleFormattedException((FormattedException) e);
-					} else {
-						String mainText = String.format("Uncaught exception in thread \"%s\"", t.getName());
-						Log.error(LogCategory.GENERAL, mainText, e);
+    protected static void setProperties(Map<String, Object> propertiesA) {
+        if (properties != null && properties != propertiesA) {
+            throw new RuntimeException("Duplicate setProperties call!");
+        }
 
-						GameProvider gameProvider = LeafLoaderImpl.INSTANCE.tryGetGameProvider();
+        properties = propertiesA;
+    }
 
-						if (Thread.currentThread() == mainThread
-								&& (gameProvider == null || !gameProvider.displayCrash(e, mainText))) {
-							LeafGuiEntry.displayError(mainText, e, false);
-						}
-					}
-				} catch (Throwable e2) { // just in case
-					e.addSuppressed(e2);
+    protected static void setupUncaughtExceptionHandler() {
+        Thread mainThread = Thread.currentThread();
+        Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
+            @Override
+            public void uncaughtException(Thread t, Throwable e) {
+                try {
+                    if (e instanceof FormattedException) {
+                        handleFormattedException((FormattedException) e);
+                    } else {
+                        String mainText = String.format("Uncaught exception in thread \"%s\"", t.getName());
+                        Log.error(LogCategory.GENERAL, mainText, e);
 
-					try {
-						e.printStackTrace();
-					} catch (Throwable e3) {
-						PrintWriter pw = new PrintWriter(new FileOutputStream(FileDescriptor.err));
-						e.printStackTrace(pw);
-						pw.flush();
-					}
-				}
-			}
-		});
-	}
+                        GameProvider gameProvider = LeafLoaderImpl.INSTANCE.tryGetGameProvider();
 
-	protected static void finishMixinBootstrapping() {
-		if (mixinReady) {
-			throw new RuntimeException("Must not call LeafLauncherBase.finishMixinBootstrapping() twice!");
-		}
+                        if (Thread.currentThread() == mainThread
+                            && (gameProvider == null || !gameProvider.displayCrash(e, mainText)))
+                        {
+                            LeafGuiEntry.displayError(mainText, e, false);
+                        }
+                    }
+                } catch (Throwable e2) { // just in case
+                    e.addSuppressed(e2);
 
-		try {
-			Method m = MixinEnvironment.class.getDeclaredMethod("gotoPhase", MixinEnvironment.Phase.class);
-			m.setAccessible(true);
-			m.invoke(null, MixinEnvironment.Phase.INIT);
-			m.invoke(null, MixinEnvironment.Phase.DEFAULT);
-		} catch (Exception e) {
-			throw new RuntimeException(e);
-		}
+                    try {
+                        e.printStackTrace();
+                    } catch (Throwable e3) {
+                        PrintWriter pw = new PrintWriter(new FileOutputStream(FileDescriptor.err));
+                        e.printStackTrace(pw);
+                        pw.flush();
+                    }
+                }
+            }
+        });
+    }
 
-		mixinReady = true;
-	}
+    @Override
+    public MappingConfiguration getMappingConfiguration() {
+        return mappingConfiguration;
+    }
 
-	public static boolean isMixinReady() {
-		return mixinReady;
-	}
+    @Override
+    public final boolean isDevelopment() {
+        return IS_DEVELOPMENT;
+    }
 }

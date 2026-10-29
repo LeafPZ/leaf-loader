@@ -39,13 +39,13 @@ import java.util.List;
 
 @FunctionalInterface
 interface ModCandidateFinder {
-	void findCandidates(ModCandidateConsumer out);
+    void findCandidates(ModCandidateConsumer out);
 
-	interface ModCandidateConsumer {
-		default void accept(Path path, boolean requiresRemap, ModSource source) {
-			accept(Collections.singletonList(path), requiresRemap, source);
-		}
+    interface ModCandidateConsumer {
+        void accept(List<Path> paths, boolean requiresRemap, ModSource source);
 
-		void accept(List<Path> paths, boolean requiresRemap, ModSource source);
-	}
+        default void accept(Path path, boolean requiresRemap, ModSource source) {
+            accept(Collections.singletonList(path), requiresRemap, source);
+        }
+    }
 }

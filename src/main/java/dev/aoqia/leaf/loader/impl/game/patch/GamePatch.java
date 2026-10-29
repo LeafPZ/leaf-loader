@@ -49,92 +49,93 @@ import org.objectweb.asm.tree.MethodNode;
 import dev.aoqia.leaf.loader.impl.launch.LeafLauncher;
 
 public abstract class GamePatch {
-	protected FieldNode findField(ClassNode node, Predicate<FieldNode> predicate) {
-		return node.fields.stream().filter(predicate).findAny().orElse(null);
-	}
+    public abstract void process(LeafLauncher launcher, Function<String, ClassNode> classSource, Consumer<
+        ClassNode> classEmitter);
 
-	protected List<FieldNode> findFields(ClassNode node, Predicate<FieldNode> predicate) {
-		return node.fields.stream().filter(predicate).collect(Collectors.toList());
-	}
+    protected FieldNode findField(ClassNode node, Predicate<FieldNode> predicate) {
+        return node.fields.stream().filter(predicate).findAny().orElse(null);
+    }
 
-	protected MethodNode findMethod(ClassNode node, Predicate<MethodNode> predicate) {
-		return node.methods.stream().filter(predicate).findAny().orElse(null);
-	}
+    protected List<FieldNode> findFields(ClassNode node, Predicate<FieldNode> predicate) {
+        return node.fields.stream().filter(predicate).collect(Collectors.toList());
+    }
 
-	protected AbstractInsnNode findInsn(MethodNode node, Predicate<AbstractInsnNode> predicate, boolean last) {
-		if (last) {
-			for (int i = node.instructions.size() - 1; i >= 0; i--) {
-				AbstractInsnNode insn = node.instructions.get(i);
+    protected AbstractInsnNode findInsn(MethodNode node, Predicate<AbstractInsnNode> predicate, boolean last) {
+        if (last) {
+            for (int i = node.instructions.size() - 1; i >= 0; i--) {
+                AbstractInsnNode insn = node.instructions.get(i);
 
-				if (predicate.test(insn)) {
-					return insn;
-				}
-			}
-		} else {
-			for (int i = 0; i < node.instructions.size(); i++) {
-				AbstractInsnNode insn = node.instructions.get(i);
+                if (predicate.test(insn)) {
+                    return insn;
+                }
+            }
+        } else {
+            for (int i = 0; i < node.instructions.size(); i++) {
+                AbstractInsnNode insn = node.instructions.get(i);
 
-				if (predicate.test(insn)) {
-					return insn;
-				}
-			}
-		}
+                if (predicate.test(insn)) {
+                    return insn;
+                }
+            }
+        }
 
-		return null;
-	}
+        return null;
+    }
 
-	protected void moveAfter(ListIterator<AbstractInsnNode> it, int opcode) {
-		while (it.hasNext()) {
-			AbstractInsnNode node = it.next();
+    protected MethodNode findMethod(ClassNode node, Predicate<MethodNode> predicate) {
+        return node.methods.stream().filter(predicate).findAny().orElse(null);
+    }
 
-			if (node.getOpcode() == opcode) {
-				break;
-			}
-		}
-	}
+    protected boolean isPublicInstance(int access) {
+        // noinspection PointlessBitwiseExpression
+        return ((access & 0x0F) == (Opcodes.ACC_PUBLIC | 0 /* non-static */));
+    }
 
-	protected void moveBefore(ListIterator<AbstractInsnNode> it, int opcode) {
-		moveAfter(it, opcode);
-		it.previous();
-	}
+    protected boolean isPublicStatic(int access) {
+        return ((access & 0x0F) == (Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC));
+    }
 
-	protected void moveAfter(ListIterator<AbstractInsnNode> it, AbstractInsnNode targetNode) {
-		while (it.hasNext()) {
-			AbstractInsnNode node = it.next();
+    protected boolean isStatic(int access) {
+        return ((access & Opcodes.ACC_STATIC) != 0);
+    }
 
-			if (node == targetNode) {
-				break;
-			}
-		}
-	}
+    protected void moveAfter(ListIterator<AbstractInsnNode> it, AbstractInsnNode targetNode) {
+        while (it.hasNext()) {
+            AbstractInsnNode node = it.next();
 
-	protected void moveBefore(ListIterator<AbstractInsnNode> it, AbstractInsnNode targetNode) {
-		moveAfter(it, targetNode);
-		it.previous();
-	}
+            if (node == targetNode) {
+                break;
+            }
+        }
+    }
 
-	protected void moveBeforeType(ListIterator<AbstractInsnNode> it, int nodeType) {
-		while (it.hasPrevious()) {
-			AbstractInsnNode node = it.previous();
+    protected void moveAfter(ListIterator<AbstractInsnNode> it, int opcode) {
+        while (it.hasNext()) {
+            AbstractInsnNode node = it.next();
 
-			if (node.getType() == nodeType) {
-				break;
-			}
-		}
-	}
+            if (node.getOpcode() == opcode) {
+                break;
+            }
+        }
+    }
 
-	protected boolean isStatic(int access) {
-		return ((access & Opcodes.ACC_STATIC) != 0);
-	}
+    protected void moveBefore(ListIterator<AbstractInsnNode> it, AbstractInsnNode targetNode) {
+        moveAfter(it, targetNode);
+        it.previous();
+    }
 
-	protected boolean isPublicStatic(int access) {
-		return ((access & 0x0F) == (Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC));
-	}
+    protected void moveBefore(ListIterator<AbstractInsnNode> it, int opcode) {
+        moveAfter(it, opcode);
+        it.previous();
+    }
 
-	protected boolean isPublicInstance(int access) {
-		//noinspection PointlessBitwiseExpression
-		return ((access & 0x0F) == (Opcodes.ACC_PUBLIC | 0 /* non-static */));
-	}
+    protected void moveBeforeType(ListIterator<AbstractInsnNode> it, int nodeType) {
+        while (it.hasPrevious()) {
+            AbstractInsnNode node = it.previous();
 
-	public abstract void process(LeafLauncher launcher, Function<String, ClassNode> classSource, Consumer<ClassNode> classEmitter);
+            if (node.getType() == nodeType) {
+                break;
+            }
+        }
+    }
 }

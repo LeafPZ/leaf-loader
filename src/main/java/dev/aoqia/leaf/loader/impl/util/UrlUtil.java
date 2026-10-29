@@ -45,52 +45,58 @@ import java.nio.file.Paths;
 import java.security.CodeSource;
 
 public final class UrlUtil {
-	public static final Path LOADER_CODE_SOURCE = getCodeSource(UrlUtil.class);
+    public static final Path LOADER_CODE_SOURCE = getCodeSource(UrlUtil.class);
 
-	public static Path getCodeSource(URL url, String localPath) throws UrlConversionException {
-		try {
-			URLConnection connection = url.openConnection();
+    public static Path asPath(URL url) {
+        try {
+            return Paths.get(url.toURI());
+        } catch (URISyntaxException e) {
+            throw ExceptionUtil.wrap(e);
+        }
+    }
 
-			if (connection instanceof JarURLConnection) {
-				return asPath(((JarURLConnection) connection).getJarFileURL());
-			} else {
-				URI uri = url.toURI();
-				String path = uri.getPath(); // URI.getPath decodes percent-encoding etc unlike URL.getPath or URI.getRawPath
+    public static URL asUrl(File file) throws MalformedURLException {
+        return file.toURI().toURL();
+    }
 
-				if (path.endsWith(localPath)) {
-					String basePath = path.substring(0, path.length() - localPath.length()); // keep trailing / in case it's standalone (root dir)
-					URI baseUri = new URI(uri.getScheme(), uri.getUserInfo(), uri.getHost(), uri.getPort(), basePath, uri.getQuery(), uri.getFragment());
+    public static URL asUrl(Path path) throws MalformedURLException {
+        return path.toUri().toURL();
+    }
 
-					return Paths.get(baseUri);
-				} else {
-					throw new UrlConversionException("Could not figure out code source for file '" + localPath + "' in URL '" + url + "'!");
-				}
-			}
-		} catch (Exception e) {
-			throw new UrlConversionException(e);
-		}
-	}
+    public static Path getCodeSource(Class<?> cls) {
+        CodeSource cs = cls.getProtectionDomain().getCodeSource();
+        if (cs == null)
+            return null;
 
-	public static Path asPath(URL url) {
-		try {
-			return Paths.get(url.toURI());
-		} catch (URISyntaxException e) {
-			throw ExceptionUtil.wrap(e);
-		}
-	}
+        return asPath(cs.getLocation());
+    }
 
-	public static URL asUrl(File file) throws MalformedURLException {
-		return file.toURI().toURL();
-	}
+    public static Path getCodeSource(URL url, String localPath) throws UrlConversionException {
+        try {
+            URLConnection connection = url.openConnection();
 
-	public static URL asUrl(Path path) throws MalformedURLException {
-		return path.toUri().toURL();
-	}
+            if (connection instanceof JarURLConnection) {
+                return asPath(((JarURLConnection) connection).getJarFileURL());
+            } else {
+                URI uri = url.toURI();
+                String path = uri.getPath(); // URI.getPath decodes percent-encoding etc unlike URL.getPath or
+                                             // URI.getRawPath
 
-	public static Path getCodeSource(Class<?> cls) {
-		CodeSource cs = cls.getProtectionDomain().getCodeSource();
-		if (cs == null) return null;
+                if (path.endsWith(localPath)) {
+                    String basePath = path.substring(0, path.length() - localPath.length()); // keep trailing / in case
+                                                                                             // it's standalone (root
+                                                                                             // dir)
+                    URI baseUri = new URI(uri.getScheme(), uri.getUserInfo(), uri.getHost(), uri.getPort(), basePath,
+                        uri.getQuery(), uri.getFragment());
 
-		return asPath(cs.getLocation());
-	}
+                    return Paths.get(baseUri);
+                } else {
+                    throw new UrlConversionException("Could not figure out code source for file '" + localPath
+                        + "' in URL '" + url + "'!");
+                }
+            }
+        } catch (Exception e) {
+            throw new UrlConversionException(e);
+        }
+    }
 }

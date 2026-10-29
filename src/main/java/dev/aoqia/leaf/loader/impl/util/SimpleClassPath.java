@@ -44,117 +44,124 @@ import java.util.zip.ZipError;
 import java.util.zip.ZipFile;
 
 public final class SimpleClassPath implements Closeable {
-	public SimpleClassPath(List<Path> paths) {
-		this.paths = paths;
-		this.jarMarkers = new boolean[paths.size()];
-		this.openJars = new ZipFile[paths.size()];
+    private final List<Path> paths;
 
-		for (int i = 0; i < jarMarkers.length; i++) {
-			if (!Files.isDirectory(paths.get(i))) {
-				jarMarkers[i] = true;
-			}
-		}
-	}
+    private final boolean[] jarMarkers; // whether the path is a jar (otherwise plain dir)
 
-	@Override
-	public void close() throws IOException {
-		IOException exc = null;
+    private final ZipFile[] openJars;
 
-		for (int i = 0; i < openJars.length; i++) {
-			Closeable file = openJars[i];
+    public SimpleClassPath(List<Path> paths) {
+        this.paths = paths;
+        this.jarMarkers = new boolean[paths.size()];
+        this.openJars = new ZipFile[paths.size()];
 
-			try {
-				if (file != null) file.close();
-			} catch (IOException e) {
-				if (exc == null) {
-					exc = e;
-				} else {
-					exc.addSuppressed(e);
-				}
-			}
+        for (int i = 0; i < jarMarkers.length; i++) {
+            if (!Files.isDirectory(paths.get(i))) {
+                jarMarkers[i] = true;
+            }
+        }
+    }
 
-			openJars[i] = null;
-		}
+    @Override
+    public void close() throws IOException {
+        IOException exc = null;
 
-		if (exc != null) throw exc;
-	}
+        for (int i = 0; i < openJars.length; i++) {
+            Closeable file = openJars[i];
 
-	public List<Path> getPaths() {
-		return paths;
-	}
+            try {
+                if (file != null)
+                    file.close();
+            } catch (IOException e) {
+                if (exc == null) {
+                    exc = e;
+                } else {
+                    exc.addSuppressed(e);
+                }
+            }
 
-	public CpEntry getEntry(String subPath) throws IOException {
-		for (int i = 0; i < jarMarkers.length; i++) {
-			if (jarMarkers[i]) {
-				ZipFile zf = openJars[i];
+            openJars[i] = null;
+        }
 
-				if (zf == null) {
-					Path path = paths.get(i);
+        if (exc != null)
+            throw exc;
+    }
 
-					try {
-						openJars[i] = zf = new ZipFile(path.toFile());
-					} catch (IOException | ZipError e) {
-						throw new IOException(String.format("error opening %s: %s", LoaderUtil.normalizePath(path), e), e);
-					}
-				}
+    public CpEntry getEntry(String subPath) throws IOException {
+        for (int i = 0; i < jarMarkers.length; i++) {
+            if (jarMarkers[i]) {
+                ZipFile zf = openJars[i];
 
-				ZipEntry entry = zf.getEntry(subPath);
+                if (zf == null) {
+                    Path path = paths.get(i);
 
-				if (entry != null) {
-					return new CpEntry(i, subPath, entry);
-				}
-			} else {
-				Path file = paths.get(i).resolve(subPath);
+                    try {
+                        openJars[i] = zf = new ZipFile(path.toFile());
+                    } catch (IOException | ZipError e) {
+                        throw new IOException(String.format("error opening %s: %s", LoaderUtil.normalizePath(path), e),
+                            e);
+                    }
+                }
 
-				if (Files.isRegularFile(file)) {
-					return new CpEntry(i, subPath, file);
-				}
-			}
-		}
+                ZipEntry entry = zf.getEntry(subPath);
 
-		return null;
-	}
+                if (entry != null) {
+                    return new CpEntry(i, subPath, entry);
+                }
+            } else {
+                Path file = paths.get(i).resolve(subPath);
 
-	public InputStream getInputStream(String subPath) throws IOException {
-		CpEntry entry = getEntry(subPath);
+                if (Files.isRegularFile(file)) {
+                    return new CpEntry(i, subPath, file);
+                }
+            }
+        }
 
-		return entry != null ? entry.getInputStream() : null;
-	}
+        return null;
+    }
 
-	public final class CpEntry {
-		private CpEntry(int idx, String subPath, Object instance) {
-			this.idx = idx;
-			this.subPath = subPath;
-			this.instance = instance;
-		}
+    public InputStream getInputStream(String subPath) throws IOException {
+        CpEntry entry = getEntry(subPath);
 
-		public Path getOrigin() {
-			return paths.get(idx);
-		}
+        return entry != null ? entry.getInputStream() : null;
+    }
 
-		public String getSubPath() {
-			return subPath;
-		}
+    public List<Path> getPaths() {
+        return paths;
+    }
 
-		public InputStream getInputStream() throws IOException {
-			if (instance instanceof ZipEntry) {
-				return openJars[idx].getInputStream((ZipEntry) instance);
-			} else {
-				return Files.newInputStream((Path) instance);
-			}
-		}
+    public final class CpEntry {
+        private final int idx;
 
-		@Override
-		public String toString() {
-			return String.format("%s:%s", getOrigin(), subPath);
-		}
+        private final String subPath;
 
-		private final int idx;
-		private final String subPath;
-		private final Object instance;
-	}
+        private final Object instance;
 
-	private final List<Path> paths;
-	private final boolean[] jarMarkers; // whether the path is a jar (otherwise plain dir)
-	private final ZipFile[] openJars;
+        private CpEntry(int idx, String subPath, Object instance) {
+            this.idx = idx;
+            this.subPath = subPath;
+            this.instance = instance;
+        }
+
+        public InputStream getInputStream() throws IOException {
+            if (instance instanceof ZipEntry) {
+                return openJars[idx].getInputStream((ZipEntry) instance);
+            } else {
+                return Files.newInputStream((Path) instance);
+            }
+        }
+
+        public Path getOrigin() {
+            return paths.get(idx);
+        }
+
+        public String getSubPath() {
+            return subPath;
+        }
+
+        @Override
+        public String toString() {
+            return String.format("%s:%s", getOrigin(), subPath);
+        }
+    }
 }

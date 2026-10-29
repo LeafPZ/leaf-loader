@@ -44,45 +44,45 @@ import dev.aoqia.leaf.loader.api.SemanticVersion;
 import dev.aoqia.leaf.loader.api.VersionParsingException;
 
 public class LeafMixinVersions {
-	private static final List<LoaderMixinVersionEntry> versions = new ArrayList<>();
-	private static final Map<Integer, String> minLoaderVersions = new HashMap<>();
+    private static final List<LoaderMixinVersionEntry> versions = new ArrayList<>();
+    private static final Map<Integer, String> minLoaderVersions = new HashMap<>();
 
-	static {
-		// maximum loader version and bundled fabric mixin version, DESCENDING ORDER, LATEST FIRST
-		// loader versions with new mixin versions need to be added here
+    static {
+        // maximum loader version and bundled fabric mixin version, DESCENDING ORDER, LATEST FIRST
+        // loader versions with new mixin versions need to be added here
 
-		addVersion("0.19.0", FabricUtil.COMPATIBILITY_0_17_1);
-		addVersion("0.18.4", FabricUtil.COMPATIBILITY_0_17_0);
-		addVersion("0.17.3", FabricUtil.COMPATIBILITY_0_16_5);
-		addVersion("0.16.0", FabricUtil.COMPATIBILITY_0_14_0);
-		addVersion("0.12.0-", FabricUtil.COMPATIBILITY_0_10_0);
-	}
+        addVersion("0.19.0", FabricUtil.COMPATIBILITY_0_17_1);
+        addVersion("0.18.4", FabricUtil.COMPATIBILITY_0_17_0);
+        addVersion("0.17.3", FabricUtil.COMPATIBILITY_0_16_5);
+        addVersion("0.16.0", FabricUtil.COMPATIBILITY_0_14_0);
+        addVersion("0.12.0-", FabricUtil.COMPATIBILITY_0_10_0);
+    }
 
-	static List<LoaderMixinVersionEntry> getVersions() {
-		return versions;
-	}
+    public static String getMinLoaderVersion(int mixinCompat) {
+        return minLoaderVersions.get(mixinCompat);
+    }
 
-	public static String getMinLoaderVersion(int mixinCompat) {
-		return minLoaderVersions.get(mixinCompat);
-	}
+    static List<LoaderMixinVersionEntry> getVersions() {
+        return versions;
+    }
 
-	private static void addVersion(String minLoaderVersion, int mixinCompat) {
-		try {
-			versions.add(new LoaderMixinVersionEntry(SemanticVersion.parse(minLoaderVersion), mixinCompat));
-		} catch (VersionParsingException e) {
-			throw new RuntimeException(e);
-		}
+    private static void addVersion(String minLoaderVersion, int mixinCompat) {
+        try {
+            versions.add(new LoaderMixinVersionEntry(SemanticVersion.parse(minLoaderVersion), mixinCompat));
+        } catch (VersionParsingException e) {
+            throw new RuntimeException(e);
+        }
 
-		minLoaderVersions.put(mixinCompat, minLoaderVersion);
-	}
+        minLoaderVersions.put(mixinCompat, minLoaderVersion);
+    }
 
-	static final class LoaderMixinVersionEntry {
-		public final SemanticVersion loaderVersion;
-		public final int mixinVersion;
+    static final class LoaderMixinVersionEntry {
+        public final SemanticVersion loaderVersion;
+        public final int mixinVersion;
 
-		private LoaderMixinVersionEntry(SemanticVersion loaderVersion, int mixinVersion) {
-			this.loaderVersion = loaderVersion;
-			this.mixinVersion = mixinVersion;
-		}
-	}
+        private LoaderMixinVersionEntry(SemanticVersion loaderVersion, int mixinVersion) {
+            this.loaderVersion = loaderVersion;
+            this.mixinVersion = mixinVersion;
+        }
+    }
 }

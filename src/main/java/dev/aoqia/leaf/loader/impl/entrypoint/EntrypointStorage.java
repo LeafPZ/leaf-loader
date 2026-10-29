@@ -48,144 +48,153 @@ import dev.aoqia.leaf.loader.impl.util.log.Log;
 import dev.aoqia.leaf.loader.impl.util.log.LogCategory;
 
 public final class EntrypointStorage {
-	static final class Entry {
-		private final ModContainerImpl mod;
-		private final dev.aoqia.leaf.loader.api.LanguageAdapter adapter;
-		private final String value;
-		private final Map<Class<?>, Object> instanceMap;
+    private final Map<String, List<Entry>> entryMap = new HashMap<>();
 
-		Entry(ModContainerImpl mod, dev.aoqia.leaf.loader.api.LanguageAdapter adapter, String value) {
-			this.mod = mod;
-			this.adapter = adapter;
-			this.value = value;
-			this.instanceMap = new IdentityHashMap<>(1);
-		}
+    @SuppressWarnings("unchecked") // return value allows "throw" declaration to end method
+    static <E extends Throwable> RuntimeException sneakyThrows(Throwable ex) throws E {
+        throw (E) ex;
+    }
 
-		@Override
-		public String toString() {
-			return mod.getMetadata().getId() + "->(0.3.x)" + value;
-		}
+    public void add(ModContainerImpl modContainer, String key, EntrypointMetadata metadata, Map<String,
+        dev.aoqia.leaf.loader.api.LanguageAdapter> adapterMap) throws Exception
+    {
+        if (!adapterMap.containsKey(metadata.getAdapter())) {
+            throw new Exception("Could not find adapter '" + metadata.getAdapter() + "' (mod " + modContainer
+                .getMetadata()
+                .getId() + "!)");
+        }
 
-		@SuppressWarnings("unchecked")
-		public synchronized <T> T getOrCreate(Class<T> type) throws Exception {
-			// this impl allows reentrancy (unlike computeIfAbsent)
-			T ret = (T) instanceMap.get(type);
+        Log.debug(LogCategory.ENTRYPOINT, "Registering new-style initializer %s for mod %s (key %s)", metadata
+            .getValue(), modContainer.getMetadata().getId(), key);
+        getOrCreateEntries(key).add(new Entry(
+            modContainer, adapterMap.get(metadata.getAdapter()), metadata.getValue()));
+    }
 
-			if (ret == null) {
-				ret = adapter.create(mod, value, type);
-				assert ret != null;
-				T prev = (T) instanceMap.putIfAbsent(type, ret);
-				if (prev != null) ret = prev;
-			}
+    @SuppressWarnings("deprecation")
+    public <T> List<EntrypointContainer<T>> getEntrypointContainers(String key, Class<T> type) {
+        List<Entry> entries = entryMap.get(key);
+        if (entries == null)
+            return Collections.emptyList();
 
-			return ret;
-		}
+        List<EntrypointContainer<T>> results = new ArrayList<>(entries.size());
+        EntrypointException exc = null;
 
-		public boolean isOptional() {
-			return false;
-		}
+        for (Entry entry : entries) {
+            EntrypointContainerImpl<T> container;
 
-		public ModContainerImpl getModContainer() {
-			return mod;
-		}
+            if (entry.isOptional()) {
+                try {
+                    T instance = entry.getOrCreate(type);
+                    if (instance == null)
+                        continue;
 
-		public String getDefinition() {
-			return value;
-		}
-	}
+                    container = new EntrypointContainerImpl<>(entry, instance);
+                } catch (Throwable t) {
+                    if (exc == null) {
+                        exc = new EntrypointException(key, entry.getModContainer().getMetadata().getId(), t);
+                    } else {
+                        exc.addSuppressed(t);
+                    }
 
-	private final Map<String, List<Entry>> entryMap = new HashMap<>();
+                    continue;
+                }
+            } else {
+                container = new EntrypointContainerImpl<>(key, type, entry);
+            }
 
-	private List<Entry> getOrCreateEntries(String key) {
-		return entryMap.computeIfAbsent(key, (z) -> new ArrayList<>());
-	}
+            results.add(container);
+        }
 
-	public void add(ModContainerImpl modContainer, String key, EntrypointMetadata metadata, Map<String, dev.aoqia.leaf.loader.api.LanguageAdapter> adapterMap) throws Exception {
-		if (!adapterMap.containsKey(metadata.getAdapter())) {
-			throw new Exception("Could not find adapter '" + metadata.getAdapter() + "' (mod " + modContainer.getMetadata().getId() + "!)");
-		}
+        if (exc != null)
+            throw exc;
 
-		Log.debug(LogCategory.ENTRYPOINT, "Registering new-style initializer %s for mod %s (key %s)", metadata.getValue(), modContainer.getMetadata().getId(), key);
-		getOrCreateEntries(key).add(new Entry(
-				modContainer, adapterMap.get(metadata.getAdapter()), metadata.getValue()
-				));
-	}
+        return results;
+    }
 
-	public boolean hasEntrypoints(String key) {
-		return entryMap.containsKey(key);
-	}
+    @SuppressWarnings("deprecation")
+    public <T> List<T> getEntrypoints(String key, Class<T> type) {
+        List<Entry> entries = entryMap.get(key);
+        if (entries == null)
+            return Collections.emptyList();
 
-	@SuppressWarnings("deprecation")
-	public <T> List<T> getEntrypoints(String key, Class<T> type) {
-		List<Entry> entries = entryMap.get(key);
-		if (entries == null) return Collections.emptyList();
+        EntrypointException exception = null;
+        List<T> results = new ArrayList<>(entries.size());
 
-		EntrypointException exception = null;
-		List<T> results = new ArrayList<>(entries.size());
+        for (Entry entry : entries) {
+            try {
+                T result = entry.getOrCreate(type);
 
-		for (Entry entry : entries) {
-			try {
-				T result = entry.getOrCreate(type);
+                if (result != null) {
+                    results.add(result);
+                }
+            } catch (Throwable t) {
+                if (exception == null) {
+                    exception = new EntrypointException(key, entry.getModContainer().getMetadata().getId(), t);
+                } else {
+                    exception.addSuppressed(t);
+                }
+            }
+        }
 
-				if (result != null) {
-					results.add(result);
-				}
-			} catch (Throwable t) {
-				if (exception == null) {
-					exception = new EntrypointException(key, entry.getModContainer().getMetadata().getId(), t);
-				} else {
-					exception.addSuppressed(t);
-				}
-			}
-		}
+        if (exception != null) {
+            throw exception;
+        }
 
-		if (exception != null) {
-			throw exception;
-		}
+        return results;
+    }
 
-		return results;
-	}
+    public boolean hasEntrypoints(String key) {
+        return entryMap.containsKey(key);
+    }
 
-	@SuppressWarnings("deprecation")
-	public <T> List<EntrypointContainer<T>> getEntrypointContainers(String key, Class<T> type) {
-		List<Entry> entries = entryMap.get(key);
-		if (entries == null) return Collections.emptyList();
+    private List<Entry> getOrCreateEntries(String key) {
+        return entryMap.computeIfAbsent(key, (z) -> new ArrayList<>());
+    }
 
-		List<EntrypointContainer<T>> results = new ArrayList<>(entries.size());
-		EntrypointException exc = null;
+    static final class Entry {
+        private final ModContainerImpl mod;
+        private final dev.aoqia.leaf.loader.api.LanguageAdapter adapter;
+        private final String value;
+        private final Map<Class<?>, Object> instanceMap;
 
-		for (Entry entry : entries) {
-			EntrypointContainerImpl<T> container;
+        Entry(ModContainerImpl mod, dev.aoqia.leaf.loader.api.LanguageAdapter adapter, String value) {
+            this.mod = mod;
+            this.adapter = adapter;
+            this.value = value;
+            this.instanceMap = new IdentityHashMap<>(1);
+        }
 
-			if (entry.isOptional()) {
-				try {
-					T instance = entry.getOrCreate(type);
-					if (instance == null) continue;
+        public String getDefinition() {
+            return value;
+        }
 
-					container = new EntrypointContainerImpl<>(entry, instance);
-				} catch (Throwable t) {
-					if (exc == null) {
-						exc = new EntrypointException(key, entry.getModContainer().getMetadata().getId(), t);
-					} else {
-						exc.addSuppressed(t);
-					}
+        public ModContainerImpl getModContainer() {
+            return mod;
+        }
 
-					continue;
-				}
-			} else {
-				container = new EntrypointContainerImpl<>(key, type, entry);
-			}
+        @SuppressWarnings("unchecked")
+        public synchronized <T> T getOrCreate(Class<T> type) throws Exception {
+            // this impl allows reentrancy (unlike computeIfAbsent)
+            T ret = (T) instanceMap.get(type);
 
-			results.add(container);
-		}
+            if (ret == null) {
+                ret = adapter.create(mod, value, type);
+                assert ret != null;
+                T prev = (T) instanceMap.putIfAbsent(type, ret);
+                if (prev != null)
+                    ret = prev;
+            }
 
-		if (exc != null) throw exc;
+            return ret;
+        }
 
-		return results;
-	}
+        public boolean isOptional() {
+            return false;
+        }
 
-	@SuppressWarnings("unchecked") // return value allows "throw" declaration to end method
-	static <E extends Throwable> RuntimeException sneakyThrows(Throwable ex) throws E {
-		throw (E) ex;
-	}
+        @Override
+        public String toString() {
+            return mod.getMetadata().getId() + "->(0.3.x)" + value;
+        }
+    }
 }

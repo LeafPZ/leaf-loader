@@ -37,16 +37,16 @@ import dev.aoqia.leaf.loader.api.metadata.CustomValue;
 import dev.aoqia.leaf.loader.api.metadata.ModMetadata;
 
 public abstract class AbstractModMetadata implements ModMetadata {
-	public static final String TYPE_BUILTIN = "builtin";
-	public static final String TYPE_LEAF_MOD = "leaf";
+    public static final String TYPE_BUILTIN = "builtin";
+    public static final String TYPE_LEAF_MOD = "leaf";
 
-	@Override
-	public boolean containsCustomValue(String key) {
-		return getCustomValues().containsKey(key);
-	}
+    @Override
+    public boolean containsCustomValue(String key) {
+        return getCustomValues().containsKey(key);
+    }
 
-	@Override
-	public CustomValue getCustomValue(String key) {
-		return getCustomValues().get(key);
-	}
+    @Override
+    public CustomValue getCustomValue(String key) {
+        return getCustomValues().get(key);
+    }
 }

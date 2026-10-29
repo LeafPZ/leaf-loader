@@ -58,119 +58,132 @@ import dev.aoqia.leaf.loader.impl.util.log.LogCategory;
 
 /** The main entry point for all fabric-based stuff. */
 public final class LeafGuiEntry {
-	/** Opens the given {@link LeafStatusTree} in a new swing window.
-	 *
-	 * @throws Exception if something went wrong while opening the window. */
-	public static void open(LeafStatusTree tree) throws Exception {
-		GameProvider provider = LeafLoaderImpl.INSTANCE.tryGetGameProvider();
+    /**
+     * @param exitAfter If true then this will call {@link System#exit(int)} after showing the gui, otherwise this will
+     * return normally.
+     */
+    public static void displayCriticalError(Throwable exception, boolean exitAfter) {
+        Log.error(LogCategory.GENERAL, "A critical error occurred", exception);
 
-		if (provider == null && LoaderUtil.hasAwtSupport()
-				|| provider != null && provider.hasAwtSupport()) {
-			LeafMainWindow.open(tree, true);
-		} else {
-			openForked(tree);
-		}
-	}
+        displayError(Localization.format("gui.error.header"), exception, exitAfter);
+    }
 
-	private static void openForked(LeafStatusTree tree) throws IOException, InterruptedException {
-		Path javaBinDir = LoaderUtil.normalizePath(Paths.get(System.getProperty("java.home"), "bin"));
-		String[] executables = { "javaw.exe", "java.exe", "java" };
-		Path javaPath = null;
+    public static void displayError(String mainText, Throwable exception, boolean exitAfter) {
+        displayError(mainText, exception, tree -> {
+            StringWriter error = new StringWriter();
+            error.append(mainText);
 
-		for (String executable : executables) {
-			Path path = javaBinDir.resolve(executable);
+            if (exception != null) {
+                error.append(System.lineSeparator());
+                exception.printStackTrace(new PrintWriter(error));
+            }
 
-			if (Files.isRegularFile(path)) {
-				javaPath = path;
-				break;
-			}
-		}
+            tree.addButton(Localization.format("gui.button.copyError"), LeafBasicButtonType.CLICK_MANY)
+                .withClipboard(error.toString());
+        }, exitAfter);
+    }
 
-		if (javaPath == null) throw new RuntimeException("can't find java executable in "+javaBinDir);
+    public static void displayError(String mainText, Throwable exception, Consumer<LeafStatusTree> treeCustomiser,
+        boolean exitAfter)
+    {
+        boolean isCI = System.getenv("CI") != null;
+        boolean isNoGui = SystemProperties.isSet(SystemProperties.NO_GUI);
 
-		Process process = new ProcessBuilder(javaPath.toString(), "-Xmx100M", "-cp", UrlUtil.LOADER_CODE_SOURCE.toString(), LeafGuiEntry.class.getName())
-				.redirectOutput(ProcessBuilder.Redirect.INHERIT)
-				.redirectError(ProcessBuilder.Redirect.INHERIT)
-				.start();
+        GameProvider provider = LeafLoaderImpl.INSTANCE.tryGetGameProvider();
 
-		final Thread shutdownHook = new Thread(process::destroy);
+        if (!isCI && !isNoGui && !GraphicsEnvironment.isHeadless() && (provider == null || provider
+            .canOpenErrorGui()))
+        {
+            String title = "Leaf Loader " + LeafLoaderImpl.VERSION;
+            LeafStatusTree tree = new LeafStatusTree(title, mainText);
+            LeafStatusTab crashTab = tree.addTab(Localization.format("gui.tab.crash"));
 
-		Runtime.getRuntime().addShutdownHook(shutdownHook);
+            if (exception != null) {
+                crashTab.node.addCleanedException(exception);
+            } else {
+                crashTab.node.addMessage(Localization.format("gui.error.missingException"), LeafTreeWarningLevel.NONE);
+            }
 
-		try (DataOutputStream os = new DataOutputStream(process.getOutputStream())) {
-			tree.writeTo(os);
-		}
+            // Maybe add an "open mods folder" button?
+            // or should that be part of the main tree's right-click menu?
+            tree.addButton(Localization.format("gui.button.exit"), LeafBasicButtonType.CLICK_ONCE).makeClose();
+            treeCustomiser.accept(tree);
 
-		int rVal = process.waitFor();
+            try {
+                open(tree);
+            } catch (Exception e) {
+                if (exitAfter) {
+                    Log.warn(LogCategory.GENERAL, "Failed to open the error gui!", e);
+                } else {
+                    throw new RuntimeException("Failed to open the error gui!", e);
+                }
+            }
+        }
 
-		Runtime.getRuntime().removeShutdownHook(shutdownHook);
+        if (exitAfter) {
+            System.exit(1);
+        }
+    }
 
-		if (rVal != 0) throw new IOException("subprocess exited with code "+rVal);
-	}
+    public static void main(String[] args) throws Exception {
+        LeafStatusTree tree = new LeafStatusTree(new DataInputStream(System.in));
+        LeafMainWindow.open(tree, true);
+        System.exit(0);
+    }
 
-	public static void main(String[] args) throws Exception {
-		LeafStatusTree tree = new LeafStatusTree(new DataInputStream(System.in));
-		LeafMainWindow.open(tree, true);
-		System.exit(0);
-	}
+    /**
+     * Opens the given {@link LeafStatusTree} in a new swing window.
+     *
+     * @throws Exception if something went wrong while opening the window.
+     */
+    public static void open(LeafStatusTree tree) throws Exception {
+        GameProvider provider = LeafLoaderImpl.INSTANCE.tryGetGameProvider();
 
-	/** @param exitAfter If true then this will call {@link System#exit(int)} after showing the gui, otherwise this will
-	 *            return normally. */
-	public static void displayCriticalError(Throwable exception, boolean exitAfter) {
-		Log.error(LogCategory.GENERAL, "A critical error occurred", exception);
+        if (provider == null && LoaderUtil.hasAwtSupport()
+            || provider != null && provider.hasAwtSupport())
+        {
+            LeafMainWindow.open(tree, true);
+        } else {
+            openForked(tree);
+        }
+    }
 
-		displayError(Localization.format("gui.error.header"), exception, exitAfter);
-	}
+    private static void openForked(LeafStatusTree tree) throws IOException, InterruptedException {
+        Path javaBinDir = LoaderUtil.normalizePath(Paths.get(System.getProperty("java.home"), "bin"));
+        String[] executables = { "javaw.exe", "java.exe", "java" };
+        Path javaPath = null;
 
-	public static void displayError(String mainText, Throwable exception, boolean exitAfter) {
-		displayError(mainText, exception, tree -> {
-			StringWriter error = new StringWriter();
-			error.append(mainText);
+        for (String executable : executables) {
+            Path path = javaBinDir.resolve(executable);
 
-			if (exception != null) {
-				error.append(System.lineSeparator());
-				exception.printStackTrace(new PrintWriter(error));
-			}
+            if (Files.isRegularFile(path)) {
+                javaPath = path;
+                break;
+            }
+        }
 
-			tree.addButton(Localization.format("gui.button.copyError"), LeafBasicButtonType.CLICK_MANY).withClipboard(error.toString());
-		}, exitAfter);
-	}
+        if (javaPath == null)
+            throw new RuntimeException("can't find java executable in " + javaBinDir);
 
-	public static void displayError(String mainText, Throwable exception, Consumer<LeafStatusTree> treeCustomiser, boolean exitAfter) {
-		boolean isCI = System.getenv("CI") != null;
-		boolean isNoGui = SystemProperties.isSet(SystemProperties.NO_GUI);
+        Process process = new ProcessBuilder(javaPath.toString(), "-Xmx100M", "-cp", UrlUtil.LOADER_CODE_SOURCE
+            .toString(), LeafGuiEntry.class.getName())
+                .redirectOutput(ProcessBuilder.Redirect.INHERIT)
+                .redirectError(ProcessBuilder.Redirect.INHERIT)
+                .start();
 
-		GameProvider provider = LeafLoaderImpl.INSTANCE.tryGetGameProvider();
+        final Thread shutdownHook = new Thread(process::destroy);
 
-		if (!isCI && !isNoGui && !GraphicsEnvironment.isHeadless() && (provider == null || provider.canOpenErrorGui())) {
-			String title = "Leaf Loader " + LeafLoaderImpl.VERSION;
-			LeafStatusTree tree = new LeafStatusTree(title, mainText);
-			LeafStatusTab crashTab = tree.addTab(Localization.format("gui.tab.crash"));
+        Runtime.getRuntime().addShutdownHook(shutdownHook);
 
-			if (exception != null) {
-				crashTab.node.addCleanedException(exception);
-			} else {
-				crashTab.node.addMessage(Localization.format("gui.error.missingException"), LeafTreeWarningLevel.NONE);
-			}
+        try (DataOutputStream os = new DataOutputStream(process.getOutputStream())) {
+            tree.writeTo(os);
+        }
 
-			// Maybe add an "open mods folder" button?
-			// or should that be part of the main tree's right-click menu?
-			tree.addButton(Localization.format("gui.button.exit"), LeafBasicButtonType.CLICK_ONCE).makeClose();
-			treeCustomiser.accept(tree);
+        int rVal = process.waitFor();
 
-			try {
-				open(tree);
-			} catch (Exception e) {
-				if (exitAfter) {
-					Log.warn(LogCategory.GENERAL, "Failed to open the error gui!", e);
-				} else {
-					throw new RuntimeException("Failed to open the error gui!", e);
-				}
-			}
-		}
+        Runtime.getRuntime().removeShutdownHook(shutdownHook);
 
-		if (exitAfter) {
-			System.exit(1);
-		}
-	}
+        if (rVal != 0)
+            throw new IOException("subprocess exited with code " + rVal);
+    }
 }

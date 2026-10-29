@@ -36,11 +36,11 @@ package dev.aoqia.leaf.loader.impl.mrj;
 import java.security.SecureClassLoader;
 
 public abstract class AbstractSecureClassLoader extends SecureClassLoader {
-	public AbstractSecureClassLoader(String name, ClassLoader parent) {
-		super(parent);
-	}
+    static {
+        ClassLoader.registerAsParallelCapable();
+    }
 
-	static {
-		ClassLoader.registerAsParallelCapable();
-	}
+    public AbstractSecureClassLoader(String name, ClassLoader parent) {
+        super(parent);
+    }
 }

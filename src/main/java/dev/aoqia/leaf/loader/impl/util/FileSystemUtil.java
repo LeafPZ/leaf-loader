@@ -46,61 +46,63 @@ import java.util.Map;
 import java.util.zip.ZipError;
 
 public final class FileSystemUtil {
-	public static class FileSystemDelegate implements AutoCloseable {
-		private final FileSystem fileSystem;
-		private final boolean owner;
+    private static final Map<String, String> jfsArgsCreate = Collections.singletonMap("create", "true");
 
-		public FileSystemDelegate(FileSystem fileSystem, boolean owner) {
-			this.fileSystem = fileSystem;
-			this.owner = owner;
-		}
+    private static final Map<String, String> jfsArgsEmpty = Collections.emptyMap();
 
-		public FileSystem get() {
-			return fileSystem;
-		}
+    private FileSystemUtil() {
+    }
 
-		@Override
-		public void close() throws IOException {
-			if (owner) {
-				fileSystem.close();
-			}
-		}
-	}
+    public static FileSystemDelegate getJarFileSystem(Path path, boolean create) throws IOException {
+        return getJarFileSystem(path.toUri(), create);
+    }
 
-	private FileSystemUtil() { }
+    public static FileSystemDelegate getJarFileSystem(URI uri, boolean create) throws IOException {
+        URI jarUri;
 
-	private static final Map<String, String> jfsArgsCreate = Collections.singletonMap("create", "true");
-	private static final Map<String, String> jfsArgsEmpty = Collections.emptyMap();
+        try {
+            jarUri = new URI("jar:" + uri.getScheme(), uri.getHost(), uri.getPath(), uri.getFragment());
+        } catch (URISyntaxException e) {
+            throw new IOException(e);
+        }
 
-	public static FileSystemDelegate getJarFileSystem(Path path, boolean create) throws IOException {
-		return getJarFileSystem(path.toUri(), create);
-	}
+        boolean opened = false;
+        FileSystem ret = null;
 
-	public static FileSystemDelegate getJarFileSystem(URI uri, boolean create) throws IOException {
-		URI jarUri;
+        try {
+            ret = FileSystems.getFileSystem(jarUri);
+        } catch (FileSystemNotFoundException ignore) {
+            try {
+                ret = FileSystems.newFileSystem(jarUri, create ? jfsArgsCreate : jfsArgsEmpty);
+                opened = true;
+            } catch (FileSystemAlreadyExistsException ignore2) {
+                ret = FileSystems.getFileSystem(jarUri);
+            } catch (IOException | ZipError e) {
+                throw new IOException("Error accessing " + uri + ": " + e, e);
+            }
+        }
 
-		try {
-			jarUri = new URI("jar:" + uri.getScheme(), uri.getHost(), uri.getPath(), uri.getFragment());
-		} catch (URISyntaxException e) {
-			throw new IOException(e);
-		}
+        return new FileSystemDelegate(ret, opened);
+    }
 
-		boolean opened = false;
-		FileSystem ret = null;
+    public static class FileSystemDelegate implements AutoCloseable {
+        private final FileSystem fileSystem;
+        private final boolean owner;
 
-		try {
-			ret = FileSystems.getFileSystem(jarUri);
-		} catch (FileSystemNotFoundException ignore) {
-			try {
-				ret = FileSystems.newFileSystem(jarUri, create ? jfsArgsCreate : jfsArgsEmpty);
-				opened = true;
-			} catch (FileSystemAlreadyExistsException ignore2) {
-				ret = FileSystems.getFileSystem(jarUri);
-			} catch (IOException | ZipError e) {
-				throw new IOException("Error accessing "+uri+": "+e, e);
-			}
-		}
+        public FileSystemDelegate(FileSystem fileSystem, boolean owner) {
+            this.fileSystem = fileSystem;
+            this.owner = owner;
+        }
 
-		return new FileSystemDelegate(ret, opened);
-	}
+        @Override
+        public void close() throws IOException {
+            if (owner) {
+                fileSystem.close();
+            }
+        }
+
+        public FileSystem get() {
+            return fileSystem;
+        }
+    }
 }

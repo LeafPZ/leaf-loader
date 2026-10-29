@@ -50,69 +50,73 @@ import java.util.jar.Attributes.Name;
 import java.util.jar.Manifest;
 
 public final class ManifestUtil {
-	public static Manifest readManifest(Class<?> cls) throws IOException, URISyntaxException {
-		CodeSource cs = cls.getProtectionDomain().getCodeSource();
-		if (cs == null) return null;
+    public static List<URL> getClassPath(Manifest manifest, Path baseDir) throws MalformedURLException {
+        String cp = ManifestUtil.getManifestValue(manifest, Name.CLASS_PATH);
+        if (cp == null)
+            return null;
 
-		URL url = cs.getLocation();
-		if (url == null) return null;
+        StringTokenizer tokenizer = new StringTokenizer(cp);
+        List<URL> ret = new ArrayList<>();
+        URL context = UrlUtil.asUrl(baseDir);
 
-		return readManifest(url);
-	}
+        while (tokenizer.hasMoreElements()) {
+            ret.add(new URL(context, tokenizer.nextToken()));
+        }
 
-	private static Manifest readManifest(URL codeSourceUrl) throws IOException, URISyntaxException {
-		Path path = UrlUtil.asPath(codeSourceUrl);
+        return ret;
+    }
 
-		if (Files.isDirectory(path)) {
-			return readManifestFromBasePath(path);
-		} else {
-			URLConnection connection = new URL("jar:" + codeSourceUrl.toString() + "!/").openConnection();
+    public static String getManifestValue(Manifest manifest, Name name) {
+        return manifest.getMainAttributes().getValue(name);
+    }
 
-			if (connection instanceof JarURLConnection) {
-				return ((JarURLConnection) connection).getManifest();
-			}
+    public static Manifest readManifest(Class<?> cls) throws IOException, URISyntaxException {
+        CodeSource cs = cls.getProtectionDomain().getCodeSource();
+        if (cs == null)
+            return null;
 
-			try (FileSystemUtil.FileSystemDelegate jarFs = FileSystemUtil.getJarFileSystem(path, false)) {
-				return readManifestFromBasePath(jarFs.get().getRootDirectories().iterator().next());
-			}
-		}
-	}
+        URL url = cs.getLocation();
+        if (url == null)
+            return null;
 
-	public static Manifest readManifest(Path codeSource) throws IOException {
-		if (Files.isDirectory(codeSource)) {
-			return readManifestFromBasePath(codeSource);
-		} else {
-			try (FileSystemUtil.FileSystemDelegate jarFs = FileSystemUtil.getJarFileSystem(codeSource, false)) {
-				return readManifestFromBasePath(jarFs.get().getRootDirectories().iterator().next());
-			}
-		}
-	}
+        return readManifest(url);
+    }
 
-	public static Manifest readManifestFromBasePath(Path basePath) throws IOException {
-		Path path = basePath.resolve("META-INF").resolve("MANIFEST.MF");
-		if (!Files.exists(path)) return null;
+    public static Manifest readManifest(Path codeSource) throws IOException {
+        if (Files.isDirectory(codeSource)) {
+            return readManifestFromBasePath(codeSource);
+        } else {
+            try (FileSystemUtil.FileSystemDelegate jarFs = FileSystemUtil.getJarFileSystem(codeSource, false)) {
+                return readManifestFromBasePath(jarFs.get().getRootDirectories().iterator().next());
+            }
+        }
+    }
 
-		try (InputStream stream = Files.newInputStream(path)) {
-			return new Manifest(stream);
-		}
-	}
+    public static Manifest readManifestFromBasePath(Path basePath) throws IOException {
+        Path path = basePath.resolve("META-INF").resolve("MANIFEST.MF");
+        if (!Files.exists(path))
+            return null;
 
-	public static String getManifestValue(Manifest manifest, Name name) {
-		return manifest.getMainAttributes().getValue(name);
-	}
+        try (InputStream stream = Files.newInputStream(path)) {
+            return new Manifest(stream);
+        }
+    }
 
-	public static List<URL> getClassPath(Manifest manifest, Path baseDir) throws MalformedURLException {
-		String cp = ManifestUtil.getManifestValue(manifest, Name.CLASS_PATH);
-		if (cp == null) return null;
+    private static Manifest readManifest(URL codeSourceUrl) throws IOException, URISyntaxException {
+        Path path = UrlUtil.asPath(codeSourceUrl);
 
-		StringTokenizer tokenizer = new StringTokenizer(cp);
-		List<URL> ret = new ArrayList<>();
-		URL context = UrlUtil.asUrl(baseDir);
+        if (Files.isDirectory(path)) {
+            return readManifestFromBasePath(path);
+        } else {
+            URLConnection connection = new URL("jar:" + codeSourceUrl.toString() + "!/").openConnection();
 
-		while (tokenizer.hasMoreElements()) {
-			ret.add(new URL(context, tokenizer.nextToken()));
-		}
+            if (connection instanceof JarURLConnection) {
+                return ((JarURLConnection) connection).getManifest();
+            }
 
-		return ret;
-	}
+            try (FileSystemUtil.FileSystemDelegate jarFs = FileSystemUtil.getJarFileSystem(path, false)) {
+                return readManifestFromBasePath(jarFs.get().getRootDirectories().iterator().next());
+            }
+        }
+    }
 }

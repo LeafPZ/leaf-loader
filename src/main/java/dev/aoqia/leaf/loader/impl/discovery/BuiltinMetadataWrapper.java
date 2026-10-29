@@ -53,147 +53,148 @@ import dev.aoqia.leaf.loader.impl.metadata.LoaderModMetadata;
 import dev.aoqia.leaf.loader.impl.metadata.NestedJarEntry;
 
 class BuiltinMetadataWrapper extends AbstractModMetadata implements LoaderModMetadata {
-	private final ModMetadata parent;
-	private Version version;
-	private Collection<ModDependency> dependencies;
+    private final ModMetadata parent;
+    private Version version;
+    private Collection<ModDependency> dependencies;
 
-	BuiltinMetadataWrapper(ModMetadata parent) {
-		this.parent = parent;
+    BuiltinMetadataWrapper(ModMetadata parent) {
+        this.parent = parent;
 
-		version = parent.getVersion();
-		dependencies = parent.getDependencies();
-	}
+        version = parent.getVersion();
+        dependencies = parent.getDependencies();
+    }
 
-	@Override
-	public String getType() {
-		return parent.getType();
-	}
+    @Override
+    public boolean containsCustomValue(String key) {
+        return parent.containsCustomValue(key);
+    }
 
-	@Override
-	public String getId() {
-		return parent.getId();
-	}
+    @Override
+    public void emitFormatWarnings() {
+    }
 
-	@Override
-	public Collection<String> getProvides() {
-		return parent.getProvides();
-	}
+    @Override
+    public Collection<Person> getAuthors() {
+        return parent.getAuthors();
+    }
 
-	@Override
-	public Version getVersion() {
-		return version;
-	}
+    @Override
+    public String getClassTweaker() {
+        return null;
+    }
 
-	@Override
-	public void setVersion(Version version) {
-		this.version = version;
-	}
+    @Override
+    public ContactInformation getContact() {
+        return parent.getContact();
+    }
 
-	@Override
-	public ModEnvironment getEnvironment() {
-		return parent.getEnvironment();
-	}
+    @Override
+    public Collection<Person> getContributors() {
+        return parent.getContributors();
+    }
 
-	@Override
-	public Collection<ModDependency> getDependencies() {
-		return dependencies;
-	}
+    @Override
+    public CustomValue getCustomValue(String key) {
+        return parent.getCustomValue(key);
+    }
 
-	@Override
-	public void setDependencies(Collection<ModDependency> dependencies) {
-		this.dependencies = Collections.unmodifiableCollection(dependencies);
-	}
+    @Override
+    public Map<String, CustomValue> getCustomValues() {
+        return parent.getCustomValues();
+    }
 
-	@Override
-	public String getName() {
-		return parent.getName();
-	}
+    @Override
+    public Collection<ModDependency> getDependencies() {
+        return dependencies;
+    }
 
-	@Override
-	public String getDescription() {
-		return parent.getDescription();
-	}
+    @Override
+    public String getDescription() {
+        return parent.getDescription();
+    }
 
-	@Override
-	public Collection<Person> getAuthors() {
-		return parent.getAuthors();
-	}
+    @Override
+    public Collection<String> getEntrypointKeys() {
+        return Collections.emptyList();
+    }
 
-	@Override
-	public Collection<Person> getContributors() {
-		return parent.getContributors();
-	}
+    @Override
+    public List<EntrypointMetadata> getEntrypoints(String type) {
+        return Collections.emptyList();
+    }
 
-	@Override
-	public ContactInformation getContact() {
-		return parent.getContact();
-	}
+    @Override
+    public ModEnvironment getEnvironment() {
+        return parent.getEnvironment();
+    }
 
-	@Override
-	public Collection<String> getLicense() {
-		return parent.getLicense();
-	}
+    @Override
+    public Optional<String> getIconPath(int size) {
+        return parent.getIconPath(size);
+    }
 
-	@Override
-	public Optional<String> getIconPath(int size) {
-		return parent.getIconPath(size);
-	}
+    @Override
+    public String getId() {
+        return parent.getId();
+    }
 
-	@Override
-	public boolean containsCustomValue(String key) {
-		return parent.containsCustomValue(key);
-	}
+    @Override
+    public Collection<NestedJarEntry> getJars() {
+        return Collections.emptyList();
+    }
 
-	@Override
-	public CustomValue getCustomValue(String key) {
-		return parent.getCustomValue(key);
-	}
+    @Override
+    public Map<String, String> getLanguageAdapterDefinitions() {
+        return Collections.emptyMap();
+    }
 
-	@Override
-	public Map<String, CustomValue> getCustomValues() {
-		return parent.getCustomValues();
-	}
+    @Override
+    public Collection<String> getLicense() {
+        return parent.getLicense();
+    }
 
-	@Override
-	public int getSchemaVersion() {
-		return Integer.MAX_VALUE;
-	}
+    @Override
+    public Collection<String> getMixinConfigs(EnvType type) {
+        return Collections.emptyList();
+    }
 
-	@Override
-	public Map<String, String> getLanguageAdapterDefinitions() {
-		return Collections.emptyMap();
-	}
+    @Override
+    public String getName() {
+        return parent.getName();
+    }
 
-	@Override
-	public Collection<NestedJarEntry> getJars() {
-		return Collections.emptyList();
-	}
+    @Override
+    public Collection<String> getProvides() {
+        return parent.getProvides();
+    }
 
-	@Override
-	public Collection<String> getMixinConfigs(EnvType type) {
-		return Collections.emptyList();
-	}
+    @Override
+    public int getSchemaVersion() {
+        return Integer.MAX_VALUE;
+    }
 
-	@Override
-	public String getClassTweaker() {
-		return null;
-	}
+    @Override
+    public String getType() {
+        return parent.getType();
+    }
 
-	@Override
-	public boolean loadsInEnvironment(EnvType type) {
-		return true;
-	}
+    @Override
+    public Version getVersion() {
+        return version;
+    }
 
-	@Override
-	public List<EntrypointMetadata> getEntrypoints(String type) {
-		return Collections.emptyList();
-	}
+    @Override
+    public boolean loadsInEnvironment(EnvType type) {
+        return true;
+    }
 
-	@Override
-	public Collection<String> getEntrypointKeys() {
-		return Collections.emptyList();
-	}
+    @Override
+    public void setDependencies(Collection<ModDependency> dependencies) {
+        this.dependencies = Collections.unmodifiableCollection(dependencies);
+    }
 
-	@Override
-	public void emitFormatWarnings() { }
+    @Override
+    public void setVersion(Version version) {
+        this.version = version;
+    }
 }

@@ -36,7 +36,6 @@ package dev.aoqia.leaf.loader.api.metadata;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 import dev.aoqia.leaf.loader.api.Version;
 
@@ -44,121 +43,134 @@ import dev.aoqia.leaf.loader.api.Version;
  * The metadata of a mod.
  */
 public interface ModMetadata {
-	/**
-	 * Returns the type of the mod.
-	 *
-	 * <p>The types may be {@code fabric} or {@code builtin} by default.</p>
-	 *
-	 * @return the type of the mod
-	 */
-	String getType();
+    /**
+     * Returns if the mod's {@code leaf.mod.json} declares a custom value under {@code key}.
+     *
+     * @param key the key
+     * @return whether a custom value is present
+     */
+    boolean containsCustomValue(String key);
 
-	// When adding getters, follow the order as presented on the wiki.
-	// No defaults.
+    // When adding getters, follow the order as presented on the wiki.
+    // No defaults.
 
-	/**
-	 * Returns the mod's ID.
-	 *
-	 * <p>A mod's id must have only lowercase letters, digits, {@code -}, or {@code _}.</p>
-	 *
-	 * @return the mod's ID.
-	 */
-	String getId();
+    /**
+     * Returns the mod's authors.
+     */
+    Collection<Person> getAuthors();
 
-	/**
-	 * Returns the mod's ID provides.
-	 *
-	 * <p>The aliases follow the same rules as ID</p>
-	 *
-	 * @return the mod's ID provides
-	 */
-	Collection<String> getProvides();
+    /**
+     * Returns the mod's contact information.
+     */
+    ContactInformation getContact();
 
-	/**
-	 * Returns the mod's version.
-	 */
-	Version getVersion();
+    /**
+     * Returns the mod's contributors.
+     */
+    Collection<Person> getContributors();
 
-	/**
-	 * Returns the mod's environment.
-	 */
-	ModEnvironment getEnvironment();
+    /**
+     * Returns the mod's {@code leaf.mod.json} declared custom value under {@code key}.
+     *
+     * @param key the key
+     * @return the custom value, or {@code null} if no such value is present
+     */
+    /* @Nullable */
+    CustomValue getCustomValue(String key);
 
-	/**
-	 * Returns all the mod's dependencies.
-	 */
-	Collection<ModDependency> getDependencies();
+    /**
+     * Gets all custom values defined by this mod.
+     *
+     * <p>
+     * Note this map is unmodifiable.
+     *
+     * @return a map containing the custom values this mod defines.
+     */
+    Map<String, CustomValue> getCustomValues();
 
-	/**
-	 * Returns the mod's display name.
-	 */
-	String getName();
+    /**
+     * Returns all the mod's dependencies.
+     */
+    Collection<ModDependency> getDependencies();
 
-	/**
-	 * Returns the mod's description.
-	 */
-	String getDescription();
+    /**
+     * Returns the mod's description.
+     */
+    String getDescription();
 
-	/**
-	 * Returns the mod's authors.
-	 */
-	Collection<Person> getAuthors();
+    /**
+     * Returns the mod's environment.
+     */
+    ModEnvironment getEnvironment();
 
-	/**
-	 * Returns the mod's contributors.
-	 */
-	Collection<Person> getContributors();
+    /**
+     * Gets the path to an icon.
+     *
+     * <p>
+     * The standard defines icons as square .PNG files, however their
+     * dimensions are not defined - in particular, they are not
+     * guaranteed to be a power of two.
+     * </p>
+     *
+     * <p>
+     * The preferred size is used in the following manner:
+     * <ul>
+     * <li>the smallest image larger than or equal to the size
+     * is returned, if one is present;</li>
+     * <li>failing that, the largest image is returned.</li>
+     * </ul>
+     * </p>
+     *
+     * @param size the preferred size
+     * @return the icon path, if any
+     */
+    Optional<String> getIconPath(int size);
 
-	/**
-	 * Returns the mod's contact information.
-	 */
-	ContactInformation getContact();
+    /**
+     * Returns the mod's ID.
+     *
+     * <p>
+     * A mod's id must have only lowercase letters, digits, {@code -}, or {@code _}.
+     * </p>
+     *
+     * @return the mod's ID.
+     */
+    String getId();
 
-	/**
-	 * Returns the mod's licenses.
-	 */
-	Collection<String> getLicense();
+    /**
+     * Returns the mod's licenses.
+     */
+    Collection<String> getLicense();
 
-	/**
-	 * Gets the path to an icon.
-	 *
-	 * <p>The standard defines icons as square .PNG files, however their
-	 * dimensions are not defined - in particular, they are not
-	 * guaranteed to be a power of two.</p>
-	 *
-	 * <p>The preferred size is used in the following manner:
-	 * <ul><li>the smallest image larger than or equal to the size
-	 * is returned, if one is present;</li>
-	 * <li>failing that, the largest image is returned.</li></ul></p>
-	 *
-	 * @param size the preferred size
-	 * @return the icon path, if any
-	 */
-	Optional<String> getIconPath(int size);
+    /**
+     * Returns the mod's display name.
+     */
+    String getName();
 
-	/**
-	 * Returns if the mod's {@code leaf.mod.json} declares a custom value under {@code key}.
-	 *
-	 * @param key the key
-	 * @return whether a custom value is present
-	 */
-	boolean containsCustomValue(String key);
+    /**
+     * Returns the mod's ID provides.
+     *
+     * <p>
+     * The aliases follow the same rules as ID
+     * </p>
+     *
+     * @return the mod's ID provides
+     */
+    Collection<String> getProvides();
 
-	/**
-	 * Returns the mod's {@code leaf.mod.json} declared custom value under {@code key}.
-	 *
-	 * @param key the key
-	 * @return the custom value, or {@code null} if no such value is present
-	 */
-	/* @Nullable */
-	CustomValue getCustomValue(String key);
+    /**
+     * Returns the type of the mod.
+     *
+     * <p>
+     * The types may be {@code fabric} or {@code builtin} by default.
+     * </p>
+     *
+     * @return the type of the mod
+     */
+    String getType();
 
-	/**
-	 * Gets all custom values defined by this mod.
-	 *
-	 * <p>Note this map is unmodifiable.
-	 *
-	 * @return a map containing the custom values this mod defines.
-	 */
-	Map<String, CustomValue> getCustomValues();
+    /**
+     * Returns the mod's version.
+     */
+    Version getVersion();
 }

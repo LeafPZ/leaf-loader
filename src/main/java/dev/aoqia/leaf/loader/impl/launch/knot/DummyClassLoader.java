@@ -38,34 +38,34 @@ import java.net.URL;
 import java.util.Enumeration;
 
 class DummyClassLoader extends ClassLoader {
-	private static final Enumeration<URL> NULL_ENUMERATION = new Enumeration<URL>() {
-		@Override
-		public boolean hasMoreElements() {
-			return false;
-		}
+    private static final Enumeration<URL> NULL_ENUMERATION = new Enumeration<URL>() {
+        @Override
+        public boolean hasMoreElements() {
+            return false;
+        }
 
-		@Override
-		public URL nextElement() {
-			return null;
-		}
-	};
+        @Override
+        public URL nextElement() {
+            return null;
+        }
+    };
 
-	static {
-		registerAsParallelCapable();
-	}
+    static {
+        registerAsParallelCapable();
+    }
 
-	@Override
-	protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
-		throw new ClassNotFoundException(name);
-	}
+    @Override
+    public URL getResource(String name) {
+        return null;
+    }
 
-	@Override
-	public URL getResource(String name) {
-		return null;
-	}
+    @Override
+    public Enumeration<URL> getResources(String var1) throws IOException {
+        return NULL_ENUMERATION;
+    }
 
-	@Override
-	public Enumeration<URL> getResources(String var1) throws IOException {
-		return NULL_ENUMERATION;
-	}
+    @Override
+    protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
+        throw new ClassNotFoundException(name);
+    }
 }

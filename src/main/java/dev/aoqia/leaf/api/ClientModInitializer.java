@@ -38,10 +38,14 @@ import dev.aoqia.leaf.loader.api.LeafLoader;
 /**
  * A mod initializer ran only on {@link EnvType#CLIENT}.
  *
- * <p>This entrypoint is suitable for setting up client-specific logic, such as rendering
- * or integrated server tweaks.</p>
+ * <p>
+ * This entrypoint is suitable for setting up client-specific logic, such as rendering
+ * or integrated server tweaks.
+ * </p>
  *
- * <p>In {@code leaf.mod.json}, the entrypoint is defined with {@code client} key.</p>
+ * <p>
+ * In {@code leaf.mod.json}, the entrypoint is defined with {@code client} key.
+ * </p>
  *
  * @see ModInitializer
  * @see ServerModInitializer
@@ -49,8 +53,8 @@ import dev.aoqia.leaf.loader.api.LeafLoader;
  */
 @FunctionalInterface
 public interface ClientModInitializer {
-	/**
-	 * Runs the mod initializer on the client environment.
-	 */
-	void onInitializeClient();
+    /**
+     * Runs the mod initializer on the client environment.
+     */
+    void onInitializeClient();
 }

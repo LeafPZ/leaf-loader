@@ -39,66 +39,66 @@ import java.util.function.Supplier;
 import dev.aoqia.leaf.loader.api.MappingResolver;
 
 public class LazyMappingResolver implements MappingResolver {
-	private final Supplier<MappingResolver> delegateSupplier;
-	private final String currentRuntimeNamespace;
+    private final Supplier<MappingResolver> delegateSupplier;
+    private final String currentRuntimeNamespace;
 
-	private MappingResolver delegate = null;
+    private MappingResolver delegate = null;
 
-	LazyMappingResolver(Supplier<MappingResolver> delegateSupplier, String currentRuntimeNamespace) {
-		this.delegateSupplier = delegateSupplier;
-		this.currentRuntimeNamespace = currentRuntimeNamespace;
-	}
+    LazyMappingResolver(Supplier<MappingResolver> delegateSupplier, String currentRuntimeNamespace) {
+        this.delegateSupplier = delegateSupplier;
+        this.currentRuntimeNamespace = currentRuntimeNamespace;
+    }
 
-	private MappingResolver getDelegate() {
-		if (delegate == null) {
-			delegate = delegateSupplier.get();
-		}
+    @Override
+    public String getCurrentRuntimeNamespace() {
+        return currentRuntimeNamespace;
+    }
 
-		return delegate;
-	}
+    @Override
+    public Collection<String> getNamespaces() {
+        return getDelegate().getNamespaces();
+    }
 
-	@Override
-	public Collection<String> getNamespaces() {
-		return getDelegate().getNamespaces();
-	}
+    @Override
+    public String mapClassName(String namespace, String className) {
+        if (namespace.equals(currentRuntimeNamespace)) {
+            // Skip loading the mappings if the namespace is the same as the current runtime namespace
+            return className;
+        }
 
-	@Override
-	public String getCurrentRuntimeNamespace() {
-		return currentRuntimeNamespace;
-	}
+        return getDelegate().mapClassName(namespace, className);
+    }
 
-	@Override
-	public String mapClassName(String namespace, String className) {
-		if (namespace.equals(currentRuntimeNamespace)) {
-			// Skip loading the mappings if the namespace is the same as the current runtime namespace
-			return className;
-		}
+    @Override
+    public String mapFieldName(String namespace, String owner, String name, String descriptor) {
+        if (namespace.equals(currentRuntimeNamespace)) {
+            // Skip loading the mappings if the namespace is the same as the current runtime namespace
+            return name;
+        }
 
-		return getDelegate().mapClassName(namespace, className);
-	}
+        return getDelegate().mapFieldName(namespace, owner, name, descriptor);
+    }
 
-	@Override
-	public String unmapClassName(String targetNamespace, String className) {
-		return getDelegate().unmapClassName(targetNamespace, className);
-	}
+    @Override
+    public String mapMethodName(String namespace, String owner, String name, String descriptor) {
+        if (namespace.equals(currentRuntimeNamespace)) {
+            // Skip loading the mappings if the namespace is the same as the current runtime namespace
+            return name;
+        }
 
-	@Override
-	public String mapFieldName(String namespace, String owner, String name, String descriptor) {
-		if (namespace.equals(currentRuntimeNamespace)) {
-			// Skip loading the mappings if the namespace is the same as the current runtime namespace
-			return name;
-		}
+        return getDelegate().mapMethodName(namespace, owner, name, descriptor);
+    }
 
-		return getDelegate().mapFieldName(namespace, owner, name, descriptor);
-	}
+    @Override
+    public String unmapClassName(String targetNamespace, String className) {
+        return getDelegate().unmapClassName(targetNamespace, className);
+    }
 
-	@Override
-	public String mapMethodName(String namespace, String owner, String name, String descriptor) {
-		if (namespace.equals(currentRuntimeNamespace)) {
-			// Skip loading the mappings if the namespace is the same as the current runtime namespace
-			return name;
-		}
+    private MappingResolver getDelegate() {
+        if (delegate == null) {
+            delegate = delegateSupplier.get();
+        }
 
-		return getDelegate().mapMethodName(namespace, owner, name, descriptor);
-	}
+        return delegate;
+    }
 }

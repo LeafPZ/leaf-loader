@@ -36,18 +36,18 @@ package dev.aoqia.leaf.loader.impl.launch.knot;
 import org.spongepowered.asm.service.IMixinServiceBootstrap;
 
 public class MixinServiceKnotBootstrap implements IMixinServiceBootstrap {
-	@Override
-	public String getName() {
-		return "Knot";
-	}
+    @Override
+    public void bootstrap() {
+        // already done in Knot
+    }
 
-	@Override
-	public String getServiceClassName() {
-		return "dev.aoqia.leaf.loader.impl.launch.knot.MixinServiceKnot";
-	}
+    @Override
+    public String getName() {
+        return "Knot";
+    }
 
-	@Override
-	public void bootstrap() {
-		// already done in Knot
-	}
+    @Override
+    public String getServiceClassName() {
+        return "dev.aoqia.leaf.loader.impl.launch.knot.MixinServiceKnot";
+    }
 }

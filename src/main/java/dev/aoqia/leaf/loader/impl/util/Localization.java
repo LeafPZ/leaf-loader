@@ -43,50 +43,53 @@ import java.util.PropertyResourceBundle;
 import java.util.ResourceBundle;
 
 public final class Localization {
-	public static final ResourceBundle BUNDLE = createBundle("dev.aoqia.leaf.loader.Messages", Locale.getDefault());
-	public static final ResourceBundle ROOT_LOCALE_BUNDLE = createBundle("dev.aoqia.leaf.loader.Messages", Locale.ROOT);
+    public static final ResourceBundle BUNDLE = createBundle("dev.aoqia.leaf.loader.Messages", Locale.getDefault());
+    public static final ResourceBundle ROOT_LOCALE_BUNDLE = createBundle("dev.aoqia.leaf.loader.Messages", Locale.ROOT);
 
-	public static String format(String key, Object... args) {
-		String pattern = BUNDLE.getString(key);
+    public static String format(String key, Object... args) {
+        String pattern = BUNDLE.getString(key);
 
-		if (args.length == 0) {
-			return pattern;
-		} else {
-			return MessageFormat.format(pattern, args);
-		}
-	}
+        if (args.length == 0) {
+            return pattern;
+        } else {
+            return MessageFormat.format(pattern, args);
+        }
+    }
 
-	public static String formatRoot(String key, Object... args) {
-		String pattern = ROOT_LOCALE_BUNDLE.getString(key);
+    public static String formatRoot(String key, Object... args) {
+        String pattern = ROOT_LOCALE_BUNDLE.getString(key);
 
-		if (args.length == 0) {
-			return pattern;
-		} else {
-			return MessageFormat.format(pattern, args);
-		}
-	}
+        if (args.length == 0) {
+            return pattern;
+        } else {
+            return MessageFormat.format(pattern, args);
+        }
+    }
 
-	private static ResourceBundle createBundle(String name, Locale locale) {
-		if (System.getProperty("java.version", "").startsWith("1.")) { // below java 9
-			return ResourceBundle.getBundle(name, locale, new ResourceBundle.Control() {
-				@Override
-				public ResourceBundle newBundle(String baseName, Locale locale, String format, ClassLoader loader, boolean reload)
-						throws IllegalAccessException, InstantiationException, IOException {
-					if (format.equals("java.properties")) {
-						InputStream is = loader.getResourceAsStream(toResourceName(toBundleName(baseName, locale), "properties"));
+    private static ResourceBundle createBundle(String name, Locale locale) {
+        if (System.getProperty("java.version", "").startsWith("1.")) { // below java 9
+            return ResourceBundle.getBundle(name, locale, new ResourceBundle.Control() {
+                @Override
+                public ResourceBundle newBundle(String baseName, Locale locale, String format, ClassLoader loader,
+                    boolean reload)
+                    throws IllegalAccessException, InstantiationException, IOException
+                {
+                    if (format.equals("java.properties")) {
+                        InputStream is = loader.getResourceAsStream(toResourceName(toBundleName(baseName, locale),
+                            "properties"));
 
-						if (is != null) {
-							try (InputStreamReader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
-								return new PropertyResourceBundle(reader);
-							}
-						}
-					}
+                        if (is != null) {
+                            try (InputStreamReader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
+                                return new PropertyResourceBundle(reader);
+                            }
+                        }
+                    }
 
-					return super.newBundle(baseName, locale, format, loader, reload);
-				};
-			});
-		} else { // java 9 and later
-			return ResourceBundle.getBundle(name, locale);
-		}
-	}
+                    return super.newBundle(baseName, locale, format, loader, reload);
+                };
+            });
+        } else { // java 9 and later
+            return ResourceBundle.getBundle(name, locale);
+        }
+    }
 }

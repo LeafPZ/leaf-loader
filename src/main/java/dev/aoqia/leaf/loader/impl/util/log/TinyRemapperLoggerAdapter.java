@@ -36,27 +36,27 @@ package dev.aoqia.leaf.loader.impl.util.log;
 import net.fabricmc.tinyremapper.api.TrLogger;
 
 public final class TinyRemapperLoggerAdapter implements TrLogger {
-	private final LogCategory category;
+    private final LogCategory category;
 
-	public TinyRemapperLoggerAdapter(LogCategory category) {
-		this.category = category;
-	}
+    public TinyRemapperLoggerAdapter(LogCategory category) {
+        this.category = category;
+    }
 
-	@Override
-	public void log(Level level, String message) {
-		switch (level) {
-		case ERROR:
-			Log.error(category, message);
-			break;
-		case WARN:
-			Log.warn(category, message);
-			break;
-		case INFO:
-			Log.info(category, message);
-			break;
-		case DEBUG:
-			Log.debug(category, message);
-			break;
-		}
-	}
+    @Override
+    public void log(Level level, String message) {
+        switch (level) {
+            case ERROR:
+                Log.error(category, message);
+                break;
+            case WARN:
+                Log.warn(category, message);
+                break;
+            case INFO:
+                Log.info(category, message);
+                break;
+            case DEBUG:
+                Log.debug(category, message);
+                break;
+        }
+    }
 }

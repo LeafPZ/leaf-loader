@@ -43,46 +43,50 @@ import dev.aoqia.leaf.loader.impl.util.SystemProperties;
 import dev.aoqia.leaf.loader.impl.util.version.VersionParser;
 
 public final class VersionOverrides {
-	private final Map<String, Version> replacements = new HashMap<>();
+    private final Map<String, Version> replacements = new HashMap<>();
 
-	public VersionOverrides() {
-		String property = System.getProperty(SystemProperties.DEBUG_REPLACE_VERSION);
-		if (property == null) return;
+    public VersionOverrides() {
+        String property = System.getProperty(SystemProperties.DEBUG_REPLACE_VERSION);
+        if (property == null)
+            return;
 
-		for (String entry : property.split(",")) {
-			int pos = entry.indexOf(":");
-			if (pos <= 0 || pos >= entry.length() - 1) throw new RuntimeException("invalid version replacement entry: "+entry);
+        for (String entry : property.split(",")) {
+            int pos = entry.indexOf(':');
+            if (pos <= 0 || pos >= entry.length() - 1)
+                throw new RuntimeException("invalid version replacement entry: " + entry);
 
-			String id = entry.substring(0, pos);
-			String rawVersion = entry.substring(pos + 1);
-			Version version;
+            String id = entry.substring(0, pos);
+            String rawVersion = entry.substring(pos + 1);
+            Version version;
 
-			// Small patch to fix development versions not launching in IDE.
-			if (id.equals("leafloader") && rawVersion.contains(".local")) {
-				rawVersion = rawVersion.replace(".local", "");
-			}
+            // Small patch to fix development versions not launching in IDE.
+            if (id.equals("leafloader") && rawVersion.contains(".local")) {
+                rawVersion = rawVersion.replace(".local", "");
+            }
 
-			try {
-				version = VersionParser.parse(rawVersion, false);
-			} catch (VersionParsingException e) {
-				throw new RuntimeException(String.format("Invalid replacement version for mod %s: %s", id, rawVersion), e);
-			}
+            try {
+                version = VersionParser.parse(rawVersion, false);
+            } catch (VersionParsingException e) {
+                throw new RuntimeException(String.format("Invalid replacement version for mod %s: %s", id, rawVersion),
+                    e);
+            }
 
-			replacements.put(id, version);
-		}
-	}
+            replacements.put(id, version);
+        }
+    }
 
-	public void apply(LoaderModMetadata metadata) {
-		if (replacements.isEmpty()) return;
+    public void apply(LoaderModMetadata metadata) {
+        if (replacements.isEmpty())
+            return;
 
-		Version replacement = replacements.get(metadata.getId());
+        Version replacement = replacements.get(metadata.getId());
 
-		if (replacement != null) {
-			metadata.setVersion(replacement);
-		}
-	}
+        if (replacement != null) {
+            metadata.setVersion(replacement);
+        }
+    }
 
-	public Collection<String> getAffectedModIds() {
-		return replacements.keySet();
-	}
+    public Collection<String> getAffectedModIds() {
+        return replacements.keySet();
+    }
 }

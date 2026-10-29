@@ -46,92 +46,93 @@ import dev.aoqia.leaf.loader.api.metadata.version.VersionPredicate;
  * Represents a dependency.
  */
 public interface ModDependency {
-	/**
-	 * Get the kind of dependency.
-	 */
-	Kind getKind();
+    /**
+     * Get the kind of dependency.
+     */
+    Kind getKind();
 
-	/**
-	 * Returns the ID of the mod to check.
-	 */
-	String getModId();
+    /**
+     * Returns the ID of the mod to check.
+     */
+    String getModId();
 
-	/**
-	 * Returns if the version fulfills this dependency's version requirement.
-	 *
-	 * @param version the version to check
-	 */
-	boolean matches(Version version);
+    /**
+     * Returns the version intervals covered by the dependency's version requirements.
+     *
+     * <p>
+     * There may be multiple because the allowed range may not be consecutive.
+     */
+    List<VersionInterval> getVersionIntervals();
 
-	/**
-	 * Returns a representation of the dependency's version requirements.
-	 *
-	 * @return representation of the dependency's version requirements
-	 */
-	Collection<VersionPredicate> getVersionRequirements();
+    /**
+     * Returns a representation of the dependency's version requirements.
+     *
+     * @return representation of the dependency's version requirements
+     */
+    Collection<VersionPredicate> getVersionRequirements();
 
-	/**
-	 * Returns the version intervals covered by the dependency's version requirements.
-	 *
-	 * <p>There may be multiple because the allowed range may not be consecutive.
-	 */
-	List<VersionInterval> getVersionIntervals();
+    /**
+     * Returns if the version fulfills this dependency's version requirement.
+     *
+     * @param version the version to check
+     */
+    boolean matches(Version version);
 
-	enum Kind {
-		DEPENDS("depends", true, false),
-		RECOMMENDS("recommends", true, true),
-		SUGGESTS("suggests", true, true),
-		CONFLICTS("conflicts", false, true),
-		BREAKS("breaks", false, false);
+    enum Kind {
+        DEPENDS("depends", true, false),
+        RECOMMENDS("recommends", true, true),
+        SUGGESTS("suggests", true, true),
+        CONFLICTS("conflicts", false, true),
+        BREAKS("breaks", false, false);
 
-		private static final Map<String, Kind> map = createMap();
-		private final String key;
-		private final boolean positive;
-		private final boolean soft;
+        private static final Map<String, Kind> map = createMap();
+        private final String key;
+        private final boolean positive;
+        private final boolean soft;
 
-		Kind(String key, boolean positive, boolean soft) {
-			this.key = key;
-			this.positive = positive;
-			this.soft = soft;
-		}
+        Kind(String key, boolean positive, boolean soft) {
+            this.key = key;
+            this.positive = positive;
+            this.soft = soft;
+        }
 
-		/**
-		 * Get the key for the dependency as used by leaf.mod.json (v1+) and dependency overrides.
-		 */
-		public String getKey() {
-			return key;
-		}
+        /**
+         * Parse a dependency kind from its key as provided by {@link #getKey}.
+         */
+        public static Kind parse(String key) {
+            return map.get(key);
+        }
 
-		/**
-		 * Get whether the dependency is positive, encouraging the inclusion of a mod instead of negative/discouraging.
-		 */
-		public boolean isPositive() {
-			return positive;
-		}
+        private static Map<String, Kind> createMap() {
+            Kind[] values = values();
+            Map<String, Kind> ret = new HashMap<>(values.length);
 
-		/**
-		 * Get whether it is a soft dependency, allowing the mod to still load if the dependency is unmet.
-		 */
-		public boolean isSoft() {
-			return soft;
-		}
+            for (Kind kind : values) {
+                ret.put(kind.key, kind);
+            }
 
-		/**
-		 * Parse a dependency kind from its key as provided by {@link #getKey}.
-		 */
-		public static Kind parse(String key) {
-			return map.get(key);
-		}
+            return ret;
+        }
 
-		private static Map<String, Kind> createMap() {
-			Kind[] values = values();
-			Map<String, Kind> ret = new HashMap<>(values.length);
+        /**
+         * Get the key for the dependency as used by leaf.mod.json (v1+) and dependency overrides.
+         */
+        public String getKey() {
+            return key;
+        }
 
-			for (Kind kind : values) {
-				ret.put(kind.key, kind);
-			}
+        /**
+         * Get whether the dependency is positive, encouraging the inclusion of a mod instead of negative/discouraging.
+         */
+        public boolean isPositive() {
+            return positive;
+        }
 
-			return ret;
-		}
-	}
+        /**
+         * Get whether it is a soft dependency, allowing the mod to still load if the dependency is unmet.
+         */
+        public boolean isSoft() {
+            return soft;
+        }
+    }
 }

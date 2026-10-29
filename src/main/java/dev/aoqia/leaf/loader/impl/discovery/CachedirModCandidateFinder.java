@@ -1,3 +1,21 @@
+/*
+ * Copyright (C) 2026 aoqia
+ *
+ * This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General
+ * Public License as published by the Free Software Foundation, either version 3 of the License, or any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied
+ * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+ * details.
+ *
+ * You should have received a copy of the GNU Affero General Public License along with this program. If not,
+ * see <https://www.gnu.org/licenses/>.
+ *
+ * This license and file are additionally subjected to the exceptions described in LICENSE_EXCEPTION.md.
+ *
+ * The exceptions permit independent software to use this project as a dependency under terms of its own choosing, but
+ * does not permit the copying or incorporation of covered source code into another work outside the terms of the AGPL.
+ */
 package dev.aoqia.leaf.loader.impl.discovery;
 
 import java.io.File;
@@ -68,7 +86,8 @@ public class CachedirModCandidateFinder implements ModCandidateFinder {
             // mods folder
             if (this.cacheDir.resolve("mods").toFile().exists()) {
                 try (DirectoryStream<Path> stream = Files.newDirectoryStream(this.cacheDir.resolve("mods"),
-                    Files::isDirectory)) {
+                    Files::isDirectory))
+                {
                     findModsInModRoot(out, stream, ModSource.CACHEDIR);
                 }
             }
@@ -76,7 +95,8 @@ public class CachedirModCandidateFinder implements ModCandidateFinder {
             // Workshop folder
             if (this.cacheDir.resolve("Workshop").toFile().exists()) {
                 try (DirectoryStream<Path> stream = Files.newDirectoryStream(this.cacheDir.resolve("Workshop"),
-                    Files::isDirectory)) {
+                    Files::isDirectory))
+                {
                     for (Path rootModFolder : stream) {
                         // If the folder matches the loader mod's internal id, don't discover it
                         // This needs to be done in every candidate finder to prevent problems later on
@@ -100,8 +120,8 @@ public class CachedirModCandidateFinder implements ModCandidateFinder {
         }
     }
 
-    protected void findModsInModRoot(ModCandidateConsumer out, DirectoryStream<Path> stream, ModSource source) throws
-        IOException, VersionParsingException
+    protected void findModsInModRoot(ModCandidateConsumer out, DirectoryStream<Path> stream, ModSource source)
+        throws IOException, VersionParsingException
     {
         for (Path path : stream) {
             // If the folder matches the loader mod's internal id, don't discover it
@@ -130,8 +150,9 @@ public class CachedirModCandidateFinder implements ModCandidateFinder {
             return modPath;
         }
 
-        File[] versionFolders = modPath.toFile().listFiles(f ->
-            f.isDirectory() && (Character.isDigit(f.getName().charAt(0)) || "common".equals(f.getName())));
+        File[] versionFolders = modPath.toFile()
+            .listFiles(f -> f.isDirectory() && (Character.isDigit(f.getName().charAt(0)) || "common".equals(f
+                .getName())));
 
         if (versionFolders == null || versionFolders.length == 0) {
             return modPath;

@@ -34,6 +34,7 @@
 package dev.aoqia.leaf.loader.impl.metadata;
 
 public interface EntrypointMetadata {
-	String getAdapter();
-	String getValue();
+    String getAdapter();
+
+    String getValue();
 }

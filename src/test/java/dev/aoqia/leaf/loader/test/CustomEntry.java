@@ -37,9 +37,9 @@ package dev.aoqia.leaf.loader.test;
  */
 @FunctionalInterface
 public interface CustomEntry {
-	String name();
+    default String describe() {
+        return "Custom entry point \"" + name() + "\"";
+    }
 
-	default String describe() {
-		return "Custom entry point \"" + name() + "\"";
-	}
+    String name();
 }

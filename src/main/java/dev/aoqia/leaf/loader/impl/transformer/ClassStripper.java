@@ -47,86 +47,92 @@ import org.objectweb.asm.Type;
  * Strips the specified interfaces, fields and methods from a class.
  */
 public class ClassStripper extends ClassVisitor {
-	private final Collection<String> stripInterfaces;
-	private final Collection<String> stripFields;
-	private final Collection<String> stripMethods;
-	private String className;
+    private final Collection<String> stripInterfaces;
+    private final Collection<String> stripFields;
+    private final Collection<String> stripMethods;
+    private String className;
 
-	public ClassStripper(int api, ClassVisitor classVisitor, Collection<String> stripInterfaces, Collection<String> stripFields, Collection<String> stripMethods) {
-		super(api, classVisitor);
-		this.stripInterfaces = stripInterfaces;
-		this.stripFields = stripFields;
-		this.stripMethods = stripMethods;
-	}
+    public ClassStripper(int api, ClassVisitor classVisitor, Collection<String> stripInterfaces, Collection<
+        String> stripFields, Collection<String> stripMethods)
+    {
+        super(api, classVisitor);
+        this.stripInterfaces = stripInterfaces;
+        this.stripFields = stripFields;
+        this.stripMethods = stripMethods;
+    }
 
-	@Override
-	public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
-		this.className = name;
+    @Override
+    public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
+        this.className = name;
 
-		if (!this.stripInterfaces.isEmpty()) {
-			List<String> interfacesList = new ArrayList<>();
+        if (!this.stripInterfaces.isEmpty()) {
+            List<String> interfacesList = new ArrayList<>();
 
-			for (String itf : interfaces) {
-				if (!this.stripInterfaces.contains(itf)) {
-					interfacesList.add(itf);
-				}
-			}
+            for (String itf : interfaces) {
+                if (!this.stripInterfaces.contains(itf)) {
+                    interfacesList.add(itf);
+                }
+            }
 
-			interfaces = interfacesList.toArray(new String[0]);
-		}
+            interfaces = interfacesList.toArray(new String[0]);
+        }
 
-		super.visit(version, access, name, signature, superName, interfaces);
-	}
+        super.visit(version, access, name, signature, superName, interfaces);
+    }
 
-	@Override
-	public FieldVisitor visitField(int access, String name, String descriptor, String signature, Object value) {
-		if (stripFields.contains(name + descriptor)) {
-			return null;
-		} else {
-			return super.visitField(access, name, descriptor, signature, value);
-		}
-	}
+    @Override
+    public FieldVisitor visitField(int access, String name, String descriptor, String signature, Object value) {
+        if (stripFields.contains(name + descriptor)) {
+            return null;
+        } else {
+            return super.visitField(access, name, descriptor, signature, value);
+        }
+    }
 
-	@Override
-	public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
-		if (stripMethods.contains(name + descriptor)) {
-			return null;
-		}
+    @Override
+    public MethodVisitor visitMethod(int access, String name, String descriptor, String signature,
+        String[] exceptions)
+    {
+        if (stripMethods.contains(name + descriptor)) {
+            return null;
+        }
 
-		MethodVisitor ret = super.visitMethod(access, name, descriptor, signature, exceptions);
+        MethodVisitor ret = super.visitMethod(access, name, descriptor, signature, exceptions);
 
-		if (stripFields.isEmpty()) {
-			return ret;
-		}
+        if (stripFields.isEmpty()) {
+            return ret;
+        }
 
-		// strip matching field writes from static init and constructor
-		int opcodeToStrip;
-		switch (name) {
-		case "<clinit>":
-			opcodeToStrip = Opcodes.PUTSTATIC;
-			break;
-		case "<init>":
-			opcodeToStrip = Opcodes.PUTFIELD;
-			break;
-		default:
-			return ret;
-		}
+        // strip matching field writes from static init and constructor
+        int opcodeToStrip;
+        switch (name) {
+            case "<clinit>":
+                opcodeToStrip = Opcodes.PUTSTATIC;
+                break;
+            case "<init>":
+                opcodeToStrip = Opcodes.PUTFIELD;
+                break;
+            default:
+                return ret;
+        }
 
-		return new MethodVisitor(api, ret) {
-			@Override
-			public void visitFieldInsn(int opcode, String owner, String name, String descriptor) {
-				if (opcode != opcodeToStrip // ignore irrelevant insns
-						|| !owner.equals(className) // ignore writes to other classes
-						|| !stripFields.contains(name + descriptor)) { // ignore non-stripped fields
-					super.visitFieldInsn(opcode, owner, name, descriptor);
-				} else {
-					super.visitInsn(Type.getType(descriptor).getSize() == 2 ? Opcodes.POP2 : Opcodes.POP); // pop field value
+        return new MethodVisitor(api, ret) {
+            @Override
+            public void visitFieldInsn(int opcode, String owner, String name, String descriptor) {
+                if (opcode != opcodeToStrip // ignore irrelevant insns
+                    || !owner.equals(className) // ignore writes to other classes
+                    || !stripFields.contains(name + descriptor))
+                { // ignore non-stripped fields
+                    super.visitFieldInsn(opcode, owner, name, descriptor);
+                } else {
+                    super.visitInsn(Type.getType(descriptor).getSize() == 2 ? Opcodes.POP2 : Opcodes.POP); // pop field
+                                                                                                           // value
 
-					if (opcode == Opcodes.PUTFIELD) {
-						super.visitInsn(Opcodes.POP); // pop this
-					}
-				}
-			}
-		};
-	}
+                    if (opcode == Opcodes.PUTFIELD) {
+                        super.visitInsn(Opcodes.POP); // pop this
+                    }
+                }
+            }
+        };
+    }
 }

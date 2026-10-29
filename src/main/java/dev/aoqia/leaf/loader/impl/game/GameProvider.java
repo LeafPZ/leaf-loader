@@ -51,83 +51,99 @@ import dev.aoqia.leaf.loader.impl.util.SystemProperties;
 
 // name directly referenced in dev.aoqia.leaf.loader.impl.launch.knot.Knot.findEmbedddedGameProvider() and service loader records
 public interface GameProvider {
-	String getGameId();
-	String getGameName();
-	String getRawGameVersion();
-	String getNormalizedGameVersion();
+    default boolean canOpenErrorGui() {
+        return true;
+    }
 
-	default SemanticVersion getSemverGameVersion() {
-		try {
-			return SemanticVersion.parse(getNormalizedGameVersion());
-		} catch (VersionParsingException e) {
-			throw new RuntimeException("Failed to get normalized game version as SemanticVersion");
-		}
-	}
+    default boolean displayCrash(Throwable exception, String context) {
+        return false;
+    }
 
-	Collection<BuiltinMod> getBuiltinMods();
+    Arguments getArguments();
 
-	String getEntrypoint();
-	Path getLaunchDirectory();
-	boolean requiresUrlClassLoader();
-	Set<BuiltinTransform> getBuiltinTransforms(String className);
+    Collection<BuiltinMod> getBuiltinMods();
 
-	enum BuiltinTransform {
-		/**
-		 * Removes classes, fields and methods annotated with a different {@literal @}{@link Environment} from the current runtime.
-		 */
-		STRIP_ENVIRONMENT,
-		/**
-		 * Widens all package-internal access modifiers to public (protected and package-private, but not private).
-		 *
-		 * <p>This only has an effect if the mappings or {@link SystemProperties#FIX_PACKAGE_ACCESS} require these access modifications.
-		 */
-		WIDEN_ALL_PACKAGE_ACCESS,
-		/**
-		 * Applies class tweakers, including access wideners, as supplied by mods.
-		 */
-		CLASS_TWEAKS,
-	}
+    Set<BuiltinTransform> getBuiltinTransforms(String className);
 
-	boolean isEnabled();
-	boolean locateGame(LeafLauncher launcher, String[] args);
-	void initialize(LeafLauncher launcher);
-	GameTransformer getEntrypointTransformer();
-	void unlockClassPath(LeafLauncher launcher);
-	void launch(ClassLoader loader);
+    default String getDefaultModDistributionNamespace(String defaultNs) {
+        return defaultNs;
+    }
 
-	default boolean displayCrash(Throwable exception, String context) {
-		return false;
-	}
+    String getEntrypoint();
 
-	Arguments getArguments();
-	String[] getLaunchArguments(boolean sanitize);
+    GameTransformer getEntrypointTransformer();
 
-	default String getRuntimeNamespace(String defaultNs) {
-		return defaultNs;
-	}
+    String getGameId();
 
-	default String getDefaultModDistributionNamespace(String defaultNs) {
-		return defaultNs;
-	}
+    String getGameName();
 
-	default boolean canOpenErrorGui() {
-		return true;
-	}
+    String[] getLaunchArguments(boolean sanitize);
 
-	default boolean hasAwtSupport() {
-		return LoaderUtil.hasAwtSupport();
-	}
+    Path getLaunchDirectory();
 
-	class BuiltinMod {
-		public BuiltinMod(List<Path> paths, ModMetadata metadata) {
-			Objects.requireNonNull(paths, "null paths");
-			Objects.requireNonNull(metadata, "null metadata");
+    String getNormalizedGameVersion();
 
-			this.paths = paths;
-			this.metadata = metadata;
-		}
+    String getRawGameVersion();
 
-		public final List<Path> paths;
-		public final ModMetadata metadata;
-	}
+    default String getRuntimeNamespace(String defaultNs) {
+        return defaultNs;
+    }
+
+    default SemanticVersion getSemverGameVersion() {
+        try {
+            return SemanticVersion.parse(getNormalizedGameVersion());
+        } catch (VersionParsingException e) {
+            throw new RuntimeException("Failed to get normalized game version as SemanticVersion");
+        }
+    }
+
+    default boolean hasAwtSupport() {
+        return LoaderUtil.hasAwtSupport();
+    }
+
+    void initialize(LeafLauncher launcher);
+
+    boolean isEnabled();
+
+    void launch(ClassLoader loader);
+
+    boolean locateGame(LeafLauncher launcher, String[] args);
+
+    boolean requiresUrlClassLoader();
+
+    void unlockClassPath(LeafLauncher launcher);
+
+    class BuiltinMod {
+        public final List<Path> paths;
+
+        public final ModMetadata metadata;
+
+        public BuiltinMod(List<Path> paths, ModMetadata metadata) {
+            Objects.requireNonNull(paths, "null paths");
+            Objects.requireNonNull(metadata, "null metadata");
+
+            this.paths = paths;
+            this.metadata = metadata;
+        }
+    }
+
+    enum BuiltinTransform {
+        /**
+         * Removes classes, fields and methods annotated with a different {@literal @}{@link Environment} from the
+         * current runtime.
+         */
+        STRIP_ENVIRONMENT,
+        /**
+         * Widens all package-internal access modifiers to public (protected and package-private, but not private).
+         *
+         * <p>
+         * This only has an effect if the mappings or {@link SystemProperties#FIX_PACKAGE_ACCESS} require these access
+         * modifications.
+         */
+        WIDEN_ALL_PACKAGE_ACCESS,
+        /**
+         * Applies class tweakers, including access wideners, as supplied by mods.
+         */
+        CLASS_TWEAKS,
+    }
 }

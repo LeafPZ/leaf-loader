@@ -63,216 +63,226 @@ import dev.aoqia.leaf.loader.impl.launch.LeafLauncherBase;
 import dev.aoqia.leaf.loader.impl.launch.LeafMixinVersions;
 import dev.aoqia.leaf.loader.impl.util.UrlUtil;
 
-public class MixinServiceKnot implements IMixinService, IClassProvider, IClassBytecodeProvider, ITransformerProvider, IClassTracker {
-	static IMixinTransformer transformer;
+public class MixinServiceKnot implements IMixinService, IClassProvider, IClassBytecodeProvider, ITransformerProvider,
+    IClassTracker
+{
+    static IMixinTransformer transformer;
 
-	private final ReEntranceLock lock;
+    private final ReEntranceLock lock;
 
-	public MixinServiceKnot() {
-		lock = new ReEntranceLock(1);
-	}
+    public MixinServiceKnot() {
+        lock = new ReEntranceLock(1);
+    }
 
-	public byte[] getClassBytes(String name, String transformedName) throws IOException {
-		return LeafLauncherBase.getLauncher().getClassByteArray(name, true);
-	}
+    static IMixinTransformer getTransformer() {
+        return transformer;
+    }
 
-	public byte[] getClassBytes(String name, boolean runTransformers) throws ClassNotFoundException, IOException {
-		byte[] classBytes = LeafLauncherBase.getLauncher().getClassByteArray(name, runTransformers);
+    @Override
+    public void addTransformerExclusion(String name) {
+    }
 
-		if (classBytes != null) {
-			return classBytes;
-		} else {
-			throw new ClassNotFoundException(name);
-		}
-	}
+    @Override
+    public void beginPhase() {
+    }
 
-	@Override
-	public ClassNode getClassNode(String name) throws ClassNotFoundException, IOException {
-		return getClassNode(name, true);
-	}
+    @Override
+    public void checkEnv(Object bootSource) {
+    }
 
-	@Override
-	public ClassNode getClassNode(String name, boolean runTransformers) throws ClassNotFoundException, IOException {
-		return getClassNode(name, runTransformers, 0);
-	}
+    @Override
+    public Class<?> findAgentClass(String name, boolean initialize) throws ClassNotFoundException {
+        return Class.forName(name, initialize, Knot.class.getClassLoader());
+    }
 
-	@Override
-	public ClassNode getClassNode(String name, boolean runTransformers, int readerFlags) throws ClassNotFoundException, IOException {
-		ClassReader reader = new ClassReader(getClassBytes(name, runTransformers));
-		ClassNode node = new ClassNode();
-		reader.accept(node, readerFlags);
-		return node;
-	}
+    @Override
+    public Class<?> findClass(String name) throws ClassNotFoundException {
+        return LeafLauncherBase.getLauncher().getTargetClassLoader().loadClass(name);
+    }
 
-	@Override
-	public URL[] getClassPath() {
-		// Mixin 0.7.x only uses getClassPath() to find itself; we implement CodeSource correctly,
-		// so this is unnecessary.
-		return new URL[0];
-	}
+    @Override
+    public Class<?> findClass(String name, boolean initialize) throws ClassNotFoundException {
+        return Class.forName(name, initialize, LeafLauncherBase.getLauncher().getTargetClassLoader());
+    }
 
-	@Override
-	public Class<?> findClass(String name) throws ClassNotFoundException {
-		return LeafLauncherBase.getLauncher().getTargetClassLoader().loadClass(name);
-	}
+    @Override
+    public IAdviceProvider getAdviceProvider() {
+        return new IAdviceProvider() {
+            @Override
+            public String higherCompatibilityNeeded(int requiredCompatibility, String requiredCompatibilityString) {
+                return "Increase your Leaf Loader dependency to at least " + LeafMixinVersions.getMinLoaderVersion(
+                    requiredCompatibility);
+            }
+        };
+    }
 
-	@Override
-	public Class<?> findClass(String name, boolean initialize) throws ClassNotFoundException {
-		return Class.forName(name, initialize, LeafLauncherBase.getLauncher().getTargetClassLoader());
-	}
+    @Override
+    public IMixinAuditTrail getAuditTrail() {
+        return null;
+    }
 
-	@Override
-	public Class<?> findAgentClass(String name, boolean initialize) throws ClassNotFoundException {
-		return Class.forName(name, initialize, Knot.class.getClassLoader());
-	}
+    @Override
+    public IClassBytecodeProvider getBytecodeProvider() {
+        return this;
+    }
 
-	@Override
-	public String getName() {
-		return LeafLauncherBase.getLauncher() instanceof Knot ? "Knot/Leaf" : "Launchwrapper/Leaf";
-	}
+    public byte[] getClassBytes(String name, boolean runTransformers) throws ClassNotFoundException, IOException {
+        byte[] classBytes = LeafLauncherBase.getLauncher().getClassByteArray(name, runTransformers);
 
-	@Override
-	public boolean isValid() {
-		return true;
-	}
+        if (classBytes != null) {
+            return classBytes;
+        } else {
+            throw new ClassNotFoundException(name);
+        }
+    }
 
-	@Override
-	public void prepare() { }
+    public byte[] getClassBytes(String name, String transformedName) throws IOException {
+        return LeafLauncherBase.getLauncher().getClassByteArray(name, true);
+    }
 
-	@Override
-	public MixinEnvironment.Phase getInitialPhase() {
-		return MixinEnvironment.Phase.PREINIT;
-	}
+    @Override
+    public ClassNode getClassNode(String name) throws ClassNotFoundException, IOException {
+        return getClassNode(name, true);
+    }
 
-	@Override
-	public void offer(IMixinInternal internal) {
-		if (internal instanceof IMixinTransformerFactory) {
-			transformer = ((IMixinTransformerFactory) internal).createTransformer();
-		}
-	}
+    @Override
+    public ClassNode getClassNode(String name, boolean runTransformers) throws ClassNotFoundException, IOException {
+        return getClassNode(name, runTransformers, 0);
+    }
 
-	@Override
-	public void init() {
-	}
+    @Override
+    public ClassNode getClassNode(String name, boolean runTransformers, int readerFlags) throws ClassNotFoundException,
+        IOException
+    {
+        ClassReader reader = new ClassReader(getClassBytes(name, runTransformers));
+        ClassNode node = new ClassNode();
+        reader.accept(node, readerFlags);
+        return node;
+    }
 
-	@Override
-	public void beginPhase() { }
+    @Override
+    public URL[] getClassPath() {
+        // Mixin 0.7.x only uses getClassPath() to find itself; we implement CodeSource correctly,
+        // so this is unnecessary.
+        return new URL[0];
+    }
 
-	@Override
-	public void checkEnv(Object bootSource) { }
+    @Override
+    public IClassProvider getClassProvider() {
+        return this;
+    }
 
-	@Override
-	public ReEntranceLock getReEntranceLock() {
-		return lock;
-	}
+    @Override
+    public String getClassRestrictions(String className) {
+        return "";
+    }
 
-	@Override
-	public IClassProvider getClassProvider() {
-		return this;
-	}
+    @Override
+    public IClassTracker getClassTracker() {
+        return this;
+    }
 
-	@Override
-	public IClassBytecodeProvider getBytecodeProvider() {
-		return this;
-	}
+    @Override
+    public Collection<ITransformer> getDelegatedTransformers() {
+        return Collections.emptyList();
+    }
 
-	@Override
-	public ITransformerProvider getTransformerProvider() {
-		return this;
-	}
+    @Override
+    public IFeatureValidator getFeatureValidator() {
+        return IFeatureValidator.ALLOW_ALL;
+    }
 
-	@Override
-	public IClassTracker getClassTracker() {
-		return this;
-	}
+    @Override
+    public MixinEnvironment.Phase getInitialPhase() {
+        return MixinEnvironment.Phase.PREINIT;
+    }
 
-	@Override
-	public IMixinAuditTrail getAuditTrail() {
-		return null;
-	}
+    @Override
+    public ILogger getLogger(String name) {
+        return MixinLogger.get(name);
+    }
 
-	@Override
-	public IFeatureValidator getFeatureValidator() {
-		return IFeatureValidator.ALLOW_ALL;
-	}
+    @Override
+    public MixinEnvironment.CompatibilityLevel getMaxCompatibilityLevel() {
+        return MixinEnvironment.CompatibilityLevel.JAVA_25;
+    }
 
-	@Override
-	public IAdviceProvider getAdviceProvider() {
-		return new IAdviceProvider() {
-			@Override
-			public String higherCompatibilityNeeded(int requiredCompatibility, String requiredCompatibilityString) {
-				return "Increase your Leaf Loader dependency to at least " + LeafMixinVersions.getMinLoaderVersion(requiredCompatibility);
-			}
-		};
-	}
+    @Override
+    public MixinEnvironment.CompatibilityLevel getMinCompatibilityLevel() {
+        return MixinEnvironment.CompatibilityLevel.JAVA_8;
+    }
 
-	@Override
-	public Collection<String> getPlatformAgents() {
-		return Collections.singletonList("org.spongepowered.asm.launch.platform.MixinPlatformAgentDefault");
-	}
+    @Override
+    public Collection<IContainerHandle> getMixinContainers() {
+        return Collections.emptyList();
+    }
 
-	@Override
-	public IContainerHandle getPrimaryContainer() {
-		return new ContainerHandleURI(UrlUtil.LOADER_CODE_SOURCE.toUri());
-	}
+    @Override
+    public String getName() {
+        return LeafLauncherBase.getLauncher() instanceof Knot ? "Knot/Leaf" : "Launchwrapper/Leaf";
+    }
 
-	@Override
-	public Collection<IContainerHandle> getMixinContainers() {
-		return Collections.emptyList();
-	}
+    @Override
+    public Collection<String> getPlatformAgents() {
+        return Collections.singletonList("org.spongepowered.asm.launch.platform.MixinPlatformAgentDefault");
+    }
 
-	@Override
-	public InputStream getResourceAsStream(String name) {
-		return LeafLauncherBase.getLauncher().getResourceAsStream(name);
-	}
+    @Override
+    public IContainerHandle getPrimaryContainer() {
+        return new ContainerHandleURI(UrlUtil.LOADER_CODE_SOURCE.toUri());
+    }
 
-	@Override
-	public void registerInvalidClass(String className) { }
+    @Override
+    public ReEntranceLock getReEntranceLock() {
+        return lock;
+    }
 
-	@Override
-	public boolean isClassLoaded(String className) {
-		return LeafLauncherBase.getLauncher().isClassLoaded(className);
-	}
+    @Override
+    public InputStream getResourceAsStream(String name) {
+        return LeafLauncherBase.getLauncher().getResourceAsStream(name);
+    }
 
-	@Override
-	public String getClassRestrictions(String className) {
-		return "";
-	}
+    @Override
+    public String getSideName() {
+        return LeafLauncherBase.getLauncher().getEnvironmentType().name();
+    }
 
-	@Override
-	public Collection<ITransformer> getTransformers() {
-		return Collections.emptyList();
-	}
+    @Override
+    public ITransformerProvider getTransformerProvider() {
+        return this;
+    }
 
-	@Override
-	public Collection<ITransformer> getDelegatedTransformers() {
-		return Collections.emptyList();
-	}
+    @Override
+    public Collection<ITransformer> getTransformers() {
+        return Collections.emptyList();
+    }
 
-	@Override
-	public void addTransformerExclusion(String name) { }
+    @Override
+    public void init() {
+    }
 
-	@Override
-	public String getSideName() {
-		return LeafLauncherBase.getLauncher().getEnvironmentType().name();
-	}
+    @Override
+    public boolean isClassLoaded(String className) {
+        return LeafLauncherBase.getLauncher().isClassLoaded(className);
+    }
 
-	@Override
-	public MixinEnvironment.CompatibilityLevel getMinCompatibilityLevel() {
-		return MixinEnvironment.CompatibilityLevel.JAVA_8;
-	}
+    @Override
+    public boolean isValid() {
+        return true;
+    }
 
-	@Override
-	public MixinEnvironment.CompatibilityLevel getMaxCompatibilityLevel() {
-		return MixinEnvironment.CompatibilityLevel.JAVA_25;
-	}
+    @Override
+    public void offer(IMixinInternal internal) {
+        if (internal instanceof IMixinTransformerFactory) {
+            transformer = ((IMixinTransformerFactory) internal).createTransformer();
+        }
+    }
 
-	@Override
-	public ILogger getLogger(String name) {
-		return MixinLogger.get(name);
-	}
+    @Override
+    public void prepare() {
+    }
 
-	static IMixinTransformer getTransformer() {
-		return transformer;
-	}
+    @Override
+    public void registerInvalidClass(String className) {
+    }
 }

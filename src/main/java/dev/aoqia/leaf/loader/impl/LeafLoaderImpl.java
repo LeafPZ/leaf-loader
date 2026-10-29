@@ -95,9 +95,9 @@ import dev.aoqia.leaf.loader.impl.util.log.Log;
 import dev.aoqia.leaf.loader.impl.util.log.LogCategory;
 
 public final class LeafLoaderImpl implements LeafLoader {
-	public static final LeafLoaderImpl INSTANCE = InitHelper.get();
+    public static final LeafLoaderImpl INSTANCE = InitHelper.get();
 
-	public static final int ASM_VERSION = Opcodes.ASM9;
+    public static final int ASM_VERSION = Opcodes.ASM9;
 
     public static final String VERSION = BuildInfo.VERSION;
     public static final String MOD_ID = "leafloader";
@@ -110,605 +110,68 @@ public final class LeafLoaderImpl implements LeafLoader {
     public static final String REMAPPED_JARS_DIR_NAME = "remappedJars";
     private static final String TMP_DIR_NAME = "tmp";
 
-	private final Map<String, ModContainerImpl> modMap = new HashMap<>();
-	private List<ModCandidateImpl> modCandidates;
-	private final List<ModContainerImpl> mods = new ArrayList<>();
+    static {
+        LoaderUtil.verifyNotInTargetCl(LeafLoaderImpl.class);
+    }
+    private final Map<String, ModContainerImpl> modMap = new HashMap<>();
+    private List<ModCandidateImpl> modCandidates;
 
-	private final Map<String, LanguageAdapter> adapterMap = new HashMap<>();
-	private final EntrypointStorage entrypointStorage = new EntrypointStorage();
-	private final ClassTweaker classTweaker = ClassTweaker.newInstance();
+    private final List<ModContainerImpl> mods = new ArrayList<>();
+    private final Map<String, LanguageAdapter> adapterMap = new HashMap<>();
+    private final EntrypointStorage entrypointStorage = new EntrypointStorage();
 
-	private final ObjectShare objectShare = new ObjectShareImpl();
+    private final ClassTweaker classTweaker = ClassTweaker.newInstance();
 
-	private boolean frozen = false;
+    private final ObjectShare objectShare = new ObjectShareImpl();
 
-	private Object gameInstance;
+    private boolean frozen = false;
 
-	private MappingResolver mappingResolver;
-	private GameProvider provider;
-	private Path gameDir;
-	private Path configDir;
+    private Object gameInstance;
+    private MappingResolver mappingResolver;
+    private GameProvider provider;
+    private Path gameDir;
+    private Path configDir;
     private Path cacheDir;
+
     private Path leafDir;
 
-	private LeafLoaderImpl() { }
+    private LeafLoaderImpl() {
+    }
 
-	/**
-	 * Freeze the FabricLoader, preventing additional mods from being loaded.
-	 */
-	public void freeze() {
-		if (frozen) {
-			throw new IllegalStateException("Already frozen!");
-		}
+    @VisibleForTesting
+    public void dumpNonLeafMods(List<Path> mods) {
+        if (mods.isEmpty())
+            return;
+        StringBuilder outputText = new StringBuilder();
 
-		frozen = true;
-		finishModLoading();
-	}
-
-	public GameProvider getGameProvider() {
-		if (provider == null) {
-			throw new IllegalStateException("game provider not set (yet)");
-		}
-
-		return provider;
-	}
-
-	public GameProvider tryGetGameProvider() {
-		return provider;
-	}
-
-	public void setGameProvider(GameProvider provider) {
-		this.provider = provider;
-
-		setGameDir(provider.getLaunchDirectory());
-	}
-
-	private void setGameDir(Path gameDir) {
-		this.gameDir = gameDir.toAbsolutePath().normalize();
-	}
-
-	@Override
-	public String getRawGameVersion() {
-		return provider.getRawGameVersion();
-	}
-
-	@Override
-	public Object getGameInstance() {
-		return gameInstance;
-	}
-
-	@Override
-	public EnvType getEnvironmentType() {
-		return LeafLauncherBase.getLauncher().getEnvironmentType();
-	}
-
-	/**
-	 * @return The game instance's root directory.
-	 */
-	@Override
-	public Path getGameDir() {
-		if (gameDir == null) {
-			throw new IllegalStateException("invoked too early?");
-		}
-
-		return gameDir;
-	}
-
-	/**
-	 * @return The game instance's configuration directory.
-	 */
-	@Override
-	public Path getConfigDir() {
-		if (!Files.exists(configDir)) {
-			try {
-				Files.createDirectories(configDir);
-			} catch (IOException e) {
-				throw new RuntimeException("Creating config directory", e);
-			}
-		}
-
-		return configDir;
-	}
-
-	public void load() {
-		if (provider == null) {
-			throw new IllegalStateException("game provider not set");
-		}
-
-		if (frozen) {
-			throw new IllegalStateException("Frozen - cannot load additional mods!");
-		}
-
-		try {
-			setup();
-		} catch (ModResolutionException exception) {
-			if (exception.getCause() == null) {
-				throw FormattedException.ofLocalized("exception.incompatible", exception.getMessage());
-			} else {
-				throw FormattedException.ofLocalized("exception.incompatible", exception);
-			}
-		}
-	}
-
-	private void setup() throws ModResolutionException {
-        // Statically get cachedir before entrypoint so we can load mods etc.
-        setCacheDir(getCacheDir());
-        SemanticVersion gameVersion = getGameProvider().getSemverGameVersion();
-
-        Path processedModsDir = this.leafDir.resolve(PROCESSED_MODS_DIR_NAME);
-
-		boolean remapRegularMods = isDevelopmentEnvironment();
-		VersionOverrides versionOverrides = new VersionOverrides();
-		DependencyOverrides depOverrides = new DependencyOverrides(configDir);
-
-		// discover mods
-
-		ModDiscoverer discoverer = new ModDiscoverer(versionOverrides, depOverrides);
-		discoverer.addCandidateFinder(new ClasspathModCandidateFinder());
-		discoverer.addCandidateFinder(new ArgumentModCandidateFinder(remapRegularMods));
-        discoverer.addCandidateFinder(new CachedirModCandidateFinder(this.cacheDir, gameVersion, remapRegularMods));
-
-        // Only load mods from workshop folders if:
-		// - `disableWorkshopMods` is not present
-		// - `zomboid.steam` is 1
-        // - `-nosteam` is not provided to the game
-        if (System.getProperty(SystemProperties.DISABLE_WORKSHOP_MODS) == null
-			&& "1".equals(System.getProperty(SystemProperties.ZOMBOID_STEAM))
-            && !getGameProvider().getArguments().contains("nosteam")) {
-            discoverer.addCandidateFinder(new WorkshopModCandidateFinder(getGameWorkshopPath(), gameVersion,
-                remapRegularMods));
+        for (Path mod : mods) {
+            outputText.append("\n\t- ").append(mod.getFileName());
         }
 
-		Map<String, Set<ModCandidateImpl>> envDisabledMods = new HashMap<>();
-		modCandidates = discoverer.discoverMods(this, envDisabledMods);
+        int modsCount = mods.size();
+        Log.warn(LogCategory.GENERAL, "Found %d non-leaf mod%s:%s", modsCount, modsCount != 1 ? "s" : "", outputText);
+    }
 
-		// dump version and dependency overrides info
-
-		if (!versionOverrides.getAffectedModIds().isEmpty()) {
-			Log.info(LogCategory.GENERAL, "Versions overridden for %s", String.join(", ", versionOverrides.getAffectedModIds()));
-		}
-
-		if (!depOverrides.getAffectedModIds().isEmpty()) {
-			Log.info(LogCategory.GENERAL, "Dependencies overridden for %s", String.join(", ", depOverrides.getAffectedModIds()));
-		}
-
-		// resolve mods
-
-		modCandidates = ModResolver.resolve(modCandidates, getEnvironmentType(), envDisabledMods);
-
-		dumpModList(modCandidates);
-        dumpNonLeafMods(discoverer.getNonLeafMods());
-
-        if (SystemProperties.isSet(SystemProperties.DRY_RUN_MOD_DISCOVERY)) {
-            throw new FormattedException("Dry run mod discovery",
-                "Stopping before mod init due to dry run mod discovery");
+    /**
+     * Freeze the FabricLoader, preventing additional mods from being loaded.
+     */
+    public void freeze() {
+        if (frozen) {
+            throw new IllegalStateException("Already frozen!");
         }
 
-		// runtime mod remapping
-
-		if (remapRegularMods) {
-			if (System.getProperty(SystemProperties.REMAP_CLASSPATH_FILE) == null) {
-				MappingConfiguration config = LeafLauncherBase.getLauncher().getMappingConfiguration();
-
-				if (!config.getRuntimeNamespace().equals(config.getDefaultModDistributionNamespace())) {
-					Log.warn(LogCategory.MOD_REMAP, "Runtime mod remapping disabled due to no leaf.remapClasspathFile being specified. You may need to update loom.");
-				}
-			} else {
-				RuntimeModRemapper.remap(modCandidates, this.leafDir.resolve(TMP_DIR_NAME), processedModsDir);
-			}
-		}
-
-		// shuffle mods in-dev to reduce the risk of false order reliance, apply late load requests
-
-		if (isDevelopmentEnvironment() && !SystemProperties.isSet(SystemProperties.DEBUG_DISABLE_MOD_SHUFFLE)) {
-			Collections.shuffle(modCandidates);
-		}
-
-		String modsToLoadLate = System.getProperty(SystemProperties.DEBUG_LOAD_LATE);
-
-		if (modsToLoadLate != null) {
-			for (String modId : modsToLoadLate.split(",")) {
-				for (Iterator<ModCandidateImpl> it = modCandidates.iterator(); it.hasNext(); ) {
-					ModCandidateImpl mod = it.next();
-
-					if (mod.getId().equals(modId)) {
-						it.remove();
-						modCandidates.add(mod);
-						break;
-					}
-				}
-			}
-		}
-
-		// add mods
-
-		for (ModCandidateImpl mod : modCandidates) {
-			if (!mod.hasPath() && !mod.isBuiltin()) {
-				try {
-					mod.setPaths(Collections.singletonList(mod.copyToDir(processedModsDir, false)));
-				} catch (IOException e) {
-					throw new RuntimeException("Error extracting mod "+mod, e);
-				}
-			}
-
-			addMod(mod);
-		}
-
-		modCandidates = null;
-	}
-
-	private Path getGameInstallPath() {
-		String dir = System.getProperty(SystemProperties.GAME_INSTALL_PATH);
-		if (dir != null) {
-			return Paths.get(dir);
-		}
-
-		try {
-            return Paths.get(System.getProperty("user.dir")).getParent().toAbsolutePath();
-		} catch (InvalidPathException e) {
-			throw new RuntimeException("Failed to find the game directory for Project Zomboid."
-				+ " This could happen if Steam is not installed at the default location,"
-				+ " or if the game is in a different Steam library from the default library."
-				+ " Please manually set it via the launch option 'leaf.gameInstallPath'.");
-		}
-	}
-
-	private Path getGameWorkshopPath() {
-		String dir = System.getProperty(SystemProperties.GAME_WORKSHOP_PATH);
-		if (dir != null) {
-			return Paths.get(dir);
-		}
-
-		try {
-			return getGameInstallPath().getParent().getParent().resolve("workshop/content/108600").toAbsolutePath();
-		} catch (InvalidPathException e) {
-			throw new RuntimeException("Failed to find Steam workshop directory for Project Zomboid."
-				+ " This could happen if your workshop folder is separate from the Steam library folder."
-				+ " Please manually specify the workshop path (workshop/content/108600) via"
-					+ " the 'leaf.workshopFolder' system property.");
-		}
-	}
-
-	@VisibleForTesting
-	public void dumpNonLeafMods(List<Path> mods) {
-		if (mods.isEmpty()) return;
-		StringBuilder outputText = new StringBuilder();
-
-		for (Path mod : mods) {
-			outputText.append("\n\t- ").append(mod.getFileName());
-		}
-
-		int modsCount = mods.size();
-		Log.warn(LogCategory.GENERAL, "Found %d non-leaf mod%s:%s", modsCount, modsCount != 1 ? "s" : "", outputText);
-	}
-
-	private void dumpModList(List<ModCandidateImpl> mods) {
-		StringBuilder modListText = new StringBuilder();
-
-		boolean[] lastItemOfNestLevel = new boolean[mods.size()];
-		List<ModCandidateImpl> topLevelMods = mods.stream()
-				.filter(mod -> mod.getParentMods().isEmpty())
-				.collect(Collectors.toList());
-		int topLevelModsCount = topLevelMods.size();
-
-		for (int i = 0; i < topLevelModsCount; i++) {
-			boolean lastItem = i == topLevelModsCount - 1;
-
-            if (lastItem) {
-                lastItemOfNestLevel[0] = true;
-            }
-
-			dumpModList0(topLevelMods.get(i), modListText, 0, lastItemOfNestLevel);
-		}
-
-		int modsCount = mods.size();
-		Log.info(LogCategory.GENERAL, "Loading %d mod%s:%n%s", modsCount, modsCount != 1 ? "s" : "", modListText);
-	}
-
-	private void dumpModList0(ModCandidateImpl mod, StringBuilder log, int nestLevel, boolean[] lastItemOfNestLevel) {
-        if (log.length() > 0) {
-            log.append('\n');
-        }
-
-		for (int depth = 0; depth < nestLevel; depth++) {
-			log.append(depth == 0 ? "\t" : lastItemOfNestLevel[depth] ? "     " : "   | ");
-		}
-
-		log.append(nestLevel == 0 ? "\t" : "  ");
-		log.append(nestLevel == 0 ? "-" : lastItemOfNestLevel[nestLevel] ? " \\--" : " |--");
-		log.append(' ');
-		log.append(mod.getId());
-		log.append(' ');
-		log.append(mod.getVersion().getFriendlyString());
-
-		List<ModCandidateImpl> nestedMods = new ArrayList<>(mod.getNestedMods());
-		nestedMods.sort(Comparator.comparing(nestedMod -> nestedMod.getMetadata().getId()));
-
-		if (!nestedMods.isEmpty()) {
-			Iterator<ModCandidateImpl> iterator = nestedMods.iterator();
-			ModCandidateImpl nestedMod;
-			boolean lastItem;
-
-			while (iterator.hasNext()) {
-				nestedMod = iterator.next();
-				lastItem = !iterator.hasNext();
-
-                if (lastItem) {
-                    lastItemOfNestLevel[nestLevel + 1] = true;
-                }
-
-				dumpModList0(nestedMod, log, nestLevel + 1, lastItemOfNestLevel);
-
-                if (lastItem) {
-                    lastItemOfNestLevel[nestLevel + 1] = false;
-                }
-			}
-		}
-	}
-
-	private void finishModLoading() {
-		// add mods to classpath
-		// TODO: This can probably be made safer, but that's a long-term goal
-		for (ModContainerImpl mod : mods) {
-			if (!mod.getMetadata().getId().equals(MOD_ID) && !mod.getMetadata().getType().equals("builtin")) {
-				for (Path path : mod.getCodeSourcePaths()) {
-					LeafLauncherBase.getLauncher().addToClassPath(path);
-				}
-			}
-		}
-
-		setupLanguageAdapters();
-		setupMods();
-	}
-
-	public boolean hasEntrypoints(String key) {
-		return entrypointStorage.hasEntrypoints(key);
-	}
-
-	@Override
-	public <T> List<T> getEntrypoints(String key, Class<T> type) {
-		return entrypointStorage.getEntrypoints(key, type);
-	}
-
-	@Override
-	public <T> List<EntrypointContainer<T>> getEntrypointContainers(String key, Class<T> type) {
-		return entrypointStorage.getEntrypointContainers(key, type);
-	}
-
-	@Override
-	public <T> void invokeEntrypoints(String key, Class<T> type, Consumer<? super T> invoker) {
-		if (!hasEntrypoints(key)) {
-			Log.debug(LogCategory.ENTRYPOINT, "No subscribers for entrypoint '%s'", key);
-			return;
-		}
-
-		RuntimeException exception = null;
-		Collection<EntrypointContainer<T>> entrypoints = LeafLoaderImpl.INSTANCE.getEntrypointContainers(key, type);
-
-		Log.debug(LogCategory.ENTRYPOINT, "Iterating over entrypoint '%s'", key);
-
-		for (EntrypointContainer<T> container : entrypoints) {
-			try {
-				invoker.accept(container.getEntrypoint());
-			} catch (Throwable t) {
-				exception = ExceptionUtil.gatherExceptions(t,
-						exception,
-						exc -> new RuntimeException(String.format("Could not execute entrypoint stage '%s' due to errors, provided by '%s' at '%s'!",
-								key, container.getProvider().getMetadata().getId(), container.getDefinition()),
-								exc));
-			}
-		}
-
-		if (exception != null) {
-			throw exception;
-		}
-	}
-
-	@Override
-	public MappingResolver getMappingResolver() {
-		if (mappingResolver == null) {
-			MappingConfiguration config = LeafLauncherBase.getLauncher().getMappingConfiguration();
-			String runtimeNamespace = config.getRuntimeNamespace();
-
-			mappingResolver = new LazyMappingResolver(() -> new MappingResolverImpl(config.getMappings(), runtimeNamespace),
-					runtimeNamespace);
-		}
-
-		return mappingResolver;
-	}
-
-	@Override
-	public ObjectShare getObjectShare() {
-		return objectShare;
-	}
-
-	public ModCandidateImpl getModCandidate(String id) {
-		if (modCandidates == null) return null;
-
-		for (ModCandidateImpl mod : modCandidates) {
-			if (mod.getId().equals(id)) return mod;
-		}
-
-		return null;
-	}
-
-	@Override
-	public Optional<dev.aoqia.leaf.loader.api.ModContainer> getModContainer(String id) {
-		return Optional.ofNullable(modMap.get(id));
-	}
-
-	@Override
-	public Collection<ModContainer> getAllMods() {
-		return Collections.unmodifiableList(mods);
-	}
-
-	public List<ModContainerImpl> getModsInternal() {
-		return mods;
-	}
-
-	@Override
-	public boolean isModLoaded(String id) {
-		return modMap.containsKey(id);
-	}
-
-	@Override
-	public boolean isDevelopmentEnvironment() {
-		return LeafLauncherBase.getLauncher().isDevelopment();
-	}
-
-	private void addMod(ModCandidateImpl candidate) throws ModResolutionException {
-		ModContainerImpl container = new ModContainerImpl(candidate);
-		mods.add(container);
-		modMap.put(candidate.getId(), container);
-
-		for (String provides : candidate.getProvides()) {
-			modMap.put(provides, container);
-		}
-	}
-
-	private void setupLanguageAdapters() {
-		adapterMap.put("default", DefaultLanguageAdapter.INSTANCE);
-
-		for (ModContainerImpl mod : mods) {
-			// add language adapters
-			for (Map.Entry<String, String> laEntry : mod.getMetadata().getLanguageAdapterDefinitions().entrySet()) {
-				if (adapterMap.containsKey(laEntry.getKey())) {
-					throw new RuntimeException("Duplicate language adapter key: " + laEntry.getKey() + "! (" + laEntry.getValue() + ", " + adapterMap.get(laEntry.getKey()).getClass().getName() + ")");
-				}
-
-				try {
-					adapterMap.put(laEntry.getKey(), (LanguageAdapter) Class.forName(laEntry.getValue(), true, LeafLauncherBase.getLauncher().getTargetClassLoader()).getDeclaredConstructor().newInstance());
-				} catch (Exception e) {
-					throw new RuntimeException("Failed to instantiate language adapter: " + laEntry.getKey(), e);
-				}
-			}
-		}
-	}
-
-	private void setupMods() {
-		for (ModContainerImpl mod : mods) {
-			try {
-				for (String key : mod.getMetadata().getEntrypointKeys()) {
-					for (EntrypointMetadata in : mod.getMetadata().getEntrypoints(key)) {
-						entrypointStorage.add(mod, key, in, adapterMap);
-					}
-				}
-			} catch (Exception e) {
-				throw new RuntimeException(String.format("Failed to setup mod %s (%s)", mod.getMetadata().getName(), mod.getOrigin()), e);
-			}
-		}
-	}
-
-	public void loadClassTweakers() {
-		ClassTweakerReader ctReader = ClassTweakerReader.create(classTweaker);
-
-		for (dev.aoqia.leaf.loader.api.ModContainer modContainer : getAllMods()) {
-			LoaderModMetadata modMetadata = (LoaderModMetadata) modContainer.getMetadata();
-			String location = modMetadata.getClassTweaker();
-			if (location == null) continue;
-
-			Path path = modContainer.findPath(location).orElse(null);
-			if (path == null) throw new RuntimeException(String.format("Missing classTweaker file %s from mod %s", location, modContainer.getMetadata().getId()));
-
-			try (BufferedReader reader = Files.newBufferedReader(path)) {
-				ctReader.read(reader, LeafLauncherBase.getLauncher().getMappingConfiguration().getRuntimeNamespace());
-			} catch (Exception e) {
-				throw new RuntimeException("Failed to read classTweaker file from mod " + modMetadata.getId(), e);
-			}
-		}
-	}
-
-	public void prepareModInit(Path newRunDir, Class<?> gameInstance) {
-		if (!frozen) {
-			throw new RuntimeException("Cannot instantiate mods when not frozen!");
-		}
-
-		if (gameInstance != null && LeafLauncherBase.getLauncher() instanceof Knot) {
-			ClassLoader gameClassLoader = gameInstance.getClassLoader();
-			ClassLoader targetClassLoader = LeafLauncherBase.getLauncher().getTargetClassLoader();
-			boolean matchesKnot = (gameClassLoader == targetClassLoader);
-			boolean containsKnot = false;
-
-			if (matchesKnot) {
-				containsKnot = true;
-			} else {
-				gameClassLoader = gameClassLoader.getParent();
-
-				while (gameClassLoader != null && gameClassLoader.getParent() != gameClassLoader) {
-                    if (gameClassLoader == targetClassLoader) {
-                        containsKnot = true;
-                        break;
-                    }
-
-					gameClassLoader = gameClassLoader.getParent();
-				}
-			}
-
-			if (!matchesKnot) {
-				if (containsKnot) {
-					Log.info(LogCategory.KNOT, "Environment: Target class loader is parent of game class loader.");
-				} else {
-					Log.warn(LogCategory.KNOT, "\n\n* CLASS LOADER MISMATCH! THIS IS VERY BAD AND WILL PROBABLY CAUSE WEIRD ISSUES! *\n"
-							+ " - Expected game class loader: %s\n"
-							+ " - Actual game class loader: %s\n"
-							+ "Could not find the expected class loader in game class loader parents!\n",
-							LeafLauncherBase.getLauncher().getTargetClassLoader(), gameClassLoader);
-				}
-			}
-		}
-
-		this.gameInstance = gameInstance;
-
-		if (gameDir != null) {
-			try {
-				if (!gameDir.toRealPath().equals(newRunDir.toRealPath())) {
-					Log.warn(LogCategory.GENERAL, "Inconsistent game execution directories: engine says %s, while initializer says %s...",
-							newRunDir.toRealPath(), gameDir.toRealPath());
-					setGameDir(newRunDir);
-				}
-			} catch (IOException e) {
-				Log.warn(LogCategory.GENERAL, "Exception while checking game execution directory consistency!", e);
-			}
-		} else {
-			setGameDir(newRunDir);
-		}
-	}
-
-	public ClassTweaker getClassTweaker() {
-		return classTweaker;
-	}
-
-	/**
-	 * Sets the game instance. This is only used in 20w22a+ by the dedicated server and should not be called by anything else.
-	 */
-	public void setGameInstance(Object gameInstance) {
-		if (getEnvironmentType() != EnvType.SERVER) {
-			throw new UnsupportedOperationException("Cannot set game instance on a client!");
-		}
-
-		if (this.gameInstance != null) {
-			throw new UnsupportedOperationException("Cannot overwrite current game instance!");
-		}
-
-		this.gameInstance = gameInstance;
-	}
-
-	@Override
-	public String[] getLaunchArguments(boolean sanitize) {
-		return getGameProvider().getLaunchArguments(sanitize);
-	}
-
-	private Path getModsDirectory0() {
-		String directory = System.getProperty(SystemProperties.MODS_FOLDER);
-		return directory != null ? Paths.get(directory) : gameDir.resolve("mods");
-	}
-
-    private Path getModsStagingDirectory() {
-        return getModsDirectory0().getParent().resolve("Workshop");
+        frozen = true;
+        finishModLoading();
+    }
+
+    @Override
+    public Collection<ModContainer> getAllMods() {
+        return Collections.unmodifiableList(mods);
     }
 
     /**
      * Replicates the functionality of {@link zombie.ZomboidFileSystem#getCacheDir()}
+     *
      * @return the cachedir
      */
     @SuppressWarnings("JavadocReference")
@@ -747,36 +210,593 @@ public final class LeafLoaderImpl implements LeafLoader {
         return cacheDir.toPath();
     }
 
-    private void setCacheDir(Path cacheDir) {
-        this.cacheDir = cacheDir;
-        this.leafDir = cacheDir.resolve(CACHE_DIR_NAME);
-        this.configDir = cacheDir.resolve("config");
+    public ClassTweaker getClassTweaker() {
+        return classTweaker;
+    }
+
+    /**
+     * @return The game instance's configuration directory.
+     */
+    @Override
+    public Path getConfigDir() {
+        if (!Files.exists(configDir)) {
+            try {
+                Files.createDirectories(configDir);
+            } catch (IOException e) {
+                throw new RuntimeException("Creating config directory", e);
+            }
+        }
+
+        return configDir;
+    }
+
+    @Override
+    public <T> List<EntrypointContainer<T>> getEntrypointContainers(String key, Class<T> type) {
+        return entrypointStorage.getEntrypointContainers(key, type);
+    }
+
+    @Override
+    public <T> List<T> getEntrypoints(String key, Class<T> type) {
+        return entrypointStorage.getEntrypoints(key, type);
+    }
+
+    @Override
+    public EnvType getEnvironmentType() {
+        return LeafLauncherBase.getLauncher().getEnvironmentType();
+    }
+
+    /**
+     * @return The game instance's root directory.
+     */
+    @Override
+    public Path getGameDir() {
+        if (gameDir == null) {
+            throw new IllegalStateException("invoked too early?");
+        }
+
+        return gameDir;
+    }
+
+    @Override
+    public Object getGameInstance() {
+        return gameInstance;
+    }
+
+    public GameProvider getGameProvider() {
+        if (provider == null) {
+            throw new IllegalStateException("game provider not set (yet)");
+        }
+
+        return provider;
+    }
+
+    @Override
+    public String[] getLaunchArguments(boolean sanitize) {
+        return getGameProvider().getLaunchArguments(sanitize);
     }
 
     public Path getLeafDir() {
         return this.leafDir;
     }
 
+    @Override
+    public MappingResolver getMappingResolver() {
+        if (mappingResolver == null) {
+            MappingConfiguration config = LeafLauncherBase.getLauncher().getMappingConfiguration();
+            String runtimeNamespace = config.getRuntimeNamespace();
+
+            mappingResolver = new LazyMappingResolver(() -> new MappingResolverImpl(config.getMappings(),
+                runtimeNamespace),
+                runtimeNamespace);
+        }
+
+        return mappingResolver;
+    }
+
+    public ModCandidateImpl getModCandidate(String id) {
+        if (modCandidates == null)
+            return null;
+
+        for (ModCandidateImpl mod : modCandidates) {
+            if (mod.getId().equals(id))
+                return mod;
+        }
+
+        return null;
+    }
+
+    @Override
+    public Optional<dev.aoqia.leaf.loader.api.ModContainer> getModContainer(String id) {
+        return Optional.ofNullable(modMap.get(id));
+    }
+
+    public List<ModContainerImpl> getModsInternal() {
+        return mods;
+    }
+
+    @Override
+    public ObjectShare getObjectShare() {
+        return objectShare;
+    }
+
+    @Override
+    public String getRawGameVersion() {
+        return provider.getRawGameVersion();
+    }
+
+    public boolean hasEntrypoints(String key) {
+        return entrypointStorage.hasEntrypoints(key);
+    }
+
+    @Override
+    public <T> void invokeEntrypoints(String key, Class<T> type, Consumer<? super T> invoker) {
+        if (!hasEntrypoints(key)) {
+            Log.debug(LogCategory.ENTRYPOINT, "No subscribers for entrypoint '%s'", key);
+            return;
+        }
+
+        RuntimeException exception = null;
+        Collection<EntrypointContainer<T>> entrypoints = LeafLoaderImpl.INSTANCE.getEntrypointContainers(key, type);
+
+        Log.debug(LogCategory.ENTRYPOINT, "Iterating over entrypoint '%s'", key);
+
+        for (EntrypointContainer<T> container : entrypoints) {
+            try {
+                invoker.accept(container.getEntrypoint());
+            } catch (Throwable t) {
+                exception = ExceptionUtil.gatherExceptions(t,
+                    exception,
+                    exc -> new RuntimeException(String.format(
+                        "Could not execute entrypoint stage '%s' due to errors, provided by '%s' at '%s'!",
+                        key, container.getProvider().getMetadata().getId(), container.getDefinition()),
+                        exc));
+            }
+        }
+
+        if (exception != null) {
+            throw exception;
+        }
+    }
+
+    @Override
+    public boolean isDevelopmentEnvironment() {
+        return LeafLauncherBase.getLauncher().isDevelopment();
+    }
+
+    @Override
+    public boolean isModLoaded(String id) {
+        return modMap.containsKey(id);
+    }
+
+    public void load() {
+        if (provider == null) {
+            throw new IllegalStateException("game provider not set");
+        }
+
+        if (frozen) {
+            throw new IllegalStateException("Frozen - cannot load additional mods!");
+        }
+
+        try {
+            setup();
+        } catch (ModResolutionException exception) {
+            if (exception.getCause() == null) {
+                throw FormattedException.ofLocalized("exception.incompatible", exception.getMessage());
+            } else {
+                throw FormattedException.ofLocalized("exception.incompatible", exception);
+            }
+        }
+    }
+
+    public void loadClassTweakers() {
+        ClassTweakerReader ctReader = ClassTweakerReader.create(classTweaker);
+
+        for (dev.aoqia.leaf.loader.api.ModContainer modContainer : getAllMods()) {
+            LoaderModMetadata modMetadata = (LoaderModMetadata) modContainer.getMetadata();
+            String location = modMetadata.getClassTweaker();
+            if (location == null)
+                continue;
+
+            Path path = modContainer.findPath(location).orElse(null);
+            if (path == null)
+                throw new RuntimeException(String.format("Missing classTweaker file %s from mod %s", location,
+                    modContainer.getMetadata().getId()));
+
+            try (BufferedReader reader = Files.newBufferedReader(path)) {
+                ctReader.read(reader, LeafLauncherBase.getLauncher().getMappingConfiguration().getRuntimeNamespace());
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to read classTweaker file from mod " + modMetadata.getId(), e);
+            }
+        }
+    }
+
+    public void prepareModInit(Path newRunDir, Class<?> gameInstance) {
+        if (!frozen) {
+            throw new RuntimeException("Cannot instantiate mods when not frozen!");
+        }
+
+        if (gameInstance != null && LeafLauncherBase.getLauncher() instanceof Knot) {
+            ClassLoader gameClassLoader = gameInstance.getClassLoader();
+            ClassLoader targetClassLoader = LeafLauncherBase.getLauncher().getTargetClassLoader();
+            boolean matchesKnot = (gameClassLoader == targetClassLoader);
+            boolean containsKnot = false;
+
+            if (matchesKnot) {
+                containsKnot = true;
+            } else {
+                gameClassLoader = gameClassLoader.getParent();
+
+                while (gameClassLoader != null && gameClassLoader.getParent() != gameClassLoader) {
+                    if (gameClassLoader == targetClassLoader) {
+                        containsKnot = true;
+                        break;
+                    }
+
+                    gameClassLoader = gameClassLoader.getParent();
+                }
+            }
+
+            if (!matchesKnot) {
+                if (containsKnot) {
+                    Log.info(LogCategory.KNOT, "Environment: Target class loader is parent of game class loader.");
+                } else {
+                    Log.warn(LogCategory.KNOT,
+                        "\n\n* CLASS LOADER MISMATCH! THIS IS VERY BAD AND WILL PROBABLY CAUSE WEIRD ISSUES! *\n"
+                            + " - Expected game class loader: %s\n"
+                            + " - Actual game class loader: %s\n"
+                            + "Could not find the expected class loader in game class loader parents!\n",
+                        LeafLauncherBase.getLauncher().getTargetClassLoader(), gameClassLoader);
+                }
+            }
+        }
+
+        this.gameInstance = gameInstance;
+
+        if (gameDir != null) {
+            try {
+                if (!gameDir.toRealPath().equals(newRunDir.toRealPath())) {
+                    Log.warn(LogCategory.GENERAL,
+                        "Inconsistent game execution directories: engine says %s, while initializer says %s...",
+                        newRunDir.toRealPath(), gameDir.toRealPath());
+                    setGameDir(newRunDir);
+                }
+            } catch (IOException e) {
+                Log.warn(LogCategory.GENERAL, "Exception while checking game execution directory consistency!", e);
+            }
+        } else {
+            setGameDir(newRunDir);
+        }
+    }
+
+    /**
+     * Sets the game instance. This is only used in 20w22a+ by the dedicated server and should not be called by anything
+     * else.
+     */
+    public void setGameInstance(Object gameInstance) {
+        if (getEnvironmentType() != EnvType.SERVER) {
+            throw new UnsupportedOperationException("Cannot set game instance on a client!");
+        }
+
+        if (this.gameInstance != null) {
+            throw new UnsupportedOperationException("Cannot overwrite current game instance!");
+        }
+
+        this.gameInstance = gameInstance;
+    }
+
+    public void setGameProvider(GameProvider provider) {
+        this.provider = provider;
+
+        setGameDir(provider.getLaunchDirectory());
+    }
+
     public void setLeafDir(Path dir) {
         this.leafDir = dir;
     }
 
-	/**
-	 * Provides singleton for static init assignment regardless of load order.
-	 */
-	public static class InitHelper {
-		private static LeafLoaderImpl instance;
+    public GameProvider tryGetGameProvider() {
+        return provider;
+    }
 
-		public static LeafLoaderImpl get() {
-			if (instance == null) {
-				instance = new LeafLoaderImpl();
-			}
+    private void addMod(ModCandidateImpl candidate) throws ModResolutionException {
+        ModContainerImpl container = new ModContainerImpl(candidate);
+        mods.add(container);
+        modMap.put(candidate.getId(), container);
 
-			return instance;
-		}
-	}
+        for (String provides : candidate.getProvides()) {
+            modMap.put(provides, container);
+        }
+    }
 
-	static {
-		LoaderUtil.verifyNotInTargetCl(LeafLoaderImpl.class);
-	}
+    private void dumpModList(List<ModCandidateImpl> mods) {
+        StringBuilder modListText = new StringBuilder();
+
+        boolean[] lastItemOfNestLevel = new boolean[mods.size()];
+        List<ModCandidateImpl> topLevelMods = mods.stream()
+            .filter(mod -> mod.getParentMods().isEmpty())
+            .collect(Collectors.toList());
+        int topLevelModsCount = topLevelMods.size();
+
+        for (int i = 0; i < topLevelModsCount; i++) {
+            boolean lastItem = i == topLevelModsCount - 1;
+
+            if (lastItem) {
+                lastItemOfNestLevel[0] = true;
+            }
+
+            dumpModList0(topLevelMods.get(i), modListText, 0, lastItemOfNestLevel);
+        }
+
+        int modsCount = mods.size();
+        Log.info(LogCategory.GENERAL, "Loading %d mod%s:%n%s", modsCount, modsCount != 1 ? "s" : "", modListText);
+    }
+
+    private void dumpModList0(ModCandidateImpl mod, StringBuilder log, int nestLevel, boolean[] lastItemOfNestLevel) {
+        if (log.length() > 0) {
+            log.append('\n');
+        }
+
+        for (int depth = 0; depth < nestLevel; depth++) {
+            log.append(depth == 0 ? "\t" : lastItemOfNestLevel[depth] ? "     " : "   | ");
+        }
+
+        log.append(nestLevel == 0 ? "\t" : "  ");
+        log.append(nestLevel == 0 ? "-" : lastItemOfNestLevel[nestLevel] ? " \\--" : " |--");
+        log.append(' ');
+        log.append(mod.getId());
+        log.append(' ');
+        log.append(mod.getVersion().getFriendlyString());
+
+        List<ModCandidateImpl> nestedMods = new ArrayList<>(mod.getNestedMods());
+        nestedMods.sort(Comparator.comparing(nestedMod -> nestedMod.getMetadata().getId()));
+
+        if (!nestedMods.isEmpty()) {
+            Iterator<ModCandidateImpl> iterator = nestedMods.iterator();
+            ModCandidateImpl nestedMod;
+            boolean lastItem;
+
+            while (iterator.hasNext()) {
+                nestedMod = iterator.next();
+                lastItem = !iterator.hasNext();
+
+                if (lastItem) {
+                    lastItemOfNestLevel[nestLevel + 1] = true;
+                }
+
+                dumpModList0(nestedMod, log, nestLevel + 1, lastItemOfNestLevel);
+
+                if (lastItem) {
+                    lastItemOfNestLevel[nestLevel + 1] = false;
+                }
+            }
+        }
+    }
+
+    private void finishModLoading() {
+        // add mods to classpath
+        // TODO: This can probably be made safer, but that's a long-term goal
+        for (ModContainerImpl mod : mods) {
+            if (!mod.getMetadata().getId().equals(MOD_ID) && !mod.getMetadata().getType().equals("builtin")) {
+                for (Path path : mod.getCodeSourcePaths()) {
+                    LeafLauncherBase.getLauncher().addToClassPath(path);
+                }
+            }
+        }
+
+        setupLanguageAdapters();
+        setupMods();
+    }
+
+    private Path getGameInstallPath() {
+        String dir = System.getProperty(SystemProperties.GAME_INSTALL_PATH);
+        if (dir != null) {
+            return Paths.get(dir);
+        }
+
+        try {
+            return Paths.get(System.getProperty("user.dir")).getParent().toAbsolutePath();
+        } catch (InvalidPathException e) {
+            throw new RuntimeException("Failed to find the game directory for Project Zomboid."
+                + " This could happen if Steam is not installed at the default location,"
+                + " or if the game is in a different Steam library from the default library."
+                + " Please manually set it via the launch option 'leaf.gameInstallPath'.");
+        }
+    }
+
+    private Path getGameWorkshopPath() {
+        String dir = System.getProperty(SystemProperties.GAME_WORKSHOP_PATH);
+        if (dir != null) {
+            return Paths.get(dir);
+        }
+
+        try {
+            return getGameInstallPath().getParent().getParent().resolve("workshop/content/108600").toAbsolutePath();
+        } catch (InvalidPathException e) {
+            throw new RuntimeException("Failed to find Steam workshop directory for Project Zomboid."
+                + " This could happen if your workshop folder is separate from the Steam library folder."
+                + " Please manually specify the workshop path (workshop/content/108600) via"
+                + " the 'leaf.workshopFolder' system property.");
+        }
+    }
+
+    private Path getModsDirectory0() {
+        String directory = System.getProperty(SystemProperties.MODS_FOLDER);
+        return directory != null ? Paths.get(directory) : gameDir.resolve("mods");
+    }
+
+    private Path getModsStagingDirectory() {
+        return getModsDirectory0().getParent().resolve("Workshop");
+    }
+
+    private void setCacheDir(Path cacheDir) {
+        this.cacheDir = cacheDir;
+        this.leafDir = cacheDir.resolve(CACHE_DIR_NAME);
+        this.configDir = cacheDir.resolve("config");
+    }
+
+    private void setGameDir(Path gameDir) {
+        this.gameDir = gameDir.toAbsolutePath().normalize();
+    }
+
+    private void setup() throws ModResolutionException {
+        // Statically get cachedir before entrypoint so we can load mods etc.
+        setCacheDir(getCacheDir());
+        SemanticVersion gameVersion = getGameProvider().getSemverGameVersion();
+
+        Path processedModsDir = this.leafDir.resolve(PROCESSED_MODS_DIR_NAME);
+
+        boolean remapRegularMods = isDevelopmentEnvironment();
+        VersionOverrides versionOverrides = new VersionOverrides();
+        DependencyOverrides depOverrides = new DependencyOverrides(configDir);
+
+        // discover mods
+
+        ModDiscoverer discoverer = new ModDiscoverer(versionOverrides, depOverrides);
+        discoverer.addCandidateFinder(new ClasspathModCandidateFinder());
+        discoverer.addCandidateFinder(new ArgumentModCandidateFinder(remapRegularMods));
+        discoverer.addCandidateFinder(new CachedirModCandidateFinder(this.cacheDir, gameVersion, remapRegularMods));
+
+        // Only load mods from workshop folders if:
+        // - `disableWorkshopMods` is not present
+        // - `zomboid.steam` is 1
+        // - `-nosteam` is not provided to the game
+        if (System.getProperty(SystemProperties.DISABLE_WORKSHOP_MODS) == null
+            && "1".equals(System.getProperty(SystemProperties.ZOMBOID_STEAM))
+            && !getGameProvider().getArguments().contains("nosteam"))
+        {
+            discoverer.addCandidateFinder(new WorkshopModCandidateFinder(getGameWorkshopPath(), gameVersion,
+                remapRegularMods));
+        }
+
+        Map<String, Set<ModCandidateImpl>> envDisabledMods = new HashMap<>();
+        modCandidates = discoverer.discoverMods(this, envDisabledMods);
+
+        // dump version and dependency overrides info
+
+        if (!versionOverrides.getAffectedModIds().isEmpty()) {
+            Log.info(LogCategory.GENERAL, "Versions overridden for %s", String.join(", ", versionOverrides
+                .getAffectedModIds()));
+        }
+
+        if (!depOverrides.getAffectedModIds().isEmpty()) {
+            Log.info(LogCategory.GENERAL, "Dependencies overridden for %s", String.join(", ", depOverrides
+                .getAffectedModIds()));
+        }
+
+        // resolve mods
+
+        modCandidates = ModResolver.resolve(modCandidates, getEnvironmentType(), envDisabledMods);
+
+        dumpModList(modCandidates);
+        dumpNonLeafMods(discoverer.getNonLeafMods());
+
+        if (SystemProperties.isSet(SystemProperties.DRY_RUN_MOD_DISCOVERY)) {
+            throw new FormattedException("Dry run mod discovery",
+                "Stopping before mod init due to dry run mod discovery");
+        }
+
+        // runtime mod remapping
+
+        if (remapRegularMods) {
+            if (System.getProperty(SystemProperties.REMAP_CLASSPATH_FILE) == null) {
+                MappingConfiguration config = LeafLauncherBase.getLauncher().getMappingConfiguration();
+
+                if (!config.getRuntimeNamespace().equals(config.getDefaultModDistributionNamespace())) {
+                    Log.warn(LogCategory.MOD_REMAP,
+                        "Runtime mod remapping disabled due to no leaf.remapClasspathFile being specified. You may need to update loom.");
+                }
+            } else {
+                RuntimeModRemapper.remap(modCandidates, this.leafDir.resolve(TMP_DIR_NAME), processedModsDir);
+            }
+        }
+
+        // shuffle mods in-dev to reduce the risk of false order reliance, apply late load requests
+
+        if (isDevelopmentEnvironment() && !SystemProperties.isSet(SystemProperties.DEBUG_DISABLE_MOD_SHUFFLE)) {
+            Collections.shuffle(modCandidates);
+        }
+
+        String modsToLoadLate = System.getProperty(SystemProperties.DEBUG_LOAD_LATE);
+
+        if (modsToLoadLate != null) {
+            for (String modId : modsToLoadLate.split(",")) {
+                for (Iterator<ModCandidateImpl> it = modCandidates.iterator(); it.hasNext();) {
+                    ModCandidateImpl mod = it.next();
+
+                    if (mod.getId().equals(modId)) {
+                        it.remove();
+                        modCandidates.add(mod);
+                        break;
+                    }
+                }
+            }
+        }
+
+        // add mods
+
+        for (ModCandidateImpl mod : modCandidates) {
+            if (!mod.hasPath() && !mod.isBuiltin()) {
+                try {
+                    mod.setPaths(Collections.singletonList(mod.copyToDir(processedModsDir, false)));
+                } catch (IOException e) {
+                    throw new RuntimeException("Error extracting mod " + mod, e);
+                }
+            }
+
+            addMod(mod);
+        }
+
+        modCandidates = null;
+    }
+
+    private void setupLanguageAdapters() {
+        adapterMap.put("default", DefaultLanguageAdapter.INSTANCE);
+
+        for (ModContainerImpl mod : mods) {
+            // add language adapters
+            for (Map.Entry<String, String> laEntry : mod.getMetadata().getLanguageAdapterDefinitions().entrySet()) {
+                if (adapterMap.containsKey(laEntry.getKey())) {
+                    throw new RuntimeException("Duplicate language adapter key: " + laEntry.getKey() + "! (" + laEntry
+                        .getValue() + ", " + adapterMap.get(laEntry.getKey()).getClass().getName() + ")");
+                }
+
+                try {
+                    adapterMap.put(laEntry.getKey(), (LanguageAdapter) Class.forName(laEntry.getValue(), true,
+                        LeafLauncherBase.getLauncher().getTargetClassLoader()).getDeclaredConstructor().newInstance());
+                } catch (Exception e) {
+                    throw new RuntimeException("Failed to instantiate language adapter: " + laEntry.getKey(), e);
+                }
+            }
+        }
+    }
+
+    private void setupMods() {
+        for (ModContainerImpl mod : mods) {
+            try {
+                for (String key : mod.getMetadata().getEntrypointKeys()) {
+                    for (EntrypointMetadata in : mod.getMetadata().getEntrypoints(key)) {
+                        entrypointStorage.add(mod, key, in, adapterMap);
+                    }
+                }
+            } catch (Exception e) {
+                throw new RuntimeException(String.format("Failed to setup mod %s (%s)", mod.getMetadata().getName(), mod
+                    .getOrigin()), e);
+            }
+        }
+    }
+
+    /**
+     * Provides singleton for static init assignment regardless of load order.
+     */
+    public static class InitHelper {
+        private static LeafLoaderImpl instance;
+
+        public static LeafLoaderImpl get() {
+            if (instance == null) {
+                instance = new LeafLoaderImpl();
+            }
+
+            return instance;
+        }
+    }
 }

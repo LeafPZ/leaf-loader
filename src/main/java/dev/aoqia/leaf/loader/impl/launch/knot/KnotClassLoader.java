@@ -48,146 +48,148 @@ import dev.aoqia.leaf.loader.impl.mrj.AbstractSecureClassLoader;
 
 // class name referenced by string constant in dev.aoqia.leaf.loader.impl.util.LoaderUtil.verifyNotInTargetCl
 final class KnotClassLoader extends AbstractSecureClassLoader implements ClassLoaderAccess {
-	private static final class DynamicURLClassLoader extends URLClassLoader {
-		private DynamicURLClassLoader(URL[] urls) {
-			super(urls, new DummyClassLoader());
-		}
+    static {
+        registerAsParallelCapable();
+    }
 
-		@Override
-		public void addURL(URL url) {
-			super.addURL(url);
-		}
+    private final DynamicURLClassLoader urlLoader;
+    private final ClassLoader originalLoader;
+    private final KnotClassDelegate<KnotClassLoader> delegate;
 
-		static {
-			registerAsParallelCapable();
-		}
-	}
+    KnotClassLoader(boolean isDevelopment, EnvType envType, GameProvider provider) {
+        super("knot", new DynamicURLClassLoader(new URL[0]));
+        this.originalLoader = getClass().getClassLoader();
+        this.urlLoader = (DynamicURLClassLoader) getParent();
+        this.delegate = new KnotClassDelegate<>(isDevelopment, envType, this, originalLoader, provider);
+    }
 
-	private final DynamicURLClassLoader urlLoader;
-	private final ClassLoader originalLoader;
-	private final KnotClassDelegate<KnotClassLoader> delegate;
+    @Override
+    public void addUrlFwd(URL url) {
+        urlLoader.addURL(url);
+    }
 
-	KnotClassLoader(boolean isDevelopment, EnvType envType, GameProvider provider) {
-		super("knot", new DynamicURLClassLoader(new URL[0]));
-		this.originalLoader = getClass().getClassLoader();
-		this.urlLoader = (DynamicURLClassLoader) getParent();
-		this.delegate = new KnotClassDelegate<>(isDevelopment, envType, this, originalLoader, provider);
-	}
+    @Override
+    public Class<?> defineClassFwd(String name, byte[] b, int off, int len, CodeSource cs) {
+        return super.defineClass(name, b, off, len, cs);
+    }
 
-	KnotClassDelegate<?> getDelegate() {
-		return delegate;
-	}
+    @Override
+    public Package definePackageFwd(String name, String specTitle, String specVersion, String specVendor,
+        String implTitle, String implVersion, String implVendor, URL sealBase) throws IllegalArgumentException
+    {
+        return super.definePackage(name, specTitle, specVersion, specVendor, implTitle, implVersion, implVendor,
+            sealBase);
+    }
 
-	@Override
-	public URL getResource(String name) {
-		Objects.requireNonNull(name);
+    @Override
+    public Class<?> findLoadedClassFwd(String name) {
+        return super.findLoadedClass(name);
+    }
 
-		URL url = urlLoader.getResource(name);
+    @Override
+    public URL findResource(String name) {
+        Objects.requireNonNull(name);
 
-		if (url == null) {
-			url = originalLoader.getResource(name);
-		}
+        return urlLoader.findResource(name);
+    }
 
-		return url;
-	}
+    @Override
+    public URL findResourceFwd(String name) {
+        return urlLoader.findResource(name);
+    }
 
-	@Override
-	public URL findResource(String name) {
-		Objects.requireNonNull(name);
+    @Override
+    public Enumeration<URL> findResources(String name) throws IOException {
+        Objects.requireNonNull(name);
 
-		return urlLoader.findResource(name);
-	}
+        return urlLoader.findResources(name);
+    }
 
-	@Override
-	public Enumeration<URL> findResources(String name) throws IOException {
-		Objects.requireNonNull(name);
+    @Override
+    public Object getClassLoadingLockFwd(String name) {
+        return super.getClassLoadingLock(name);
+    }
 
-		return urlLoader.findResources(name);
-	}
+    @Override
+    public Package getPackageFwd(String name) {
+        return super.getPackage(name);
+    }
 
-	@Override
-	public InputStream getResourceAsStream(String name) {
-		Objects.requireNonNull(name);
+    @Override
+    public URL getResource(String name) {
+        Objects.requireNonNull(name);
 
-		InputStream inputStream = urlLoader.getResourceAsStream(name);
+        URL url = urlLoader.getResource(name);
 
-		if (inputStream == null) {
-			inputStream = originalLoader.getResourceAsStream(name);
-		}
+        if (url == null) {
+            url = originalLoader.getResource(name);
+        }
 
-		return inputStream;
-	}
+        return url;
+    }
 
-	@Override
-	public Enumeration<URL> getResources(String name) throws IOException {
-		Objects.requireNonNull(name);
+    @Override
+    public InputStream getResourceAsStream(String name) {
+        Objects.requireNonNull(name);
 
-		final Enumeration<URL> resources = urlLoader.getResources(name);
+        InputStream inputStream = urlLoader.getResourceAsStream(name);
 
-		if (!resources.hasMoreElements()) {
-			return originalLoader.getResources(name);
-		}
+        if (inputStream == null) {
+            inputStream = originalLoader.getResourceAsStream(name);
+        }
 
-		return resources;
-	}
+        return inputStream;
+    }
 
-	@Override
-	protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
-		return delegate.loadClass(name, resolve);
-	}
+    @Override
+    public Enumeration<URL> getResources(String name) throws IOException {
+        Objects.requireNonNull(name);
 
-	@Override
-	protected Class<?> findClass(String name) throws ClassNotFoundException {
-		return delegate.tryLoadClass(name, false);
-	}
+        final Enumeration<URL> resources = urlLoader.getResources(name);
 
-	@Override
-	protected String findLibrary(String libname) {
-		return delegate.findLibrary(libname);
-	}
+        if (!resources.hasMoreElements()) {
+            return originalLoader.getResources(name);
+        }
 
-	@Override
-	public void addUrlFwd(URL url) {
-		urlLoader.addURL(url);
-	}
+        return resources;
+    }
 
-	@Override
-	public URL findResourceFwd(String name) {
-		return urlLoader.findResource(name);
-	}
+    @Override
+    public void resolveClassFwd(Class<?> cls) {
+        super.resolveClass(cls);
+    }
 
-	@Override
-	public Package getPackageFwd(String name) {
-		return super.getPackage(name);
-	}
+    @Override
+    protected Class<?> findClass(String name) throws ClassNotFoundException {
+        return delegate.tryLoadClass(name, false);
+    }
 
-	@Override
-	public Package definePackageFwd(String name, String specTitle, String specVersion, String specVendor,
-			String implTitle, String implVersion, String implVendor, URL sealBase) throws IllegalArgumentException {
-		return super.definePackage(name, specTitle, specVersion, specVendor, implTitle, implVersion, implVendor, sealBase);
-	}
+    @Override
+    protected String findLibrary(String libname) {
+        return delegate.findLibrary(libname);
+    }
 
-	@Override
-	public Object getClassLoadingLockFwd(String name) {
-		return super.getClassLoadingLock(name);
-	}
+    @Override
+    protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
+        return delegate.loadClass(name, resolve);
+    }
 
-	@Override
-	public Class<?> findLoadedClassFwd(String name) {
-		return super.findLoadedClass(name);
-	}
+    KnotClassDelegate<?> getDelegate() {
+        return delegate;
+    }
 
-	@Override
-	public Class<?> defineClassFwd(String name, byte[] b, int off, int len, CodeSource cs) {
-		return super.defineClass(name, b, off, len, cs);
-	}
+    private static final class DynamicURLClassLoader extends URLClassLoader {
+        static {
+            registerAsParallelCapable();
+        }
 
-	@Override
-	public void resolveClassFwd(Class<?> cls) {
-		super.resolveClass(cls);
-	}
+        private DynamicURLClassLoader(URL[] urls) {
+            super(urls, new DummyClassLoader());
+        }
 
-	static {
-		registerAsParallelCapable();
-	}
+        @Override
+        public void addURL(URL url) {
+            super.addURL(url);
+        }
+    }
 }

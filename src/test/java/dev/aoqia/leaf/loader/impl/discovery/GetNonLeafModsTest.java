@@ -33,15 +33,11 @@
 
 package dev.aoqia.leaf.loader.impl.discovery;
 
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Set;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
@@ -57,71 +53,74 @@ import dev.aoqia.leaf.loader.impl.launch.LeafLauncher;
 import dev.aoqia.leaf.loader.impl.launch.LeafLauncherBase;
 import dev.aoqia.leaf.loader.impl.util.LoaderUtil;
 
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 public class GetNonLeafModsTest {
-	private LeafLoaderImpl loader;
-	private ModDiscoverer discoverer;
-	private MockedConstruction<LeafLoaderImpl> loaderConstruction;
+    private LeafLoaderImpl loader;
+    private ModDiscoverer discoverer;
+    private MockedConstruction<LeafLoaderImpl> loaderConstruction;
 
-	/*
-	 * Set up the mock loader and discoverer
-	 */
-	@BeforeEach
-	public void setUp() {
-		GameProvider provider = mock();
-		when(provider.getBuiltinMods()).thenReturn(Collections.emptyList());
+    /*
+     * Set up the mock loader and discoverer
+     */
+    @BeforeEach
+    public void setUp() {
+        GameProvider provider = mock();
+        when(provider.getBuiltinMods()).thenReturn(Collections.emptyList());
 
-		LeafLauncher launcher = mock();
-		when(launcher.getEnvironmentType()).thenReturn(EnvType.CLIENT);
-		when(launcher.isDevelopment()).thenReturn(false);
-		LeafLauncherBase.setLauncher(launcher);
-		loader = mock();
-		when(loader.getGameProvider()).thenReturn(provider);
-		when(loader.isDevelopmentEnvironment()).thenReturn(false);
+        LeafLauncher launcher = mock();
+        when(launcher.getEnvironmentType()).thenReturn(EnvType.CLIENT);
+        when(launcher.isDevelopment()).thenReturn(false);
+        LeafLauncherBase.setLauncher(launcher);
+        loader = mock();
+        when(loader.getGameProvider()).thenReturn(provider);
+        when(loader.isDevelopmentEnvironment()).thenReturn(false);
 
-		loaderConstruction = Mockito.mockConstructionWithAnswer(LeafLoaderImpl.class, invocation -> loader);
+        loaderConstruction = Mockito.mockConstructionWithAnswer(LeafLoaderImpl.class, invocation -> loader);
 
-		discoverer = new ModDiscoverer(mock(), mock());
-		discoverer.addCandidateFinder(new MockCandidateFinder());
-	}
+        discoverer = new ModDiscoverer(mock(), mock());
+        discoverer.addCandidateFinder(new MockCandidateFinder());
+    }
 
-	@AfterEach
-	public void tearDown() {
-		loaderConstruction.close();
-	}
+    @AfterEach
+    public void tearDown() {
+        loaderConstruction.close();
+    }
 
-	/*
-	 * Test that the discoverer can find non-fabric mods
-	 */
-	@Test
+    /*
+     * Test that the discoverer can find non-fabric mods
+     */
+    @Test
     public void testGetNonLeafMods() throws ModResolutionException {
         List<ModCandidateImpl> acceptedMods = discoverer.discoverMods(loader, new HashMap<>());
 
         boolean foundDummyMod = false;
-		for (ModCandidateImpl acceptedMod : acceptedMods) {
-			if (acceptedMod.getId().equals("dummy")) {
+        for (ModCandidateImpl acceptedMod : acceptedMods) {
+            if (acceptedMod.getId().equals("dummy")) {
                 foundDummyMod = true;
-				break;
-			}
-		}
+                break;
+            }
+        }
 
         List<Path> nonLeafMods = discoverer.getNonLeafMods();
         Assertions.assertEquals(1, nonLeafMods.size());
         Assertions.assertEquals(
             Paths.get("src/test/resources/testing/discovery/dummyNonLeafMod.jar").toAbsolutePath(),
             nonLeafMods.get(0));
-	}
+    }
 
-	/*
-	 * Mock candidate finder that returns two dummy mods (one fabric and one
-	 * non-fabric)
-	 */
-	public static class MockCandidateFinder implements ModCandidateFinder {
-		@Override
-		public void findCandidates(ModCandidateConsumer out) {
+    /*
+     * Mock candidate finder that returns two dummy mods (one fabric and one
+     * non-fabric)
+     */
+    public static class MockCandidateFinder implements ModCandidateFinder {
+        @Override
+        public void findCandidates(ModCandidateConsumer out) {
             out.accept(LoaderUtil.normalizePath(
                 Paths.get("src/test/resources/testing/discovery/dummyLeafMod.jar")), false, ModSource.INTERNAL);
             out.accept(LoaderUtil.normalizePath(
                 Paths.get("src/test/resources/testing/discovery/dummyNonLeafMod.jar")), false, ModSource.INTERNAL);
-		}
-	}
+        }
+    }
 }

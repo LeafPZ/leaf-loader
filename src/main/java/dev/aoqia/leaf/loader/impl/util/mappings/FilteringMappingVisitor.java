@@ -43,18 +43,20 @@ import net.fabricmc.mappingio.adapter.ForwardingMappingVisitor;
 
 // Filter out all method local variable names and comments
 public class FilteringMappingVisitor extends ForwardingMappingVisitor {
-	public FilteringMappingVisitor(MappingVisitor next) {
-		super(next);
-	}
+    public FilteringMappingVisitor(MappingVisitor next) {
+        super(next);
+    }
 
-	@Override
-	public boolean visitMethodVar(int lvtRowIndex, int lvIndex, int startOpIdx, int endOpIdx, @Nullable String srcName) throws IOException {
-		// ignored
-		return false;
-	}
+    @Override
+    public void visitComment(MappedElementKind targetKind, String comment) throws IOException {
+        // ignored
+    }
 
-	@Override
-	public void visitComment(MappedElementKind targetKind, String comment) throws IOException {
-		// ignored
-	}
+    @Override
+    public boolean visitMethodVar(int lvtRowIndex, int lvIndex, int startOpIdx, int endOpIdx, @Nullable String srcName)
+        throws IOException
+    {
+        // ignored
+        return false;
+    }
 }

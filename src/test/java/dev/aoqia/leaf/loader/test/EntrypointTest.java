@@ -36,27 +36,27 @@ import dev.aoqia.leaf.loader.impl.util.log.Log;
 import dev.aoqia.leaf.loader.impl.util.log.LogCategory;
 
 public final class EntrypointTest {
-	public static final CustomEntry FIELD_ENTRY = EntrypointTest::fieldEntry;
+    public static final CustomEntry FIELD_ENTRY = EntrypointTest::fieldEntry;
 
-	public static String staticEntry() {
-		return "static";
-	}
+    public EntrypointTest() {
+        Log.info(LogCategory.TEST, "EntrypointTest instance created");
+    }
 
-	public EntrypointTest() {
-		Log.info(LogCategory.TEST, "EntrypointTest instance created");
-	}
+    public static String fieldEntry() {
+        return "field";
+    }
 
-	public String instanceEntry() {
-		return "instance";
-	}
+    public static String staticEntry() {
+        return "static";
+    }
 
-	public static String fieldEntry() {
-		return "field";
-	}
+    public String instanceEntry() {
+        return "instance";
+    }
 
-	public static final class EntrypointCtorTest {
-		public EntrypointCtorTest() {
-			Log.info(LogCategory.TEST, "EntrypointCtorTest instance created! This runs at main");
-		}
-	}
+    public static final class EntrypointCtorTest {
+        public EntrypointCtorTest() {
+            Log.info(LogCategory.TEST, "EntrypointCtorTest instance created! This runs at main");
+        }
+    }
 }

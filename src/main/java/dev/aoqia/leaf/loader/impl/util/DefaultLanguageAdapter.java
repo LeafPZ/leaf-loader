@@ -51,126 +51,129 @@ import dev.aoqia.leaf.loader.api.ModContainer;
 import dev.aoqia.leaf.loader.impl.launch.LeafLauncherBase;
 
 public final class DefaultLanguageAdapter implements LanguageAdapter {
-	public static final DefaultLanguageAdapter INSTANCE = new DefaultLanguageAdapter();
+    public static final DefaultLanguageAdapter INSTANCE = new DefaultLanguageAdapter();
 
-	private DefaultLanguageAdapter() { }
+    private DefaultLanguageAdapter() {
+    }
 
-	@SuppressWarnings("unchecked")
-	@Override
-	public <T> T create(ModContainer mod, String value, Class<T> type) throws LanguageAdapterException {
-		String[] methodSplit = value.split("::");
+    @SuppressWarnings("unchecked")
+    @Override
+    public <T> T create(ModContainer mod, String value, Class<T> type) throws LanguageAdapterException {
+        String[] methodSplit = value.split("::");
 
-		if (methodSplit.length >= 3) {
-			throw new LanguageAdapterException("Invalid handle format: " + value);
-		}
+        if (methodSplit.length >= 3) {
+            throw new LanguageAdapterException("Invalid handle format: " + value);
+        }
 
-		Class<?> c;
+        Class<?> c;
 
-		try {
-			c = Class.forName(methodSplit[0], true, LeafLauncherBase.getLauncher().getTargetClassLoader());
-		} catch (ClassNotFoundException e) {
-			throw new LanguageAdapterException(e);
-		}
+        try {
+            c = Class.forName(methodSplit[0], true, LeafLauncherBase.getLauncher().getTargetClassLoader());
+        } catch (ClassNotFoundException e) {
+            throw new LanguageAdapterException(e);
+        }
 
-		if (methodSplit.length == 1) {
-			if (type.isAssignableFrom(c)) {
-				try {
-					return (T) c.getDeclaredConstructor().newInstance();
-				} catch (Exception e) {
-					throw new LanguageAdapterException(e);
-				}
-			} else {
-				throw new LanguageAdapterException("Class " + c.getName() + " cannot be cast to " + type.getName() + "!");
-			}
-		} else /* length == 2 */ {
-			List<Executable> executableList = new ArrayList<>();
+        if (methodSplit.length == 1) {
+            if (type.isAssignableFrom(c)) {
+                try {
+                    return (T) c.getDeclaredConstructor().newInstance();
+                } catch (Exception e) {
+                    throw new LanguageAdapterException(e);
+                }
+            } else {
+                throw new LanguageAdapterException("Class " + c.getName() + " cannot be cast to " + type.getName()
+                    + "!");
+            }
+        } else /* length == 2 */ {
+            List<Executable> executableList = new ArrayList<>();
 
-			for (Method m : c.getDeclaredMethods()) {
-				if (!(m.getName().equals(methodSplit[1]))) {
-					continue;
-				}
+            for (Method m : c.getDeclaredMethods()) {
+                if (!(m.getName().equals(methodSplit[1]))) {
+                    continue;
+                }
 
-				executableList.add(m);
-			}
+                executableList.add(m);
+            }
 
-			if (methodSplit[1].equals("<init>")) {
-				executableList.addAll(Arrays.asList(c.getDeclaredConstructors()));
-			}
+            if (methodSplit[1].equals("<init>")) {
+                executableList.addAll(Arrays.asList(c.getDeclaredConstructors()));
+            }
 
-			try {
-				Field field = c.getDeclaredField(methodSplit[1]);
-				Class<?> fType = field.getType();
+            try {
+                Field field = c.getDeclaredField(methodSplit[1]);
+                Class<?> fType = field.getType();
 
-				if ((field.getModifiers() & Modifier.STATIC) == 0) {
-					throw new LanguageAdapterException("Field " + value + " must be static!");
-				}
+                if ((field.getModifiers() & Modifier.STATIC) == 0) {
+                    throw new LanguageAdapterException("Field " + value + " must be static!");
+                }
 
-				if (!executableList.isEmpty()) {
-					throw new LanguageAdapterException("Ambiguous " + value + " - refers to both field and method!");
-				}
+                if (!executableList.isEmpty()) {
+                    throw new LanguageAdapterException("Ambiguous " + value + " - refers to both field and method!");
+                }
 
-				if (!type.isAssignableFrom(fType)) {
-					throw new LanguageAdapterException("Field " + value + " cannot be cast to " + type.getName() + "!");
-				}
+                if (!type.isAssignableFrom(fType)) {
+                    throw new LanguageAdapterException("Field " + value + " cannot be cast to " + type.getName() + "!");
+                }
 
-				return (T) field.get(null);
-			} catch (NoSuchFieldException e) {
-				// ignore
-			} catch (IllegalAccessException e) {
-				throw new LanguageAdapterException("Field " + value + " cannot be accessed!", e);
-			}
+                return (T) field.get(null);
+            } catch (NoSuchFieldException e) {
+                // ignore
+            } catch (IllegalAccessException e) {
+                throw new LanguageAdapterException("Field " + value + " cannot be accessed!", e);
+            }
 
-			if (!type.isInterface()) {
-				throw new LanguageAdapterException("Cannot proxy method " + value + " to non-interface type " + type.getName() + "!");
-			}
+            if (!type.isInterface()) {
+                throw new LanguageAdapterException("Cannot proxy method " + value + " to non-interface type " + type
+                    .getName() + "!");
+            }
 
-			if (executableList.isEmpty()) {
-				throw new LanguageAdapterException("Could not find " + value + "!");
-			} else if (executableList.size() >= 2) {
-				throw new LanguageAdapterException("Found multiple method entries of name " + value + "!");
-			}
+            if (executableList.isEmpty()) {
+                throw new LanguageAdapterException("Could not find " + value + "!");
+            } else if (executableList.size() >= 2) {
+                throw new LanguageAdapterException("Found multiple method entries of name " + value + "!");
+            }
 
-			final Executable targetExecutable = executableList.get(0);
-			Object object = null;
+            final Executable targetExecutable = executableList.get(0);
+            Object object = null;
 
-			if (targetExecutable instanceof Method) {
-				Method targetMethod = (Method) targetExecutable;
+            if (targetExecutable instanceof Method) {
+                Method targetMethod = (Method) targetExecutable;
 
-				if ((targetMethod.getModifiers() & Modifier.STATIC) == 0) {
-					try {
-						object = c.getDeclaredConstructor().newInstance();
-					} catch (Exception e) {
-						throw new LanguageAdapterException(e);
-					}
-				}
-			}
+                if ((targetMethod.getModifiers() & Modifier.STATIC) == 0) {
+                    try {
+                        object = c.getDeclaredConstructor().newInstance();
+                    } catch (Exception e) {
+                        throw new LanguageAdapterException(e);
+                    }
+                }
+            }
 
-			MethodHandle handle;
+            MethodHandle handle;
 
-			try {
-				if (targetExecutable instanceof Method) {
-					Method targetMethod = (Method) targetExecutable;
-					handle = MethodHandles.lookup()
-							.unreflect(targetMethod);
-				} else {
-					Constructor<?> targetConstructor = (Constructor<?>) targetExecutable;
-					handle = MethodHandles.lookup()
-							.unreflectConstructor(targetConstructor);
-				}
-			} catch (Exception ex) {
-				throw new LanguageAdapterException(ex);
-			}
+            try {
+                if (targetExecutable instanceof Method) {
+                    Method targetMethod = (Method) targetExecutable;
+                    handle = MethodHandles.lookup()
+                        .unreflect(targetMethod);
+                } else {
+                    Constructor<?> targetConstructor = (Constructor<?>) targetExecutable;
+                    handle = MethodHandles.lookup()
+                        .unreflectConstructor(targetConstructor);
+                }
+            } catch (Exception ex) {
+                throw new LanguageAdapterException(ex);
+            }
 
-			if (object != null) {
-				handle = handle.bindTo(object);
-			}
+            if (object != null) {
+                handle = handle.bindTo(object);
+            }
 
-			// uses proxy as well, but this handles default and object methods
-			try {
-				return MethodHandleProxies.asInterfaceInstance(type, handle);
-			} catch (Exception ex) {
-				throw new LanguageAdapterException(ex);
-			}
-		}
-	}
+            // uses proxy as well, but this handles default and object methods
+            try {
+                return MethodHandleProxies.asInterfaceInstance(type, handle);
+            } catch (Exception ex) {
+                throw new LanguageAdapterException(ex);
+            }
+        }
+    }
 }

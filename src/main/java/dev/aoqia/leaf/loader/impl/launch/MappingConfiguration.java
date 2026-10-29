@@ -55,244 +55,260 @@ import java.util.zip.ZipFile;
 
 import org.jetbrains.annotations.Nullable;
 
+import net.fabricmc.mappingio.MappingReader;
+import net.fabricmc.mappingio.MappingVisitor;
+import net.fabricmc.mappingio.tree.MappingTree;
+import net.fabricmc.mappingio.tree.MemoryMappingTree;
+
 import dev.aoqia.leaf.loader.impl.LeafLoaderImpl;
 import dev.aoqia.leaf.loader.impl.util.ManifestUtil;
 import dev.aoqia.leaf.loader.impl.util.SystemProperties;
 import dev.aoqia.leaf.loader.impl.util.log.Log;
 import dev.aoqia.leaf.loader.impl.util.log.LogCategory;
 import dev.aoqia.leaf.loader.impl.util.mappings.FilteringMappingVisitor;
-import net.fabricmc.mappingio.MappingReader;
-import net.fabricmc.mappingio.MappingVisitor;
-import net.fabricmc.mappingio.tree.MappingTree;
-import net.fabricmc.mappingio.tree.MemoryMappingTree;
 
 public final class MappingConfiguration {
-	private static final boolean FIX_PACKAGE_ACCESS = SystemProperties.isSet(SystemProperties.FIX_PACKAGE_ACCESS);
+    private static final boolean FIX_PACKAGE_ACCESS = SystemProperties.isSet(SystemProperties.FIX_PACKAGE_ACCESS);
 
-	// same ns between client and server
-	public static final String OFFICIAL_NAMESPACE = "official";
-	// separate client/server ns
-	public static final String CLIENT_OFFICIAL_NAMESPACE = "clientOfficial";
-	public static final String SERVER_OFFICIAL_NAMESPACE = "serverOfficial";
+    // same ns between client and server
+    public static final String OFFICIAL_NAMESPACE = "official";
+    // separate client/server ns
+    public static final String CLIENT_OFFICIAL_NAMESPACE = "clientOfficial";
+    public static final String SERVER_OFFICIAL_NAMESPACE = "serverOfficial";
 
-	public static final String INTERMEDIARY_NAMESPACE = "intermediary";
-	public static final String NAMED_NAMESPACE = "named";
+    public static final String INTERMEDIARY_NAMESPACE = "intermediary";
+    public static final String NAMED_NAMESPACE = "named";
 
-	private boolean initializedMetadata;
-	private boolean initializedMappings;
-	private MappingSource mappingSource;
+    private boolean initializedMetadata;
+    private boolean initializedMappings;
+    private MappingSource mappingSource;
 
-	private String namespace;
+    private String namespace;
 
-	@Nullable
-	private String gameId;
-	@Nullable
-	private String gameVersion;
-	@Nullable
-	private String mappingName;
-	@Nullable
-	private List<String> namespaces;
-	@Nullable
-	private MemoryMappingTree mappings;
+    @Nullable
+    private String gameId;
+    @Nullable
+    private String gameVersion;
+    @Nullable
+    private String mappingName;
+    @Nullable
+    private List<String> namespaces;
+    @Nullable
+    private MemoryMappingTree mappings;
 
-	@Nullable
-	public String getGameId() {
-		initializeMappings(true);
+    public String getDefaultModDistributionNamespace() {
+        String ret = System.getProperty(SystemProperties.DEFAULT_MOD_DISTRIBUTION_NAMESPACE);
+        if (ret != null)
+            return ret;
 
-		return gameId;
-	}
+        ret = getRuntimeNamespace();
 
-	@Nullable
-	public String getGameVersion() {
-		initializeMappings(true);
+        if (!ret.equals(OFFICIAL_NAMESPACE))
+            ret = INTERMEDIARY_NAMESPACE;
 
-		return gameVersion;
-	}
+        return LeafLoaderImpl.INSTANCE.getGameProvider().getDefaultModDistributionNamespace(ret);
+    }
 
-	@Nullable
-	public String getMappingName() {
-		initializeMappings(true);
+    @Nullable
+    public String getGameId() {
+        initializeMappings(true);
 
-		return mappingName;
-	}
+        return gameId;
+    }
 
-	@Nullable
-	public List<String> getNamespaces() {
-		initializeMappings(true);
+    @Nullable
+    public String getGameVersion() {
+        initializeMappings(true);
 
-		return namespaces;
-	}
+        return gameVersion;
+    }
 
-	public boolean matches(String gameId, String gameVersion) {
-		initializeMappings(true);
+    @Nullable
+    public String getMappingName() {
+        initializeMappings(true);
 
-		return (this.gameId == null || gameId == null || gameId.equals(this.gameId))
-				&& (this.gameVersion == null || gameVersion == null || gameVersion.equals(this.gameVersion));
-	}
+        return mappingName;
+    }
 
-	public MappingTree getMappings() {
-		initializeMappings(false);
-		assert mappings != null;
+    public MappingTree getMappings() {
+        initializeMappings(false);
+        assert mappings != null;
 
-		return mappings;
-	}
+        return mappings;
+    }
 
-	public boolean hasAnyMappings() {
-		MappingTree tree = getMappings();
+    @Nullable
+    public List<String> getNamespaces() {
+        initializeMappings(true);
 
-		return !tree.getClasses().isEmpty();
-	}
+        return namespaces;
+    }
 
-	public String getRuntimeNamespace() {
-		if (namespace == null) {
-			namespace = computeRuntimeNamespace();
-		}
+    public String getRuntimeNamespace() {
+        if (namespace == null) {
+            namespace = computeRuntimeNamespace();
+        }
 
-		return namespace;
-	}
+        return namespace;
+    }
 
-	private String computeRuntimeNamespace() {
-		String ret = System.getProperty(SystemProperties.RUNTIME_MAPPING_NAMESPACE);
-		if (ret != null) return ret;
+    public boolean hasAnyMappings() {
+        MappingTree tree = getMappings();
 
-		ret = OFFICIAL_NAMESPACE; // default
+        return !tree.getClasses().isEmpty();
+    }
 
-		if (hasAnyMappings()) { // switch to named or intermediary if they are supplied
-			String newNs = LeafLauncherBase.getLauncher().isDevelopment() ? NAMED_NAMESPACE : INTERMEDIARY_NAMESPACE;
-			if (getNamespaces().contains(newNs)) ret = newNs;
-		}
+    public boolean matches(String gameId, String gameVersion) {
+        initializeMappings(true);
 
-		return LeafLoaderImpl.INSTANCE.getGameProvider().getRuntimeNamespace(ret);
-	}
+        return (this.gameId == null || gameId == null || gameId.equals(this.gameId))
+            && (this.gameVersion == null || gameVersion == null || gameVersion.equals(this.gameVersion));
+    }
 
-	public String getDefaultModDistributionNamespace() {
-		String ret = System.getProperty(SystemProperties.DEFAULT_MOD_DISTRIBUTION_NAMESPACE);
-		if (ret != null) return ret;
+    public boolean requiresPackageAccessHack() {
+        // TODO
+        return FIX_PACKAGE_ACCESS || getRuntimeNamespace().equals(NAMED_NAMESPACE);
+    }
 
-		ret = getRuntimeNamespace();
+    private String computeRuntimeNamespace() {
+        String ret = System.getProperty(SystemProperties.RUNTIME_MAPPING_NAMESPACE);
+        if (ret != null)
+            return ret;
 
-		if (!ret.equals(OFFICIAL_NAMESPACE)) ret = INTERMEDIARY_NAMESPACE;
+        ret = OFFICIAL_NAMESPACE; // default
 
-		return LeafLoaderImpl.INSTANCE.getGameProvider().getDefaultModDistributionNamespace(ret);
-	}
+        if (hasAnyMappings()) { // switch to named or intermediary if they are supplied
+            String newNs = LeafLauncherBase.getLauncher().isDevelopment() ? NAMED_NAMESPACE : INTERMEDIARY_NAMESPACE;
+            if (getNamespaces().contains(newNs))
+                ret = newNs;
+        }
 
-	public boolean requiresPackageAccessHack() {
-		// TODO
-		return FIX_PACKAGE_ACCESS || getRuntimeNamespace().equals(NAMED_NAMESPACE);
-	}
+        return LeafLoaderImpl.INSTANCE.getGameProvider().getRuntimeNamespace(ret);
+    }
 
-	private void initializeMappings(boolean metaOnly) {
-		if (initializedMappings || initializedMetadata && metaOnly) return;
+    private MappingSource getMappingSource() {
+        if (mappingSource != null)
+            return mappingSource;
 
-		long time = System.nanoTime();
-		MappingSource source = getMappingSource();
-		MappingVisitor out;
+        final String zipMappingPath = "mappings/mappings.tiny";
+        String pathStr = System.getProperty(SystemProperties.MAPPING_PATH);
+        URL url = null;
+        Path path = null;
 
-		if (metaOnly) {
-			out = null;
-		} else {
-			mappings = new MemoryMappingTree();
-			out = new FilteringMappingVisitor(mappings);
-		}
+        if (pathStr == null) {
+            url = MappingConfiguration.class.getClassLoader().getResource(zipMappingPath);
+        } else {
+            path = Paths.get(pathStr).toAbsolutePath();
 
-		try {
-			if (source.path != null) {
-				if (metaOnly) {
-					namespaces = MappingReader.getNamespaces(source.path);
-				} else {
-					MappingReader.read(source.path, out);
-				}
-			} else if (source.url != null) {
-				URLConnection connection = source.url.openConnection();
+            if (!Files.exists(path)) {
+                Log.warn(LogCategory.MAPPINGS, "Mapping file %s supplied by the system property doesn't exist", path);
+                path = null;
+            } else if (!Files.isDirectory(path)) { // check for zip packaging
+                try (ZipFile zf = new ZipFile(path.toFile())) {
+                    ZipEntry entry = zf.getEntry(zipMappingPath);
 
-				if (!initializedMetadata && connection instanceof JarURLConnection) {
-					final Manifest manifest = ((JarURLConnection) connection).getManifest();
+                    if (entry == null) {
+                        Log.warn(LogCategory.MAPPINGS,
+                            "Mapping file %s supplied by the system property doesn't contain mappings at "
+                                + zipMappingPath,
+                            path);
+                        path = null;
+                    } else {
+                        // zip packaging confirmed, turn into nested URL
+                        // this ensures initializeMappings will try to read the manifest
 
-					if (manifest != null) {
-						gameId = ManifestUtil.getManifestValue(manifest, new Name("Game-Id"));
-						gameVersion = ManifestUtil.getManifestValue(manifest, new Name("Game-Version"));
-						mappingName = ManifestUtil.getManifestValue(manifest, new Name("Mapping-Name"));
-					}
-				}
+                        url = new URI("jar", path.toUri() + "!/" + zipMappingPath, null).toURL();
+                        path = null;
+                    }
+                } catch (ZipException e) {
+                    // presumably not a zip, keep plain path
+                } catch (IOException | URISyntaxException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
 
-				try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8))) {
-					if (metaOnly) {
-						namespaces = MappingReader.getNamespaces(reader);
-					} else {
-						MappingReader.read(reader, out);
-					}
-				}
-			} else { // no mappings
-				Log.info(LogCategory.MAPPINGS, "Mappings not present!");
-				mappings = new MemoryMappingTree();
-				initializedMappings = true;
-			}
-		} catch (IOException e) {
-			throw new RuntimeException("Error reading mappings", e);
-		}
+        mappingSource = new MappingSource(url, path);
 
-		if (!initializedMetadata && !metaOnly && mappings.getSrcNamespace() != null) { // copy namespaces from mapping tree if metadata wasn't initialized separately
-			namespaces = new ArrayList<>(mappings.getDstNamespaces().size() + 1);
-			namespaces.add(mappings.getSrcNamespace());
-			namespaces.addAll(mappings.getDstNamespaces());
-		}
+        return mappingSource;
+    }
 
-		Log.debug(LogCategory.MAPPINGS, "Loading mappings%s took %.2f ms", (metaOnly ? " (meta only)" : ""), (System.nanoTime() - time) * 1e-6);
+    private void initializeMappings(boolean metaOnly) {
+        if (initializedMappings || initializedMetadata && metaOnly)
+            return;
 
-		initializedMetadata = true;
-		if (!metaOnly) initializedMappings = true;
-	}
+        long time = System.nanoTime();
+        MappingSource source = getMappingSource();
+        MappingVisitor out;
 
-	private MappingSource getMappingSource() {
-		if (mappingSource != null) return mappingSource;
+        if (metaOnly) {
+            out = null;
+        } else {
+            mappings = new MemoryMappingTree();
+            out = new FilteringMappingVisitor(mappings);
+        }
 
-		final String zipMappingPath = "mappings/mappings.tiny";
-		String pathStr = System.getProperty(SystemProperties.MAPPING_PATH);
-		URL url = null;
-		Path path = null;
+        try {
+            if (source.path != null) {
+                if (metaOnly) {
+                    namespaces = MappingReader.getNamespaces(source.path);
+                } else {
+                    MappingReader.read(source.path, out);
+                }
+            } else if (source.url != null) {
+                URLConnection connection = source.url.openConnection();
 
-		if (pathStr == null) {
-			url = MappingConfiguration.class.getClassLoader().getResource(zipMappingPath);
-		} else {
-			path = Paths.get(pathStr).toAbsolutePath();
+                if (!initializedMetadata && connection instanceof JarURLConnection) {
+                    final Manifest manifest = ((JarURLConnection) connection).getManifest();
 
-			if (!Files.exists(path)) {
-				Log.warn(LogCategory.MAPPINGS, "Mapping file %s supplied by the system property doesn't exist", path);
-				path = null;
-			} else if (!Files.isDirectory(path)) { // check for zip packaging
-				try (ZipFile zf = new ZipFile(path.toFile())) {
-					ZipEntry entry = zf.getEntry(zipMappingPath);
+                    if (manifest != null) {
+                        gameId = ManifestUtil.getManifestValue(manifest, new Name("Game-Id"));
+                        gameVersion = ManifestUtil.getManifestValue(manifest, new Name("Game-Version"));
+                        mappingName = ManifestUtil.getManifestValue(manifest, new Name("Mapping-Name"));
+                    }
+                }
 
-					if (entry == null) {
-						Log.warn(LogCategory.MAPPINGS, "Mapping file %s supplied by the system property doesn't contain mappings at "+zipMappingPath, path);
-						path = null;
-					} else {
-						// zip packaging confirmed, turn into nested URL
-						// this ensures initializeMappings will try to read the manifest
+                try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream(),
+                    StandardCharsets.UTF_8)))
+                {
+                    if (metaOnly) {
+                        namespaces = MappingReader.getNamespaces(reader);
+                    } else {
+                        MappingReader.read(reader, out);
+                    }
+                }
+            } else { // no mappings
+                Log.info(LogCategory.MAPPINGS, "Mappings not present!");
+                mappings = new MemoryMappingTree();
+                initializedMappings = true;
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Error reading mappings", e);
+        }
 
-						url = new URI("jar", path.toUri() + "!/" + zipMappingPath, null).toURL();
-						path = null;
-					}
-				} catch (ZipException e) {
-					// presumably not a zip, keep plain path
-				} catch (IOException | URISyntaxException e) {
-					throw new RuntimeException(e);
-				}
-			}
-		}
+        if (!initializedMetadata && !metaOnly && mappings.getSrcNamespace() != null) { // copy namespaces from mapping
+                                                                                       // tree if metadata wasn't
+                                                                                       // initialized separately
+            namespaces = new ArrayList<>(mappings.getDstNamespaces().size() + 1);
+            namespaces.add(mappings.getSrcNamespace());
+            namespaces.addAll(mappings.getDstNamespaces());
+        }
 
-		mappingSource = new MappingSource(url, path);
+        Log.debug(LogCategory.MAPPINGS, "Loading mappings%s took %.2f ms", (metaOnly ? " (meta only)" : ""), (System
+            .nanoTime() - time) * 1e-6);
 
-		return mappingSource;
-	}
+        initializedMetadata = true;
+        if (!metaOnly)
+            initializedMappings = true;
+    }
 
-	private static final class MappingSource {
-		final URL url;
-		final Path path;
+    private static final class MappingSource {
+        final URL url;
+        final Path path;
 
-		MappingSource(URL url, Path path) {
-			this.url = url;
-			this.path = path;
-		}
-	}
+        MappingSource(URL url, Path path) {
+            this.url = url;
+            this.path = path;
+        }
+    }
 }

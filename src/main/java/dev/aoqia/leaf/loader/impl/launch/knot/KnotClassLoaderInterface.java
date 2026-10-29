@@ -42,28 +42,34 @@ import dev.aoqia.leaf.api.EnvType;
 import dev.aoqia.leaf.loader.impl.game.GameProvider;
 
 interface KnotClassLoaderInterface {
-	@SuppressWarnings("resource")
-	static KnotClassLoaderInterface create(boolean useCompatibility, boolean isDevelopment, EnvType envType, GameProvider provider) {
-		if (useCompatibility) {
-			return new KnotCompatibilityClassLoader(isDevelopment, envType, provider).getDelegate();
-		} else {
-			return new KnotClassLoader(isDevelopment, envType, provider).getDelegate();
-		}
-	}
+    @SuppressWarnings("resource")
+    static KnotClassLoaderInterface create(boolean useCompatibility, boolean isDevelopment, EnvType envType,
+        GameProvider provider)
+    {
+        if (useCompatibility) {
+            return new KnotCompatibilityClassLoader(isDevelopment, envType, provider).getDelegate();
+        } else {
+            return new KnotClassLoader(isDevelopment, envType, provider).getDelegate();
+        }
+    }
 
-	void initializeTransformers();
+    void addCodeSource(Path path);
 
-	ClassLoader getClassLoader();
+    ClassLoader getClassLoader();
 
-	void addCodeSource(Path path);
-	void setAllowedPrefixes(Path codeSource, String... prefixes);
-	void setValidParentClassPath(Collection<Path> codeSources);
+    Manifest getManifest(Path codeSource);
 
-	Manifest getManifest(Path codeSource);
+    byte[] getPreMixinClassBytes(String name);
 
-	boolean isClassLoaded(String name);
-	Class<?> loadIntoTarget(String name) throws ClassNotFoundException;
+    byte[] getRawClassBytes(String name) throws IOException;
 
-	byte[] getRawClassBytes(String name) throws IOException;
-	byte[] getPreMixinClassBytes(String name);
+    void initializeTransformers();
+
+    boolean isClassLoaded(String name);
+
+    Class<?> loadIntoTarget(String name) throws ClassNotFoundException;
+
+    void setAllowedPrefixes(Path codeSource, String... prefixes);
+
+    void setValidParentClassPath(Collection<Path> codeSources);
 }

@@ -36,20 +36,20 @@ package dev.aoqia.leaf.loader.api.metadata;
 import dev.aoqia.leaf.api.EnvType;
 
 public enum ModEnvironment {
-	CLIENT,
-	SERVER,
-	UNIVERSAL;
+    CLIENT,
+    SERVER,
+    UNIVERSAL;
 
-	public boolean matches(EnvType type) {
-		switch (this) {
-		case CLIENT:
-			return type == EnvType.CLIENT;
-		case SERVER:
-			return type == EnvType.SERVER;
-		case UNIVERSAL:
-			return true;
-		default:
-			return false;
-		}
-	}
+    public boolean matches(EnvType type) {
+        switch (this) {
+            case CLIENT:
+                return type == EnvType.CLIENT;
+            case SERVER:
+                return type == EnvType.SERVER;
+            case UNIVERSAL:
+                return true;
+            default:
+                return false;
+        }
+    }
 }

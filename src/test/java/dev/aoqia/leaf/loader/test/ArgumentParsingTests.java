@@ -38,37 +38,37 @@ import org.junit.jupiter.api.Test;
 import dev.aoqia.leaf.loader.impl.util.Arguments;
 
 public class ArgumentParsingTests {
-	@Test
-	public void parseNormal() {
-		Arguments arguments = new Arguments();
-		arguments.parse(new String[]{"-debug", "-pzexeconfig", "SomeConfig.json", "-novoip"});
-		arguments.put("versionType", "Leaf");
+    @Test
+    public void parseJvm() {
+        Arguments arguments = new Arguments();
+        arguments.parse(new String[] { "-Xmx8192m", "--" });
+        arguments.put("versionType", "Leaf");
 
-		Assertions.assertEquals(2, arguments.getValueArgs().size());
-		Assertions.assertEquals("SomeConfig.json", arguments.get("pzexeconfig"));
-		Assertions.assertEquals("Leaf", arguments.get("versionType"));
-	}
+        Assertions.assertEquals(1, arguments.getValueArgs().size());
+        Assertions.assertNull(arguments.get("xuid"));
+        Assertions.assertEquals("Leaf", arguments.get("versionType"));
+    }
 
-	@Test
-	public void parseMissing() {
-		Arguments arguments = new Arguments();
-		arguments.parse(new String[]{"-debug", "-pzexeconfig", "-novoip"});
-		arguments.put("versionType", "Leaf");
+    @Test
+    public void parseMissing() {
+        Arguments arguments = new Arguments();
+        arguments.parse(new String[] { "-debug", "-pzexeconfig", "-novoip" });
+        arguments.put("versionType", "Leaf");
 
-		Assertions.assertEquals(1, arguments.getValueArgs().size());
+        Assertions.assertEquals(1, arguments.getValueArgs().size());
         Assertions.assertNull(arguments.get("xuid"));
         Assertions.assertNull(arguments.get("pzexeconfig"));
-		Assertions.assertEquals("Leaf", arguments.get("versionType"));
-	}
+        Assertions.assertEquals("Leaf", arguments.get("versionType"));
+    }
 
-	@Test
-	public void parseJvm() {
-		Arguments arguments = new Arguments();
-		arguments.parse(new String[]{"-Xmx8192m", "--"});
-		arguments.put("versionType", "Leaf");
+    @Test
+    public void parseNormal() {
+        Arguments arguments = new Arguments();
+        arguments.parse(new String[] { "-debug", "-pzexeconfig", "SomeConfig.json", "-novoip" });
+        arguments.put("versionType", "Leaf");
 
-		Assertions.assertEquals(1, arguments.getValueArgs().size());
-		Assertions.assertNull(arguments.get("xuid"));
-		Assertions.assertEquals("Leaf", arguments.get("versionType"));
-	}
+        Assertions.assertEquals(2, arguments.getValueArgs().size());
+        Assertions.assertEquals("SomeConfig.json", arguments.get("pzexeconfig"));
+        Assertions.assertEquals("Leaf", arguments.get("versionType"));
+    }
 }

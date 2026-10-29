@@ -38,7 +38,9 @@ import dev.aoqia.leaf.loader.api.LeafLoader;
 /**
  * A mod initializer ran only on {@link EnvType#SERVER}.
  *
- * <p>In {@code leaf.mod.json}, the entrypoint is defined with {@code server} key.</p>
+ * <p>
+ * In {@code leaf.mod.json}, the entrypoint is defined with {@code server} key.
+ * </p>
  *
  * @see ModInitializer
  * @see ClientModInitializer
@@ -46,8 +48,8 @@ import dev.aoqia.leaf.loader.api.LeafLoader;
  */
 @FunctionalInterface
 public interface ServerModInitializer {
-	/**
-	 * Runs the mod initializer on the server environment.
-	 */
-	void onInitializeServer();
+    /**
+     * Runs the mod initializer on the server environment.
+     */
+    void onInitializeServer();
 }

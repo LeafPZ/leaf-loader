@@ -43,20 +43,20 @@ import dev.aoqia.leaf.loader.api.ModContainer;
  * @see LeafLoader#getEntrypointContainers(String, Class)
  */
 public interface EntrypointContainer<T> {
-	/**
-	 * Returns the entrypoint instance. It will be constructed the first time you call this method.
-	 */
-	T getEntrypoint();
+    /**
+     * Returns a string representation of the entrypoint's definition.
+     */
+    default String getDefinition() {
+        return "";
+    }
 
-	/**
-	 * Returns the mod that provided this entrypoint.
-	 */
-	ModContainer getProvider();
+    /**
+     * Returns the entrypoint instance. It will be constructed the first time you call this method.
+     */
+    T getEntrypoint();
 
-	/**
-	 * Returns a string representation of the entrypoint's definition.
-	 */
-	default String getDefinition() {
-		return "";
-	}
+    /**
+     * Returns the mod that provided this entrypoint.
+     */
+    ModContainer getProvider();
 }

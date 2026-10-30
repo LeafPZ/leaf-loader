@@ -32,19 +32,20 @@ import org.objectweb.asm.tree.InsnNode;
 import org.objectweb.asm.tree.LdcInsnNode;
 import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
+import org.objectweb.asm.tree.TypeInsnNode;
 
 import dev.aoqia.leaf.api.EnvType;
-import dev.aoqia.leaf.loader.impl.game.zomboid.Hooks;
 import dev.aoqia.leaf.loader.impl.game.patch.GamePatch;
+import dev.aoqia.leaf.loader.impl.game.zomboid.Hooks;
 import dev.aoqia.leaf.loader.impl.launch.LeafLauncher;
 import dev.aoqia.leaf.loader.impl.util.log.Log;
 import dev.aoqia.leaf.loader.impl.util.log.LogCategory;
 
-import org.objectweb.asm.tree.TypeInsnNode;
-
 public class EntrypointPatch extends GamePatch {
     @Override
-    public void process(LeafLauncher launcher, Function<String, ClassNode> classSource, Consumer<ClassNode> classEmitter) {
+    public void process(LeafLauncher launcher, Function<String, ClassNode> classSource,
+        Consumer<ClassNode> classEmitter)
+    {
         EnvType type = launcher.getEnvironmentType();
         String entrypoint = launcher.getEntrypoint();
         if (!entrypoint.startsWith("zombie.")) {
@@ -91,8 +92,10 @@ public class EntrypointPatch extends GamePatch {
         // Set up ZomboidFileSystem.instance.getCacheDir() and construct a File object to pass as first arg
         iter.add(new TypeInsnNode(Opcodes.NEW, "java/io/File"));
         iter.add(new InsnNode(Opcodes.DUP));
-        iter.add(new FieldInsnNode(Opcodes.GETSTATIC, "zombie/ZomboidFileSystem", "instance", "Lzombie/ZomboidFileSystem;"));
-        iter.add(new MethodInsnNode(Opcodes.INVOKEVIRTUAL, "zombie/ZomboidFileSystem", "getCacheDir", "()Ljava/lang/String;"));
+        iter.add(
+            new FieldInsnNode(Opcodes.GETSTATIC, "zombie/ZomboidFileSystem", "instance", "Lzombie/ZomboidFileSystem;"));
+        iter.add(new MethodInsnNode(Opcodes.INVOKEVIRTUAL, "zombie/ZomboidFileSystem", "getCacheDir",
+            "()Ljava/lang/String;"));
         iter.add(new MethodInsnNode(Opcodes.INVOKESPECIAL, "java/io/File", "<init>", "(Ljava/lang/String;)V", false));
         // Set up the class itself as the second arg.
         iter.add(new LdcInsnNode(Type.getObjectType(entrypoint.replace(".", "/"))));

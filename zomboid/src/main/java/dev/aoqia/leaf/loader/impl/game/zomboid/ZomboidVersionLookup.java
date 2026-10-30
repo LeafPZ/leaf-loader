@@ -36,8 +36,6 @@ package dev.aoqia.leaf.loader.impl.game.zomboid;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
@@ -47,131 +45,49 @@ import java.util.regex.Pattern;
 import org.jetbrains.annotations.VisibleForTesting;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
-import org.objectweb.asm.FieldVisitor;
 import org.objectweb.asm.Handle;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
-import dev.aoqia.leaf.loader.api.VersionParsingException;
 import dev.aoqia.leaf.loader.impl.LeafLoaderImpl;
-import dev.aoqia.leaf.loader.impl.lib.gson.JsonReader;
-import dev.aoqia.leaf.loader.impl.lib.gson.JsonToken;
 import dev.aoqia.leaf.loader.impl.util.ExceptionUtil;
 import dev.aoqia.leaf.loader.impl.util.LoaderUtil;
 import dev.aoqia.leaf.loader.impl.util.SimpleClassPath;
-import dev.aoqia.leaf.loader.impl.util.SimpleClassPath.CpEntry;
-import dev.aoqia.leaf.loader.impl.util.version.SemanticVersionImpl;
-import dev.aoqia.leaf.loader.impl.util.version.VersionPredicateParser;
 
 public final class ZomboidVersionLookup {
-	private static final Pattern VERSION_PATTERN = Pattern.compile(
-        // Modern versions: 41.78.16, optional -unstable suffix for unstable build.
-        "\\d+\\.\\d+\\.\\d+(-unstable(\\.\\d+|\\+\\w+))?$"
-    );
+    private static final Pattern VERSION_PATTERN = Pattern.compile(
+        // Modern versions: 41.78.16, optional `-pre-release` suffix for pre-release builds.
+        "\\d+\\.\\d+\\.\\d+(-pre-release(\\.\\d+|\\+\\w+))?$");
     private static final Pattern RELEASE_PATTERN = Pattern.compile("\\d+\\.\\d+\\.\\d+$");
     private static final Pattern RELEASE_JARNAME_PATTERN =
         Pattern.compile(".+?(?:\\d+\\.|-)(\\d+\\.\\d+\\.\\d+).+");
-    private static final Pattern UNSTABLE_RELEASE_PATTERN = Pattern.compile(".+-unstable(\\.\\d+|\\+\\w+)");
-    private static final Pattern UNSTABLE_RELEASE_JARNAME_PATTERN =
-        Pattern.compile(".+?(?:\\d+\\.|-)(\\d+\\.\\d+\\.\\d+-unstable(\\.\\d+|\\+\\w+)).+");
-    private static final Pattern UNSTABLE_REVISION_PATTERN = Pattern.compile("\\s*rev:(\\d+).+");
+    private static final Pattern PRE_RELEASE_PATTERN = Pattern.compile(".+-pre-release(\\.\\d+|\\+\\w+)");
+    private static final Pattern PRE_RELEASE_JARNAME_PATTERN =
+        Pattern.compile(".+?(?:\\d+\\.|-)(\\d+\\.\\d+\\.\\d+-pre-release(\\.\\d+|\\+\\w+)).+");
+    private static final Pattern PRE_RELEASE_REVISION_PATTERN = Pattern.compile("\\s*rev:(\\d+).+");
 
-	public static ZomboidVersion getVersion(List<Path> gameJars, String entrypointClass, String versionName) {
-		ZomboidVersion.Builder builder = new ZomboidVersion.Builder();
-
-		if (versionName != null) {
-            builder.setIdLookup(versionName);
-		}
-
-		try (SimpleClassPath cp = new SimpleClassPath(gameJars)) {
-			// Determine class version
-			if (entrypointClass != null) {
-				try (InputStream is = cp.getInputStream(LoaderUtil.getClassFileName(entrypointClass))) {
-					DataInputStream dis = new DataInputStream(is);
-
-					if (dis.readInt() == 0xCAFEBABE) {
-						dis.readUnsignedShort();
-						builder.setClassVersion(dis.readUnsignedShort());
-					}
-				}
-			}
-
-			// Check various known files for version information if unknown
-			if (versionName == null) {
-				fillVersionFromJar(cp, builder);
-			}
-		} catch (IOException e) {
-			throw ExceptionUtil.wrap(e);
-		}
-
-		return builder.build();
-	}
-
-	public static ZomboidVersion getVersionExceptClassVersion(Path gameJar) {
-		ZomboidVersion.Builder builder = new ZomboidVersion.Builder();
-
-		try (SimpleClassPath cp = new SimpleClassPath(Collections.singletonList(gameJar))) {
-			fillVersionFromJar(cp, builder);
-		} catch (IOException e) {
-			throw ExceptionUtil.wrap(e);
-		}
-
-		return builder.build();
-	}
-
-	public static void fillVersionFromJar(SimpleClassPath cp, ZomboidVersion.Builder builder) {
-		try {
+    public static void fillVersionFromJar(SimpleClassPath cp, ZomboidVersion.Builder builder) {
+        try {
             InputStream is = cp.getInputStream("zombie/core/Core.class");
             if (is != null && fromAnalyzer(is, new GameVersionVisitor(), builder)) {
-				return;
-			}
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-
-		builder.setFromFileName(cp.getPaths().get(0).getFileName().toString());
-	}
-
-	private static <T extends ClassVisitor & Analyzer> boolean fromAnalyzer(InputStream is, T analyzer, ZomboidVersion.Builder builder) {
-		String result = analyze(is, analyzer);
-
-		if (result != null) {
-            builder.setId(result);
-			return true;
+                return;
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
         }
 
-		return false;
-	}
+        builder.setFromFileName(cp.getPaths().get(0).getFileName().toString());
+    }
 
-	private static <T extends ClassVisitor & Analyzer> String analyze(InputStream is, T analyzer) {
-		try {
-			ClassReader cr = new ClassReader(is);
-			cr.accept(analyzer, ClassReader.SKIP_FRAMES | ClassReader.SKIP_DEBUG);
-
-			return analyzer.getResult();
-		} catch (IOException e) {
-			e.printStackTrace();
-		} finally {
-			try {
-				is.close();
-			} catch (IOException e) {
-				// ignored
-			}
-		}
-
-		return null;
-	}
-
-	@VisibleForTesting
-	public static String getRelease(String version) {
-        if (RELEASE_PATTERN.matcher(version).matches() ||
-            UNSTABLE_RELEASE_PATTERN.matcher(version).matches()) {
+    @VisibleForTesting
+    public static String getRelease(String version) {
+        if (RELEASE_PATTERN.matcher(version).matches() || PRE_RELEASE_PATTERN.matcher(version).matches()) {
             return version;
         }
 
         if (isProbableVersion(version)) {
-            int pos = version.indexOf("-unstable");
+            int pos = version.indexOf("-pre-release");
             if (pos >= 0) {
                 return version.substring(0, pos);
             }
@@ -179,29 +95,12 @@ public final class ZomboidVersionLookup {
 
         // Try to get version info from jar name as last resort.
 
-        Matcher matcher = UNSTABLE_RELEASE_JARNAME_PATTERN.matcher(version);
+        Matcher matcher = PRE_RELEASE_JARNAME_PATTERN.matcher(version);
         if (matcher.find()) {
-			return matcher.group(1);
-		}
-
-        matcher = RELEASE_JARNAME_PATTERN.matcher(version);
-        if (matcher.find()) {
-			return matcher.group(1);
-		}
-
-		return null;
-	}
-
-	private static boolean isProbableVersion(String str) {
-		return VERSION_PATTERN.matcher(str).matches();
-	}
-
-    private static String findProbableRevisionNumber(String str) {
-        if (str == null) {
-            return null;
+            return matcher.group(1);
         }
 
-        Matcher matcher = UNSTABLE_REVISION_PATTERN.matcher(str);
+        matcher = RELEASE_JARNAME_PATTERN.matcher(version);
         if (matcher.find()) {
             return matcher.group(1);
         }
@@ -209,22 +108,113 @@ public final class ZomboidVersionLookup {
         return null;
     }
 
-	/**
-	 * Returns the probable version contained in the given string, or null if the string doesn't contain a version.
-	 */
-	private static String findProbableVersion(String str) {
-		Matcher matcher = VERSION_PATTERN.matcher(str);
+    public static ZomboidVersion getVersion(List<Path> gameJars, String entrypointClass, String versionName) {
+        ZomboidVersion.Builder builder = new ZomboidVersion.Builder();
 
-		if (matcher.find()) {
-			return matcher.group();
+        if (versionName != null) {
+            builder.setIdLookup(versionName);
         }
 
-		return null;
-	}
+        try (SimpleClassPath cp = new SimpleClassPath(gameJars)) {
+            // Determine class version
+            if (entrypointClass != null) {
+                try (InputStream is = cp.getInputStream(LoaderUtil.getClassFileName(entrypointClass))) {
+                    DataInputStream dis = new DataInputStream(is);
 
-	private interface Analyzer {
-		String getResult();
-	}
+                    if (dis.readInt() == 0xCAFEBABE) {
+                        dis.readUnsignedShort();
+                        builder.setClassVersion(dis.readUnsignedShort());
+                    }
+                }
+            }
+
+            // Check various known files for version information if unknown
+            if (versionName == null) {
+                fillVersionFromJar(cp, builder);
+            }
+        } catch (IOException e) {
+            throw ExceptionUtil.wrap(e);
+        }
+
+        return builder.build();
+    }
+
+    public static ZomboidVersion getVersionExceptClassVersion(Path gameJar) {
+        ZomboidVersion.Builder builder = new ZomboidVersion.Builder();
+
+        try (SimpleClassPath cp = new SimpleClassPath(Collections.singletonList(gameJar))) {
+            fillVersionFromJar(cp, builder);
+        } catch (IOException e) {
+            throw ExceptionUtil.wrap(e);
+        }
+
+        return builder.build();
+    }
+
+    private static <T extends ClassVisitor & Analyzer> String analyze(InputStream is, T analyzer) {
+        try {
+            ClassReader cr = new ClassReader(is);
+            cr.accept(analyzer, ClassReader.SKIP_FRAMES | ClassReader.SKIP_DEBUG);
+
+            return analyzer.getResult();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                is.close();
+            } catch (IOException ignored) {
+            }
+        }
+
+        return null;
+    }
+
+    private static String findProbableRevisionNumber(String str) {
+        if (str == null) {
+            return null;
+        }
+
+        Matcher matcher = PRE_RELEASE_REVISION_PATTERN.matcher(str);
+        if (matcher.find()) {
+            return matcher.group(1);
+        }
+
+        return null;
+    }
+
+    /**
+     * Returns the probable version contained in the given string, or null if the string doesn't contain a version.
+     */
+    private static String findProbableVersion(String str) {
+        Matcher matcher = VERSION_PATTERN.matcher(str);
+
+        if (matcher.find()) {
+            return matcher.group();
+        }
+
+        return null;
+    }
+
+    private static <T extends ClassVisitor & Analyzer> boolean fromAnalyzer(InputStream is, T analyzer,
+        ZomboidVersion.Builder builder)
+    {
+        String result = analyze(is, analyzer);
+
+        if (result != null) {
+            builder.setId(result);
+            return true;
+        }
+
+        return false;
+    }
+
+    private static boolean isProbableVersion(String str) {
+        return VERSION_PATTERN.matcher(str).matches();
+    }
+
+    private interface Analyzer {
+        String getResult();
+    }
 
     private static final class GameVersionVisitor extends ClassVisitor implements Analyzer {
         private int patch = -1;
@@ -236,164 +226,171 @@ public final class ZomboidVersionLookup {
         // and store these statics, including revision number (only present on 42)
 
         GameVersionVisitor() {
-			super(LeafLoaderImpl.ASM_VERSION);
-		}
+            super(LeafLoaderImpl.ASM_VERSION);
+        }
 
-		@Override
-		public String getResult() {
+        @Override
+        public String getResult() {
             return String.format("%d.%d.%d", major, minor, patch);
             // return String.format("%d.%d.%d-unstable+%s", major, minor, patch, gitHash);
-		}
+        }
 
-		@Override
+        @Override
         public MethodVisitor visitMethod(int access, String name, String descriptor, String signature,
-            String[] exceptions
-		) {
+            String[] exceptions)
+        {
             // If all version data set, no need to visit anything else.
             if (major != -1 && minor != -1 && patch != -1 && gitHash != null) {
-				return null;
-			}
+                return null;
+            }
 
             // Capture first two BIPISH instructions from the GameVersion constructor.
             // These are the MAJOR and MINOR numbers respectively.
             if (major == -1 && name.equals("<clinit>")) {
-				return new InsnFwdMethodVisitor() {
-					@Override
-					public void visitIntInsn(int opcode, int operand) {
-						if (opcode != Opcodes.BIPUSH) {
-							return;
-						}
+                return new InsnFwdMethodVisitor() {
+                    @Override
+                    public void visitIntInsn(int opcode, int operand) {
+                        if (opcode != Opcodes.BIPUSH) {
+                            return;
+                        }
 
-						if (major == -1) {
-							major = operand;
-						} else if (minor == -1) {
-							minor = operand;
-						}
-					}
+                        if (major == -1) {
+                            major = operand;
+                        } else if (minor == -1) {
+                            minor = operand;
+                        }
+                    }
 
-					@Override
-					protected void visitAnyInsn() {}
-				};
+                    @Override
+                    protected void visitAnyInsn() {
+                    }
+                };
             }
 
             // Capture LDC instruction for patch number.
             if (patch == -1 && name.equals("getGameAndBuildVersion")) {
-				return new InsnFwdMethodVisitor() {
-					@Override
-					public void visitInvokeDynamicInsn(String name, String descriptor,
-						Handle bootstrapMethodHandle, Object... bootstrapMethodArguments) {
-						if (patch != -1) {
-							return;
-						}
+                return new InsnFwdMethodVisitor() {
+                    @Override
+                    public void visitInvokeDynamicInsn(String name, String descriptor,
+                        Handle bootstrapMethodHandle, Object... bootstrapMethodArguments)
+                    {
+                        if (patch != -1) {
+                            return;
+                        }
 
                         if (!name.equals("makeConcatWithConstants")) {
                             return;
                         }
 
-						Object arg = bootstrapMethodArguments[0];
-						if (arg instanceof String) {
-							patch = Integer.parseInt(((String) arg).replace(".", "").trim());
-						}
-					}
+                        Object arg = bootstrapMethodArguments[0];
+                        if (arg instanceof String) {
+                            patch = Integer.parseInt(((String) arg).replace(".", "").trim());
+                        }
+                    }
 
-					@Override
-					protected void visitAnyInsn() {}
-				};
-			}
+                    @Override
+                    protected void visitAnyInsn() {
+                    }
+                };
+            }
 
             // TODO(leaf): handle revision hash/number here
             // if (gitHash == null && name.equals("getGitRevision")) {
-            //     return new InsnFwdMethodVisitor() {
-            //         @Override
-            //         protected void visitAnyInsn() {}
+            // return new InsnFwdMethodVisitor() {
+            // @Override
+            // protected void visitAnyInsn() {}
             //
-            //         @Override
-            //         public void visitLdcInsn(Object value) {
-            //             if (gitHash != null) {
-            //                 return;
-            //             }
+            // @Override
+            // public void visitLdcInsn(Object value) {
+            // if (gitHash != null) {
+            // return;
+            // }
             //
-            //             if (value instanceof String) {
-            //                 gitHash = (String) value;
-            //             }
-            //         }
-            //     };
+            // if (value instanceof String) {
+            // gitHash = (String) value;
+            // }
+            // }
+            // };
             // }
 
-			return null;
-		}
-	}
+            return null;
+        }
+    }
 
-	private abstract static class InsnFwdMethodVisitor extends MethodVisitor {
-		InsnFwdMethodVisitor() {
-			super(LeafLoaderImpl.ASM_VERSION);
-		}
+    private abstract static class InsnFwdMethodVisitor extends MethodVisitor {
+        InsnFwdMethodVisitor() {
+            super(LeafLoaderImpl.ASM_VERSION);
+        }
 
-		protected abstract void visitAnyInsn();
+        @Override
+        public void visitFieldInsn(int opcode, String owner, String name, String descriptor) {
+            visitAnyInsn();
+        }
 
-		@Override
-		public void visitLdcInsn(Object value) {
-			visitAnyInsn();
-		}
+        @Override
+        public void visitIincInsn(int var, int increment) {
+            visitAnyInsn();
+        }
 
-		@Override
-		public void visitFieldInsn(int opcode, String owner, String name, String descriptor) {
-			visitAnyInsn();
-		}
+        @Override
+        public void visitInsn(int opcode) {
+            visitAnyInsn();
+        }
 
-		@Override
-		public void visitInsn(int opcode) {
-			visitAnyInsn();
-		}
+        @Override
+        public void visitIntInsn(int opcode, int operand) {
+            visitAnyInsn();
+        }
 
-		@Override
-		public void visitIntInsn(int opcode, int operand) {
-			visitAnyInsn();
-		}
+        @Override
+        public void visitInvokeDynamicInsn(java.lang.String name, java.lang.String descriptor,
+            Handle bootstrapMethodHandle, Object... bootstrapMethodArguments)
+        {
+            visitAnyInsn();
+        }
 
-		@Override
-		public void visitVarInsn(int opcode, int var) {
-			visitAnyInsn();
-		}
+        @Override
+        public void visitJumpInsn(int opcode, Label label) {
+            visitAnyInsn();
+        }
 
-		@Override
-		public void visitTypeInsn(int opcode, java.lang.String type) {
-			visitAnyInsn();
-		}
+        @Override
+        public void visitLdcInsn(Object value) {
+            visitAnyInsn();
+        }
 
-		@Override
-		public void visitMethodInsn(int opcode, java.lang.String owner, java.lang.String name, java.lang.String descriptor, boolean isInterface) {
-			visitAnyInsn();
-		}
+        @Override
+        public void visitLookupSwitchInsn(Label dflt, int[] keys, Label[] labels) {
+            visitAnyInsn();
+        }
 
-		@Override
-		public void visitInvokeDynamicInsn(java.lang.String name, java.lang.String descriptor, Handle bootstrapMethodHandle, Object... bootstrapMethodArguments) {
-			visitAnyInsn();
-		}
+        @Override
+        public void visitMethodInsn(int opcode, java.lang.String owner, java.lang.String name,
+            java.lang.String descriptor, boolean isInterface)
+        {
+            visitAnyInsn();
+        }
 
-		@Override
-		public void visitJumpInsn(int opcode, Label label) {
-			visitAnyInsn();
-		}
+        @Override
+        public void visitMultiANewArrayInsn(java.lang.String descriptor, int numDimensions) {
+            visitAnyInsn();
+        }
 
-		@Override
-		public void visitIincInsn(int var, int increment) {
-			visitAnyInsn();
-		}
+        @Override
+        public void visitTableSwitchInsn(int min, int max, Label dflt, Label... labels) {
+            visitAnyInsn();
+        }
 
-		@Override
-		public void visitTableSwitchInsn(int min, int max, Label dflt, Label... labels) {
-			visitAnyInsn();
-		}
+        @Override
+        public void visitTypeInsn(int opcode, java.lang.String type) {
+            visitAnyInsn();
+        }
 
-		@Override
-		public void visitLookupSwitchInsn(Label dflt, int[] keys, Label[] labels) {
-			visitAnyInsn();
-		}
+        @Override
+        public void visitVarInsn(int opcode, int var) {
+            visitAnyInsn();
+        }
 
-		@Override
-		public void visitMultiANewArrayInsn(java.lang.String descriptor, int numDimensions) {
-			visitAnyInsn();
-		}
-	}
+        protected abstract void visitAnyInsn();
+    }
 }

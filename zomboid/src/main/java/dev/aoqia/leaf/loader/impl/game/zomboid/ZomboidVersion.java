@@ -22,61 +22,61 @@ package dev.aoqia.leaf.loader.impl.game.zomboid;
 import java.util.OptionalInt;
 
 public final class ZomboidVersion {
-	/**
-	 * The id from version.json, if available.
-	 */
-	private final String id;
-	private final OptionalInt classVersion;
+    /**
+     * The id from version.json, if available.
+     */
+    private final String id;
+    private final OptionalInt classVersion;
 
-	private ZomboidVersion(String id, OptionalInt classVersion) {
-		this.id = id;
-		this.classVersion = classVersion;
-	}
+    private ZomboidVersion(String id, OptionalInt classVersion) {
+        this.id = id;
+        this.classVersion = classVersion;
+    }
 
-	public String getId() {
-		return id;
-	}
+    public OptionalInt getClassVersion() {
+        return this.classVersion;
+    }
 
-	public OptionalInt getClassVersion() {
-		return this.classVersion;
-	}
+    public String getId() {
+        return id;
+    }
 
-	@Override
-	public String toString() {
+    @Override
+    public String toString() {
         return String.format("ZomboidVersion{id=%s, classVersion=%s}", id, classVersion);
-	}
+    }
 
-	public static final class Builder {
+    public static final class Builder {
         private String id;
-		private OptionalInt classVersion = OptionalInt.empty();
+        private OptionalInt classVersion = OptionalInt.empty();
 
-		// Setters
-		public Builder setId(String id) {
-			this.id = id;
-			return this;
-		}
-
-		public Builder setClassVersion(int classVersion) {
-			this.classVersion = OptionalInt.of(classVersion);
-			return this;
-		}
-
-		public Builder setFromFileName(String name) {
-			// strip extension
-			int pos = name.lastIndexOf('.');
-			if (pos > 0) {
-			    name = name.substring(0, pos);
-			}
-
-			return setIdLookup(name);
-		}
-
-		public Builder setIdLookup(String version) {
-			return setId(ZomboidVersionLookup.getRelease(version));
-		}
-
-		public ZomboidVersion build() {
+        public ZomboidVersion build() {
             return new ZomboidVersion(this.id, this.classVersion);
-		}
-	}
+        }
+
+        public Builder setClassVersion(int classVersion) {
+            this.classVersion = OptionalInt.of(classVersion);
+            return this;
+        }
+
+        public Builder setFromFileName(String name) {
+            // strip extension
+            int pos = name.lastIndexOf('.');
+            if (pos > 0) {
+                name = name.substring(0, pos);
+            }
+
+            return setIdLookup(name);
+        }
+
+        // Setters
+        public Builder setId(String id) {
+            this.id = id;
+            return this;
+        }
+
+        public Builder setIdLookup(String version) {
+            return setId(ZomboidVersionLookup.getRelease(version));
+        }
+    }
 }

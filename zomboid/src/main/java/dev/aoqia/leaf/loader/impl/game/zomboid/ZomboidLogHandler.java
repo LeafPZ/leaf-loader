@@ -29,8 +29,8 @@ import dev.aoqia.leaf.loader.impl.util.log.LogLevel;
 
 /**
  * A log handler to use the built-in game logging system. This one is specifically for >=B42. If
- * something in a future unstable release breaks this class, it should be updated. This class should
- * be merged into {@link LegacyZomboidLogHandler} when unstable becomes stable.
+ * something in a future pre-release breaks this class, it should be updated. This class should
+ * be merged into {@link LegacyZomboidLogHandler} when breaking changes are made.
  */
 public final class ZomboidLogHandler implements LogHandler {
     private static final Class<?> DEBUG_LOG;
@@ -66,32 +66,36 @@ public final class ZomboidLogHandler implements LogHandler {
 
             DEBUG_TYPE = Class.forName("zombie.debug.DebugType");
             DEBUG_TYPE_Leaf = DEBUG_TYPE.getMethod("valueOf", String.class).invoke(null, "Leaf");
-            DEBUG_TYPE_Leaf_logStream = DEBUG_TYPE.getMethod("getLogStream")
-                .invoke(DEBUG_TYPE_Leaf);
+            DEBUG_TYPE_Leaf_logStream = DEBUG_TYPE.getMethod("getLogStream").invoke(DEBUG_TYPE_Leaf);
             DEBUG_TYPE_trace = DEBUG_TYPE.getMethod("trace", Object.class);
             DEBUG_TYPE_debugln = DEBUG_TYPE.getMethod("debugln", Object.class);
             DEBUG_TYPE_println = DEBUG_TYPE.getMethod("println", String.class);
             DEBUG_TYPE_warn = DEBUG_TYPE.getMethod("warn", Object.class);
             DEBUG_TYPE_error = DEBUG_TYPE.getMethod("error", Object.class);
-            DEBUG_TYPE_printException = DEBUG_TYPE.getMethod("printException", Throwable.class, String.class,
-                LOG_SEVERITY);
+            DEBUG_TYPE_printException =
+                DEBUG_TYPE.getMethod("printException", Throwable.class, String.class, LOG_SEVERITY);
 
             // Set log stream as enabled just in case.
             DEBUG_TYPE.getMethod("setLogSeverity", LOG_SEVERITY).invoke(DEBUG_TYPE_Leaf, LOG_SEVERITY_Trace);
             DEBUG_LOG.getMethod("setLogEnabled", DEBUG_TYPE, boolean.class).invoke(null, DEBUG_TYPE_Leaf, true);
 
             DEBUG_LOG_STREAM = Class.forName("zombie.debug.DebugLogStream");
-            DEBUG_LOG_STREAM_isLogEnabled = DEBUG_LOG_STREAM.getMethod("isLogEnabled",
-                LOG_SEVERITY);
-        } catch (ClassNotFoundException | NoSuchMethodException | IllegalAccessException |
-                 InvocationTargetException e) {
+            DEBUG_LOG_STREAM_isLogEnabled = DEBUG_LOG_STREAM.getMethod("isLogEnabled", LOG_SEVERITY);
+        } catch (ClassNotFoundException | NoSuchMethodException | IllegalAccessException
+            | InvocationTargetException e)
+        {
             throw new FormattedException("Failed to handle reflection for new log handler", e);
         }
     }
 
     @Override
-    public void log(long time, LogLevel level, LogCategory category, String msg, Throwable exc,
-        boolean fromReplay, boolean wasSuppressed) {
+    public void close() {
+    }
+
+    @Override
+    public void log(long time, LogLevel level, LogCategory category, String msg, Throwable exc, boolean fromReplay,
+        boolean wasSuppressed)
+    {
         if (DEBUG_TYPE_Leaf == null) {
             return;
         }
@@ -110,8 +114,7 @@ public final class ZomboidLogHandler implements LogHandler {
                     if (exc == null) {
                         DEBUG_TYPE_error.invoke(DEBUG_TYPE_Leaf, msg);
                     } else {
-                        DEBUG_TYPE_printException.invoke(DEBUG_TYPE_Leaf, exc, msg,
-                            LOG_SEVERITY_Error);
+                        DEBUG_TYPE_printException.invoke(DEBUG_TYPE_Leaf, exc, msg, LOG_SEVERITY_Error);
                     }
 
                     break;
@@ -119,8 +122,7 @@ public final class ZomboidLogHandler implements LogHandler {
                     if (exc == null) {
                         DEBUG_TYPE_warn.invoke(DEBUG_TYPE_Leaf, msg);
                     } else {
-                        DEBUG_TYPE_printException.invoke(DEBUG_TYPE_Leaf, exc, msg,
-                            LOG_SEVERITY_Warning);
+                        DEBUG_TYPE_printException.invoke(DEBUG_TYPE_Leaf, exc, msg, LOG_SEVERITY_Warning);
                     }
 
                     break;
@@ -128,8 +130,7 @@ public final class ZomboidLogHandler implements LogHandler {
                     if (exc == null) {
                         DEBUG_TYPE_println.invoke(DEBUG_TYPE_Leaf, msg);
                     } else {
-                        DEBUG_TYPE_printException.invoke(DEBUG_TYPE_Leaf, exc, msg,
-                            LOG_SEVERITY_General);
+                        DEBUG_TYPE_printException.invoke(DEBUG_TYPE_Leaf, exc, msg, LOG_SEVERITY_General);
                     }
 
                     break;
@@ -137,8 +138,7 @@ public final class ZomboidLogHandler implements LogHandler {
                     if (exc == null) {
                         DEBUG_TYPE_debugln.invoke(DEBUG_TYPE_Leaf, msg);
                     } else {
-                        DEBUG_TYPE_printException.invoke(DEBUG_TYPE_Leaf, exc, msg,
-                            LOG_SEVERITY_Debug);
+                        DEBUG_TYPE_printException.invoke(DEBUG_TYPE_Leaf, exc, msg, LOG_SEVERITY_Debug);
                     }
 
                     break;
@@ -146,8 +146,7 @@ public final class ZomboidLogHandler implements LogHandler {
                     if (exc == null) {
                         DEBUG_TYPE_trace.invoke(DEBUG_TYPE_Leaf, msg);
                     } else {
-                        DEBUG_TYPE_printException.invoke(DEBUG_TYPE_Leaf, exc, msg,
-                            LOG_SEVERITY_Trace);
+                        DEBUG_TYPE_printException.invoke(DEBUG_TYPE_Leaf, exc, msg, LOG_SEVERITY_Trace);
                     }
 
                     break;
@@ -155,8 +154,7 @@ public final class ZomboidLogHandler implements LogHandler {
                     throw new IllegalArgumentException("Unknown level: " + level);
             }
         } catch (IllegalAccessException | InvocationTargetException e) {
-            throw new FormattedException(
-                "Failed to invoke logging functions for log() in NewZomboidLogHandler!", e);
+            throw new FormattedException("Failed to invoke logging functions for log() in NewZomboidLogHandler!", e);
         }
     }
 
@@ -190,7 +188,4 @@ public final class ZomboidLogHandler implements LogHandler {
 
         throw new IllegalArgumentException("Unknown level: " + level);
     }
-
-    @Override
-    public void close() {}
 }

@@ -67,12 +67,11 @@ public final class LegacyZomboidLogHandler implements LogHandler {
             DEBUG_LOG_STREAM_println = DEBUG_LOG_STREAM.getMethod("println", String.class);
             DEBUG_LOG_STREAM_warn = DEBUG_LOG_STREAM.getMethod("warn", Object.class);
             DEBUG_LOG_STREAM_error = DEBUG_LOG_STREAM.getMethod("error", Object.class);
-            DEBUG_LOG_STREAM_printException = DEBUG_LOG_STREAM.getMethod("printException",
-                Throwable.class, String.class, LOG_SEVERITY);
+            DEBUG_LOG_STREAM_printException =
+                DEBUG_LOG_STREAM.getMethod("printException", Throwable.class, String.class, LOG_SEVERITY);
 
             DEBUG_LOG = Class.forName("zombie.debug.DebugLog");
-            DEBUG_LOG_createDebugLogStream = DEBUG_LOG.getDeclaredMethod("createDebugLogStream",
-                DEBUG_TYPE);
+            DEBUG_LOG_createDebugLogStream = DEBUG_LOG.getDeclaredMethod("createDebugLogStream", DEBUG_TYPE);
             DEBUG_LOG_isLogEnabled = DEBUG_LOG.getMethod("isLogEnabled", LOG_SEVERITY, DEBUG_TYPE);
 
             DEBUG_LOG_createDebugLogStream.setAccessible(true);
@@ -80,15 +79,21 @@ public final class LegacyZomboidLogHandler implements LogHandler {
             DEBUG_LOG.getMethod("enableLog", DEBUG_TYPE, LOG_SEVERITY)
                 .invoke(null, DEBUG_TYPE_Leaf, LOG_SEVERITY_Trace);
             DEBUG_LOG_createDebugLogStream.setAccessible(false);
-        } catch (ClassNotFoundException | NoSuchMethodException | IllegalAccessException |
-                 InvocationTargetException e) {
+        } catch (ClassNotFoundException | NoSuchMethodException | IllegalAccessException
+            | InvocationTargetException e)
+        {
             throw new FormattedException("Failed to handle reflection for old log handler", e);
         }
     }
 
     @Override
-    public void log(long time, LogLevel level, LogCategory category, String msg, Throwable exc,
-        boolean fromReplay, boolean wasSuppressed) {
+    public void close() {
+    }
+
+    @Override
+    public void log(long time, LogLevel level, LogCategory category, String msg, Throwable exc, boolean fromReplay,
+        boolean wasSuppressed)
+    {
         if (LOGGER == null) {
             return;
         }
@@ -107,8 +112,7 @@ public final class LegacyZomboidLogHandler implements LogHandler {
                     if (exc == null) {
                         DEBUG_LOG_STREAM_error.invoke(LOGGER, msg);
                     } else {
-                        DEBUG_LOG_STREAM_printException.invoke(LOGGER, exc, msg,
-                            LOG_SEVERITY_Error);
+                        DEBUG_LOG_STREAM_printException.invoke(LOGGER, exc, msg, LOG_SEVERITY_Error);
                     }
 
                     break;
@@ -116,8 +120,7 @@ public final class LegacyZomboidLogHandler implements LogHandler {
                     if (exc == null) {
                         DEBUG_LOG_STREAM_warn.invoke(LOGGER, msg);
                     } else {
-                        DEBUG_LOG_STREAM_printException.invoke(LOGGER, exc, msg,
-                            LOG_SEVERITY_Warning);
+                        DEBUG_LOG_STREAM_printException.invoke(LOGGER, exc, msg, LOG_SEVERITY_Warning);
                     }
 
                     break;
@@ -125,8 +128,7 @@ public final class LegacyZomboidLogHandler implements LogHandler {
                     if (exc == null) {
                         DEBUG_LOG_STREAM_println.invoke(LOGGER, msg);
                     } else {
-                        DEBUG_LOG_STREAM_printException.invoke(LOGGER, exc, msg,
-                            LOG_SEVERITY_General);
+                        DEBUG_LOG_STREAM_printException.invoke(LOGGER, exc, msg, LOG_SEVERITY_General);
                     }
 
                     break;
@@ -134,8 +136,7 @@ public final class LegacyZomboidLogHandler implements LogHandler {
                     if (exc == null) {
                         DEBUG_LOG_STREAM_debugln.invoke(LOGGER, msg);
                     } else {
-                        DEBUG_LOG_STREAM_printException.invoke(LOGGER, exc, msg,
-                            LOG_SEVERITY_Debug);
+                        DEBUG_LOG_STREAM_printException.invoke(LOGGER, exc, msg, LOG_SEVERITY_Debug);
                     }
 
                     break;
@@ -143,8 +144,7 @@ public final class LegacyZomboidLogHandler implements LogHandler {
                     if (exc == null) {
                         DEBUG_LOG_STREAM_trace.invoke(LOGGER, msg);
                     } else {
-                        DEBUG_LOG_STREAM_printException.invoke(LOGGER, exc, msg,
-                            LOG_SEVERITY_Trace);
+                        DEBUG_LOG_STREAM_printException.invoke(LOGGER, exc, msg, LOG_SEVERITY_Trace);
                     }
 
                     break;
@@ -152,8 +152,7 @@ public final class LegacyZomboidLogHandler implements LogHandler {
                     throw new IllegalArgumentException("Unknown level: " + level);
             }
         } catch (IllegalAccessException | InvocationTargetException e) {
-            throw new FormattedException(
-                "Failed to invoke logging functions for log() in OldZomboidLogHandler!", e);
+            throw new FormattedException("Failed to invoke logging functions for log() in OldZomboidLogHandler!", e);
         }
     }
 
@@ -166,20 +165,15 @@ public final class LegacyZomboidLogHandler implements LogHandler {
         try {
             switch (level) {
                 case ERROR:
-                    return (boolean) DEBUG_LOG_isLogEnabled.invoke(null, LOG_SEVERITY_Error,
-                        DEBUG_TYPE_Leaf);
+                    return (boolean) DEBUG_LOG_isLogEnabled.invoke(null, LOG_SEVERITY_Error, DEBUG_TYPE_Leaf);
                 case WARN:
-                    return (boolean) DEBUG_LOG_isLogEnabled.invoke(null, LOG_SEVERITY_Warning,
-                        DEBUG_TYPE_Leaf);
+                    return (boolean) DEBUG_LOG_isLogEnabled.invoke(null, LOG_SEVERITY_Warning, DEBUG_TYPE_Leaf);
                 case INFO:
-                    return (boolean) DEBUG_LOG_isLogEnabled.invoke(null, LOG_SEVERITY_General,
-                        DEBUG_TYPE_Leaf);
+                    return (boolean) DEBUG_LOG_isLogEnabled.invoke(null, LOG_SEVERITY_General, DEBUG_TYPE_Leaf);
                 case DEBUG:
-                    return (boolean) DEBUG_LOG_isLogEnabled.invoke(null, LOG_SEVERITY_Debug,
-                        DEBUG_TYPE_Leaf);
+                    return (boolean) DEBUG_LOG_isLogEnabled.invoke(null, LOG_SEVERITY_Debug, DEBUG_TYPE_Leaf);
                 case TRACE:
-                    return (boolean) DEBUG_LOG_isLogEnabled.invoke(null, LOG_SEVERITY_Trace,
-                        DEBUG_TYPE_Leaf);
+                    return (boolean) DEBUG_LOG_isLogEnabled.invoke(null, LOG_SEVERITY_Trace, DEBUG_TYPE_Leaf);
             }
         } catch (IllegalAccessException | InvocationTargetException e) {
             throw new FormattedException("Failed to invoke isLogEnabled in shouldLog!", e);
@@ -187,7 +181,4 @@ public final class LegacyZomboidLogHandler implements LogHandler {
 
         throw new IllegalArgumentException("Unknown level: " + level);
     }
-
-    @Override
-    public void close() {}
 }

@@ -33,7 +33,6 @@
 
 package dev.aoqia.leaf.loader.impl.game.zomboid;
 
-import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -57,150 +56,155 @@ import dev.aoqia.leaf.loader.impl.util.log.LogHandler;
 import dev.aoqia.leaf.loader.impl.util.log.LogLevel;
 
 public final class Log4jLogHandler implements LogHandler {
-	@Override
-	public boolean shouldLog(LogLevel level, LogCategory category) {
-		return getLogger(category).isEnabled(translateLogLevel(level));
-	}
+    static {
+        if (needsLookupRemoval()) {
+            patchJndi();
+        } else {
+            Log.debug(LogCategory.GAME_PROVIDER, "Log4J2 JNDI removal is unnecessary");
+        }
+    }
 
-	@Override
-	public void log(long time, LogLevel level, LogCategory category, String msg, Throwable exc, boolean fromReplay, boolean wasSuppressed) {
-		// TODO: suppress console log output if wasSuppressed is false to avoid duplicate output
-		getLogger(category).log(translateLogLevel(level), msg, exc);
-	}
+    private static Logger getLogger(LogCategory category) {
+        Logger ret = (Logger) category.data;
 
-	private static Logger getLogger(LogCategory category) {
-		Logger ret = (Logger) category.data;
+        if (ret == null) {
+            category.data = ret = LogManager.getLogger(category.toString());
+        }
 
-		if (ret == null) {
-			category.data = ret = LogManager.getLogger(category.toString());
-		}
+        return ret;
+    }
 
-		return ret;
-	}
+    private static boolean needsLookupRemoval() {
+        Manifest manifest;
 
-	private static Level translateLogLevel(LogLevel level) {
-		// can't use enum due to it generating a nested class, which would have to be on the same class loader as Log4jLogHandler
-		if (level == LogLevel.ERROR) {
-		    return Level.ERROR;
-		}
-		if (level == LogLevel.WARN) {
-		    return Level.WARN;
-		}
-		if (level == LogLevel.INFO) {
-		    return Level.INFO;
-		}
-		if (level == LogLevel.DEBUG) {
-		    return Level.DEBUG;
-		}
-		if (level == LogLevel.TRACE) {
-		    return Level.TRACE;
-		}
+        try {
+            manifest = ManifestUtil.readManifest(LogManager.class);
+        } catch (IOException | URISyntaxException e) {
+            Log.warn(LogCategory.GAME_PROVIDER, "Can't read Log4J2 Manifest", e);
+            return true;
+        }
 
-		throw new IllegalArgumentException("unknown log level: "+level);
-	}
+        if (manifest == null) {
+            return true;
+        }
 
-	@Override
-	public void close() { }
+        String title = ManifestUtil.getManifestValue(manifest, Name.IMPLEMENTATION_TITLE);
+        if (title == null || !title.toLowerCase(Locale.ENGLISH).contains("log4j")) {
+            return true;
+        }
 
-	static {
-		if (needsLookupRemoval()) {
-			patchJndi();
-		} else {
-			Log.debug(LogCategory.GAME_PROVIDER, "Log4J2 JNDI removal is unnecessary");
-		}
-	}
+        String version = ManifestUtil.getManifestValue(manifest, Name.IMPLEMENTATION_VERSION);
+        if (version == null) {
+            return true;
+        }
 
-	private static boolean needsLookupRemoval() {
-		Manifest manifest;
+        try {
+            // 2.15+ doesn't lookup by default, but we patch anything up to 2.16 just in case
+            return Version.parse(version).compareTo(Version.parse("2.16")) < 0;
+        } catch (VersionParsingException e) {
+            Log.warn(LogCategory.GAME_PROVIDER, "Can't parse Log4J2 Manifest version %s", version, e);
+            return true;
+        }
+    }
 
-		try {
-			manifest = ManifestUtil.readManifest(LogManager.class);
-		} catch (IOException | URISyntaxException e) {
-			Log.warn(LogCategory.GAME_PROVIDER, "Can't read Log4J2 Manifest", e);
-			return true;
-		}
+    private static void patchJndi() {
+        LoggerContext context = LogManager.getContext(false);
 
-		if (manifest == null) {
-		    return true;
-		}
+        try {
+            context.getClass()
+                .getMethod("addPropertyChangeListener", PropertyChangeListener.class)
+                .invoke(context, (PropertyChangeListener) evt -> {
+                    if (evt.getPropertyName().equals("config")) {
+                        removeSubstitutionLookups(true);
+                    }
+                });
+        } catch (Exception e) {
+            Log.warn(LogCategory.GAME_PROVIDER, "Can't register Log4J2 PropertyChangeListener: %s", e.toString());
+        }
 
-		String title = ManifestUtil.getManifestValue(manifest, Name.IMPLEMENTATION_TITLE);
-		if (title == null || !title.toLowerCase(Locale.ENGLISH).contains("log4j")) {
-		    return true;
-		}
+        removeSubstitutionLookups(false);
+    }
 
-		String version = ManifestUtil.getManifestValue(manifest, Name.IMPLEMENTATION_VERSION);
-		if (version == null) {
-		    return true;
-		}
+    private static void removeSubstitutionLookups(boolean ignoreMissing) {
+        // strip the jndi lookup and then all over lookups from the active
+        // org.apache.logging.log4j.core.lookup.Interpolator instance's lookups map
 
-		try {
-			return Version.parse(version).compareTo(Version.parse("2.16")) < 0; // 2.15+ doesn't lookup by default, but we patch anything up to 2.16 just in case
-		} catch (VersionParsingException e) {
-			Log.warn(LogCategory.GAME_PROVIDER, "Can't parse Log4J2 Manifest version %s", version, e);
-			return true;
-		}
-	}
+        try {
+            LoggerContext context = LogManager.getContext(false);
+            if (context.getClass().getName().equals("org.apache.logging.log4j.simple.SimpleLoggerContext")) {
+                // -> no log4j core
+                return;
+            }
 
-	private static void patchJndi() {
-		LoggerContext context = LogManager.getContext(false);
+            Object config = context.getClass().getMethod("getConfiguration").invoke(context);
+            Object substitutor = config.getClass().getMethod("getStrSubstitutor").invoke(config);
+            Object varResolver = substitutor.getClass().getMethod("getVariableResolver").invoke(substitutor);
+            if (varResolver == null) {
+                return;
+            }
 
-		try {
-			context.getClass().getMethod("addPropertyChangeListener", PropertyChangeListener.class).invoke(context, new PropertyChangeListener() {
-				@Override
-				public void propertyChange(PropertyChangeEvent evt) {
-					if (evt.getPropertyName().equals("config")) {
-						removeSubstitutionLookups(true);
-					}
-				}
-			});
-		} catch (Exception e) {
-			Log.warn(LogCategory.GAME_PROVIDER, "Can't register Log4J2 PropertyChangeListener: %s", e.toString());
-		}
+            boolean removed = false;
 
-		removeSubstitutionLookups(false);
-	}
+            for (Field field : varResolver.getClass().getDeclaredFields()) {
+                if (Map.class.isAssignableFrom(field.getType())) {
+                    field.setAccessible(true);
+                    @SuppressWarnings("unchecked")
+                    Map<String, ?> map = (Map<String, ?>) field.get(varResolver);
 
-	private static void removeSubstitutionLookups(boolean ignoreMissing) {
-		// strip the jndi lookup and then all over lookups from the active org.apache.logging.log4j.core.lookup.Interpolator instance's lookups map
+                    if (map.remove("jndi") != null) {
+                        map.clear();
+                        removed = true;
+                        break;
+                    }
+                }
+            }
 
-		try {
-			LoggerContext context = LogManager.getContext(false);
-			if (context.getClass().getName().equals("org.apache.logging.log4j.simple.SimpleLoggerContext")) return; // -> no log4j core
+            if (!removed) {
+                if (ignoreMissing) {
+                    return;
+                }
+                throw new RuntimeException("couldn't find JNDI lookup entry");
+            }
 
-			Object config = context.getClass().getMethod("getConfiguration").invoke(context);
-			Object substitutor = config.getClass().getMethod("getStrSubstitutor").invoke(config);
-			Object varResolver = substitutor.getClass().getMethod("getVariableResolver").invoke(substitutor);
-			if (varResolver == null) {
-			    return;
-			}
+            Log.debug(LogCategory.GAME_PROVIDER, "Removed Log4J2 substitution lookups");
+        } catch (Exception e) {
+            Log.warn(LogCategory.GAME_PROVIDER, "Can't remove Log4J2 JNDI substitution Lookup: %s", e.toString());
+        }
+    }
 
-			boolean removed = false;
+    private static Level translateLogLevel(LogLevel level) {
+        // can't use enum due to it generating a nested class, which would have to be on the same class loader as
+        // Log4jLogHandler
+        switch (level) {
+            case ERROR:
+                return Level.ERROR;
+            case WARN:
+                return Level.WARN;
+            case INFO:
+                return Level.INFO;
+            case DEBUG:
+                return Level.DEBUG;
+            case TRACE:
+                return Level.TRACE;
+            default:
+                throw new IllegalArgumentException("unknown log level: " + level);
+        }
+    }
 
-			for (Field field : varResolver.getClass().getDeclaredFields()) {
-				if (Map.class.isAssignableFrom(field.getType())) {
-					field.setAccessible(true);
-					@SuppressWarnings("unchecked")
-					Map<String, ?> map = (Map<String, ?>) field.get(varResolver);
+    @Override
+    public void close() {
+    }
 
-					if (map.remove("jndi") != null) {
-						map.clear();
-						removed = true;
-						break;
-					}
-				}
-			}
+    @Override
+    public void log(long time, LogLevel level, LogCategory category, String msg, Throwable exc, boolean fromReplay,
+        boolean wasSuppressed)
+    {
+        // TODO: suppress console log output if wasSuppressed is false to avoid duplicate output
+        getLogger(category).log(translateLogLevel(level), msg, exc);
+    }
 
-			if (!removed) {
-				if (ignoreMissing) {
-				    return;
-				}
-				throw new RuntimeException("couldn't find JNDI lookup entry");
-			}
-
-			Log.debug(LogCategory.GAME_PROVIDER, "Removed Log4J2 substitution lookups");
-		} catch (Exception e) {
-			Log.warn(LogCategory.GAME_PROVIDER, "Can't remove Log4J2 JNDI substitution Lookup: %s", e.toString());
-		}
-	}
+    @Override
+    public boolean shouldLog(LogLevel level, LogCategory category) {
+        return getLogger(category).isEnabled(translateLogLevel(level));
+    }
 }

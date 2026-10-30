@@ -30,15 +30,17 @@ import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
 
 import dev.aoqia.leaf.loader.impl.FormattedException;
-import dev.aoqia.leaf.loader.impl.game.zomboid.Hooks;
 import dev.aoqia.leaf.loader.impl.game.patch.GamePatch;
+import dev.aoqia.leaf.loader.impl.game.zomboid.Hooks;
 import dev.aoqia.leaf.loader.impl.launch.LeafLauncher;
 import dev.aoqia.leaf.loader.impl.util.log.Log;
 import dev.aoqia.leaf.loader.impl.util.log.LogCategory;
 
 public final class BrandingPatch extends GamePatch {
     @Override
-    public void process(LeafLauncher launcher, Function<String, ClassNode> classSource, Consumer<ClassNode> classEmitter) {
+    public void process(LeafLauncher launcher, Function<String, ClassNode> classSource,
+        Consumer<ClassNode> classEmitter)
+    {
         ClassNode gameWindowCls = classSource.apply("zombie.GameWindow");
         if (gameWindowCls == null) {
             throw new FormattedException("Game Patch", "Failed to apply branding patch: GameWindow class wasn't found");
@@ -56,33 +58,6 @@ public final class BrandingPatch extends GamePatch {
         if (patchVersionString(coreCls)) {
             classEmitter.accept(coreCls);
         }
-    }
-
-    private boolean patchWindowString(ClassNode gameWindowCls) {
-        MethodNode initDisplayMethod = findMethod(gameWindowCls, method -> {
-            return method.name.equals("InitDisplay") && method.desc.equals("()V") && isPublicStatic(method.access);
-        });
-
-        if (initDisplayMethod == null) {
-            throw new FormattedException("Game Patch",
-                "Failed to apply branding patch because GameWindow#InitDisplay was not found");
-        }
-
-        Log.debug(LogCategory.GAME_PATCH, "Applying brand name hook to %s#%s", gameWindowCls.name,
-            initDisplayMethod.name);
-
-        ListIterator<AbstractInsnNode> it = initDisplayMethod.instructions.iterator();
-        while (it.hasNext()) {
-            if (it.next().getOpcode() == Opcodes.LDC) {
-                it.add(new MethodInsnNode(Opcodes.INVOKESTATIC, Hooks.INTERNAL_NAME, "appendBrandingString",
-                    "(Ljava/lang/String;)Ljava/lang/String;", false));
-                it.next();
-
-                return true;
-            }
-        }
-
-        return false;
     }
 
     private boolean patchVersionString(ClassNode coreCls) {
@@ -103,6 +78,33 @@ public final class BrandingPatch extends GamePatch {
         while (it.hasNext()) {
             if (it.next().getOpcode() == Opcodes.ARETURN) {
                 it.previous();
+                it.add(new MethodInsnNode(Opcodes.INVOKESTATIC, Hooks.INTERNAL_NAME, "appendBrandingString",
+                    "(Ljava/lang/String;)Ljava/lang/String;", false));
+                it.next();
+
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private boolean patchWindowString(ClassNode gameWindowCls) {
+        MethodNode initDisplayMethod = findMethod(gameWindowCls, method -> {
+            return method.name.equals("InitDisplay") && method.desc.equals("()V") && isPublicStatic(method.access);
+        });
+
+        if (initDisplayMethod == null) {
+            throw new FormattedException("Game Patch",
+                "Failed to apply branding patch because GameWindow#InitDisplay was not found");
+        }
+
+        Log.debug(LogCategory.GAME_PATCH, "Applying brand name hook to %s#%s", gameWindowCls.name,
+            initDisplayMethod.name);
+
+        ListIterator<AbstractInsnNode> it = initDisplayMethod.instructions.iterator();
+        while (it.hasNext()) {
+            if (it.next().getOpcode() == Opcodes.LDC) {
                 it.add(new MethodInsnNode(Opcodes.INVOKESTATIC, Hooks.INTERNAL_NAME, "appendBrandingString",
                     "(Ljava/lang/String;)Ljava/lang/String;", false));
                 it.next();

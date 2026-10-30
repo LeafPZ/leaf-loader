@@ -41,88 +41,96 @@ import dev.aoqia.leaf.loader.impl.util.log.LogHandler;
 import dev.aoqia.leaf.loader.impl.util.log.LogLevel;
 
 public final class Slf4jLogHandler implements LogHandler {
-	@Override
-	public boolean shouldLog(LogLevel level, LogCategory category) {
-		Logger logger = getLogger(category);
+    private static Logger getLogger(LogCategory category) {
+        Logger ret = (Logger) category.data;
 
-		switch (level) {
-		case ERROR: return logger.isErrorEnabled();
-		case WARN: return logger.isWarnEnabled();
-		case INFO: return logger.isInfoEnabled();
-		case DEBUG: return logger.isDebugEnabled();
-		case TRACE: return logger.isTraceEnabled();
-		}
+        if (ret == null) {
+            category.data = ret = LoggerFactory.getLogger(category.toString());
+        }
 
-		throw new IllegalArgumentException("unknown level: "+level);
-	}
+        return ret;
+    }
 
-	@Override
-	public void log(long time, LogLevel level, LogCategory category, String msg, Throwable exc, boolean fromReplay, boolean wasSuppressed) {
-		Logger logger = getLogger(category);
+    @Override
+    public void close() {
+    }
 
-		if (msg == null) {
-			if (exc == null) {
-			    return;
-			}
-			msg = "Exception";
-		}
+    @Override
+    public void log(long time, LogLevel level, LogCategory category, String msg, Throwable exc, boolean fromReplay,
+        boolean wasSuppressed)
+    {
+        Logger logger = getLogger(category);
 
-		switch (level) {
-		case ERROR:
-			if (exc == null) {
-				logger.error(msg);
-			} else {
-				logger.error(msg, exc);
-			}
+        if (msg == null) {
+            if (exc == null) {
+                return;
+            }
+            msg = "Exception";
+        }
 
-			break;
-		case WARN:
-			if (exc == null) {
-				logger.warn(msg);
-			} else {
-				logger.warn(msg, exc);
-			}
+        switch (level) {
+            case ERROR:
+                if (exc == null) {
+                    logger.error(msg);
+                } else {
+                    logger.error(msg, exc);
+                }
 
-			break;
-		case INFO:
-			if (exc == null) {
-				logger.info(msg);
-			} else {
-				logger.info(msg, exc);
-			}
+                break;
+            case WARN:
+                if (exc == null) {
+                    logger.warn(msg);
+                } else {
+                    logger.warn(msg, exc);
+                }
 
-			break;
-		case DEBUG:
-			if (exc == null) {
-				logger.debug(msg);
-			} else {
-				logger.debug(msg, exc);
-			}
+                break;
+            case INFO:
+                if (exc == null) {
+                    logger.info(msg);
+                } else {
+                    logger.info(msg, exc);
+                }
 
-			break;
-		case TRACE:
-			if (exc == null) {
-				logger.trace(msg);
-			} else {
-				logger.trace(msg, exc);
-			}
+                break;
+            case DEBUG:
+                if (exc == null) {
+                    logger.debug(msg);
+                } else {
+                    logger.debug(msg, exc);
+                }
 
-			break;
-		default:
-			throw new IllegalArgumentException("unknown level: "+level);
-		}
-	}
+                break;
+            case TRACE:
+                if (exc == null) {
+                    logger.trace(msg);
+                } else {
+                    logger.trace(msg, exc);
+                }
 
-	private static Logger getLogger(LogCategory category) {
-		Logger ret = (Logger) category.data;
+                break;
+            default:
+                throw new IllegalArgumentException("unknown level: " + level);
+        }
+    }
 
-		if (ret == null) {
-			category.data = ret = LoggerFactory.getLogger(category.toString());
-		}
+    @Override
+    public boolean shouldLog(LogLevel level, LogCategory category) {
+        Logger logger = getLogger(category);
 
-		return ret;
-	}
+        switch (level) {
+            case ERROR:
+                return logger.isErrorEnabled();
+            case WARN:
+                return logger.isWarnEnabled();
+            case INFO:
+                return logger.isInfoEnabled();
+            case DEBUG:
+                return logger.isDebugEnabled();
+            case TRACE:
+                return logger.isTraceEnabled();
+        }
 
-	@Override
-	public void close() { }
+        throw new IllegalArgumentException("unknown level: " + level);
+    }
 }

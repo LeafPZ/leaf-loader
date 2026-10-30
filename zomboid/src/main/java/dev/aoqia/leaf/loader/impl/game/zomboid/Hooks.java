@@ -22,8 +22,8 @@ package dev.aoqia.leaf.loader.impl.game.zomboid;
 import java.io.File;
 
 import dev.aoqia.leaf.api.ClientModInitializer;
-import dev.aoqia.leaf.api.ServerModInitializer;
 import dev.aoqia.leaf.api.ModInitializer;
+import dev.aoqia.leaf.api.ServerModInitializer;
 import dev.aoqia.leaf.loader.impl.LeafLoaderImpl;
 import dev.aoqia.leaf.loader.impl.launch.LeafLauncher;
 import dev.aoqia.leaf.loader.impl.launch.LeafLauncherBase;
@@ -31,49 +31,49 @@ import dev.aoqia.leaf.loader.impl.util.log.Log;
 import dev.aoqia.leaf.loader.impl.util.log.LogCategory;
 
 public final class Hooks {
-	public static final String INTERNAL_NAME = Hooks.class.getName().replace('.', '/');
+    public static final String INTERNAL_NAME = Hooks.class.getName().replace('.', '/');
     public static final String LEAF = "leaf";
 
     public static String appendBrandingString(final String s) {
         if (s == null || s.isEmpty()) {
             Log.warn(LogCategory.GAME_PROVIDER, "Null or empty input string found!", new IllegalStateException());
             return LEAF;
-		}
+        }
 
         return s + " (" + LEAF + " " + LeafLoaderImpl.VERSION + ")";
-	}
+    }
 
-	public static void startClient(File runDir, Class<?> gameInstance) {
-		if (runDir == null) {
-			runDir = new File(".");
-		}
-
-		LeafLoaderImpl loader = LeafLoaderImpl.INSTANCE;
-		loader.prepareModInit(runDir.toPath(), gameInstance);
-		loader.invokeEntrypoints("main", ModInitializer.class, ModInitializer::onInitialize);
-		loader.invokeEntrypoints("client", ClientModInitializer.class, ClientModInitializer::onInitializeClient);
-	}
-
-	public static void startServer(File runDir, Class<?> gameInstance) {
-		if (runDir == null) {
-			runDir = new File(".");
-		}
-
-		LeafLoaderImpl loader = LeafLoaderImpl.INSTANCE;
-		loader.prepareModInit(runDir.toPath(), gameInstance);
-		loader.invokeEntrypoints("main", ModInitializer.class, ModInitializer::onInitialize);
-		loader.invokeEntrypoints("server", ServerModInitializer.class, ServerModInitializer::onInitializeServer);
-	}
-
-	public static void setGameInstance(Object gameInstance) {
-		LeafLoaderImpl.INSTANCE.setGameInstance(gameInstance);
-	}
+    public static void setGameInstance(Object gameInstance) {
+        LeafLoaderImpl.INSTANCE.setGameInstance(gameInstance);
+    }
 
     /**
      * @see ZomboidGameProvider#setupLogHandler(LeafLauncher, boolean)
      */
     public static void setupLogHandler() {
-		((ZomboidGameProvider) LeafLoaderImpl.INSTANCE.getGameProvider())
+        ((ZomboidGameProvider) LeafLoaderImpl.INSTANCE.getGameProvider())
             .setupLogHandler(LeafLauncherBase.getLauncher(), true);
+    }
+
+    public static void startClient(File runDir, Class<?> gameInstance) {
+        if (runDir == null) {
+            runDir = new File(".");
+        }
+
+        LeafLoaderImpl loader = LeafLoaderImpl.INSTANCE;
+        loader.prepareModInit(runDir.toPath(), gameInstance);
+        loader.invokeEntrypoints("main", ModInitializer.class, ModInitializer::onInitialize);
+        loader.invokeEntrypoints("client", ClientModInitializer.class, ClientModInitializer::onInitializeClient);
+    }
+
+    public static void startServer(File runDir, Class<?> gameInstance) {
+        if (runDir == null) {
+            runDir = new File(".");
+        }
+
+        LeafLoaderImpl loader = LeafLoaderImpl.INSTANCE;
+        loader.prepareModInit(runDir.toPath(), gameInstance);
+        loader.invokeEntrypoints("main", ModInitializer.class, ModInitializer::onInitialize);
+        loader.invokeEntrypoints("server", ServerModInitializer.class, ServerModInitializer::onInitializeServer);
     }
 }

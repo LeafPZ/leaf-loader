@@ -35,15 +35,21 @@ package dev.aoqia.leaf.loader.zomboid.test.junit;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import zombie.core.Core;
+
+import dev.aoqia.leaf.loader.api.LeafLoader;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import dev.aoqia.leaf.loader.api.LeafLoader;
+import zombie.core.Core;
 
 public class JunitTest {
     @BeforeAll
     public static void setup() {
+    }
+
+    @Test
+    public void testAccessLoader() {
+        LeafLoader.getInstance().getAllMods();
     }
 
     @Test
@@ -56,12 +62,7 @@ public class JunitTest {
     @Test
     public void testMixinExtras() {
         // TODO(leaf): Write better test
-        //		 final String gameVersion = Core.getInstance().getVersion();
-        //		 assertEquals("43.69.0", gameVersion);
-    }
-
-    @Test
-    public void testAccessLoader() {
-        LeafLoader.getInstance().getAllMods();
+        // final String gameVersion = Core.getInstance().getVersion();
+        // assertEquals("43.69.0", gameVersion);
     }
 }

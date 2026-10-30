@@ -1145,7 +1145,7 @@
     <!-- Format Java code snippets inside 'pre' tags -->
     <setting id="org.eclipse.jdt.core.formatter.comment.format_source_code" value="true"/>
     <!-- Blank line before Javadoc tags -->
-    <setting id="org.eclipse.jdt.core.formatter.comment.insert_new_line_before_root_tags" value="insert"/>
+    <setting id="org.eclipse.jdt.core.formatter.comment.insert_new_line_before_root_tags" value="do not insert"/>
     <!-- Blank lines between tags of different type -->
     <setting id="org.eclipse.jdt.core.formatter.comment.insert_new_line_between_different_tags" value="do not insert"/>
     <!-- Align Javadoc tags in columns -->

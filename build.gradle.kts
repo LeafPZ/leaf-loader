@@ -1,18 +1,17 @@
-import org.gradle.kotlin.dsl.apply
-import org.gradle.kotlin.dsl.eclipse
-
+import com.diffplug.gradle.spotless.SpotlessExtension
+import com.diffplug.spotless.LineEnding
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+import dev.aoqia.leaf.loom.build.nesting.JarNester
 import groovy.xml.XmlSlurper
 import groovy.xml.slurpersupport.GPathResult
 import groovy.xml.slurpersupport.NodeChildren
-
+import org.gradle.kotlin.dsl.apply
+import org.gradle.kotlin.dsl.eclipse
+import proguard.gradle.ProGuardTask
 import java.io.FileNotFoundException
 import java.net.URI
 import java.time.LocalDate
-
-import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
-import proguard.gradle.ProGuardTask
-
-import dev.aoqia.leaf.loom.build.nesting.JarNester
+import java.nio.charset.Charset
 
 val isCiBuild = providers.environmentVariable("CI").map { it.toBoolean() }.orElse(false).get()
 val isSnapshot = providers.gradleProperty("isSnapshot").map { it.toBoolean() }.orElse(false).get()
@@ -35,9 +34,7 @@ plugins {
     `java-library`
     eclipse
 
-    checkstyle
-    alias(libs.plugins.spotless)
-
+    alias(libs.plugins.spotless) apply false
     alias(libs.plugins.shadow)
     alias(libs.plugins.loom) apply false
 
@@ -53,9 +50,10 @@ base {
 }
 
 allprojects {
-    apply(plugin = "java-library")
-    apply(plugin = "eclipse")
-    apply(plugin = "checkstyle")
+    plugins.apply("java-library")
+    plugins.apply("eclipse")
+    plugins.apply("checkstyle")
+    plugins.apply(rootProject.libs.plugins.spotless.get().pluginId)
 
     version = rootProject.version
 
@@ -76,6 +74,67 @@ allprojects {
 
     dependencies {
         compileOnly("org.jetbrains:annotations:23.0.0")
+        api(rootProject.libs.jspecify)
+    }
+
+    configure<SpotlessExtension> {
+        setEncoding(Charset.forName("UTF-8"))
+        setLineEndings(LineEnding.UNIX)
+
+        java {
+            targetExclude("**/generated/**", "**/lib/gson/**")
+
+            eclipse().configFile(rootProject.file("eclipse-formatter.xml"))
+                .sortMembersEnabled(true)
+                // SF,SI,SM,F,I,C,M,T = Static Fields, Static Initializers, Static Methods,
+                //   Fields, Initializers, Constructors, Methods, (Nested) Types
+                .sortMembersOrder("SF,F,SI,I,C,SM,M,T")
+                .sortMembersDoNotSortFields(true)
+                .sortMembersVisibilityOrderEnabled(true)
+                // B,R,D,V = Public, Protected, Package, Private
+                .sortMembersVisibilityOrder("B,R,D,V")
+
+            cleanthat()
+            // formatAnnotations()
+
+            importOrder(
+                "java|javax",
+                "",
+                "net.fabricmc",
+                "\\#net.fabricmc",
+                "$group",
+                "\\#",
+                "\\#$group",
+                "zombie",
+                "\\#zombie"
+            )
+            removeUnusedImports()
+            forbidWildcardImports()
+            forbidModuleImports()
+
+            trimTrailingWhitespace()
+            leadingTabsToSpaces()
+            endWithNewline()
+
+            toggleOffOn()
+            licenseHeaderFile(rootProject.file("HEADER")).yearSeparator("-").onlyIfContentMatches("^[^/]{2}")
+        }
+
+        kotlin {
+            targetExclude("src/test/resources/projects/*/**")
+
+            ktlint()
+
+            trimTrailingWhitespace()
+            endWithNewline()
+
+            toggleOffOn()
+            licenseHeaderFile(rootProject.file("HEADER")).yearSeparator("-").onlyIfContentMatches("^[^/]{2}")
+        }
+    }
+
+    configure<CheckstyleExtension> {
+        configFile = rootProject.file("checkstyle.xml")
     }
 }
 
@@ -217,7 +276,7 @@ val generateBuildInfo = tasks.register("generateBuildInfo") {
         val file = generatedDir.asFile.resolve("dev/aoqia/leaf/loader/impl/util/BuildInfo.java")
         file.parentFile.mkdirs()
         file.writeText(
-"""${(inputs.properties["header"] as File).readText().replaceFirst($$"$YEAR", "${LocalDate.now().year}")}
+            """${(inputs.properties["header"] as File).readText().replaceFirst($$"$YEAR", "${LocalDate.now().year}")}
 package dev.aoqia.leaf.loader.impl.util;
 
 public final class BuildInfo {
@@ -421,9 +480,11 @@ val checkVersion = tasks.register("checkVersion") {
         }
 
         val xml = try {
-            URI.create("https://maven.aoqia.dev/${if (isSnapshot) "snapshots" else "releases"}/${
-                rootProject.group.toString().replace(".", "/")
-            }/${rootProject.name}/maven-metadata.xml").toURL().readText()
+            URI.create(
+                "https://maven.aoqia.dev/${if (isSnapshot) "snapshots" else "releases"}/${
+                    rootProject.group.toString().replace(".", "/")
+                }/${rootProject.name}/maven-metadata.xml"
+            ).toURL().readText()
         } catch (_: FileNotFoundException) {
             null
         }

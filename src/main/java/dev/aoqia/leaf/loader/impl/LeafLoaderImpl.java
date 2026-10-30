@@ -90,6 +90,7 @@ import dev.aoqia.leaf.loader.impl.util.BuildInfo;
 import dev.aoqia.leaf.loader.impl.util.DefaultLanguageAdapter;
 import dev.aoqia.leaf.loader.impl.util.ExceptionUtil;
 import dev.aoqia.leaf.loader.impl.util.LoaderUtil;
+import dev.aoqia.leaf.loader.impl.util.Platform;
 import dev.aoqia.leaf.loader.impl.util.SystemProperties;
 import dev.aoqia.leaf.loader.impl.util.log.Log;
 import dev.aoqia.leaf.loader.impl.util.log.LogCategory;
@@ -199,7 +200,7 @@ public final class LeafLoaderImpl implements LeafLoader {
         }
 
         String cacheDirRoot = System.getProperty("deployment.user.cachedir");
-        if (cacheDirRoot == null || System.getProperty("os.name").startsWith("Win")) {
+        if (cacheDirRoot == null || Platform.CURRENT.getOperatingSystem().isWindows()) {
             cacheDirRoot = System.getProperty("user.home");
         }
 
@@ -593,6 +594,8 @@ public final class LeafLoaderImpl implements LeafLoader {
         setupMods();
     }
 
+    /// Gets the root path of the game. This is NOT the game's jar path!
+    /// @return the game installation path
     private Path getGameInstallPath() {
         String dir = System.getProperty(SystemProperties.GAME_INSTALL_PATH);
         if (dir != null) {
@@ -600,12 +603,18 @@ public final class LeafLoaderImpl implements LeafLoader {
         }
 
         try {
-            return Paths.get(System.getProperty("user.dir")).getParent().toAbsolutePath();
+            Path workingDir = Paths.get(System.getProperty("user.dir"));
+
+            if (Platform.CURRENT.getOperatingSystem().isLinux()) {
+                workingDir = workingDir.getParent();
+            }
+
+            return workingDir.toAbsolutePath();
         } catch (InvalidPathException e) {
-            throw new RuntimeException("Failed to find the game directory for Project Zomboid."
+            throw new RuntimeException(String.format("Failed to find the game directory for Project Zomboid."
                 + " This could happen if Steam is not installed at the default location,"
                 + " or if the game is in a different Steam library from the default library."
-                + " Please manually set it via the launch option 'leaf.gameInstallPath'.");
+                + " Please manually set it via the launch option '%s'.", SystemProperties.GAME_INSTALL_PATH));
         }
     }
 
@@ -618,10 +627,10 @@ public final class LeafLoaderImpl implements LeafLoader {
         try {
             return getGameInstallPath().getParent().getParent().resolve("workshop/content/108600").toAbsolutePath();
         } catch (InvalidPathException e) {
-            throw new RuntimeException("Failed to find Steam workshop directory for Project Zomboid."
+            throw new RuntimeException(String.format("Failed to find Steam workshop directory for Project Zomboid."
                 + " This could happen if your workshop folder is separate from the Steam library folder."
                 + " Please manually specify the workshop path (workshop/content/108600) via"
-                + " the 'leaf.workshopFolder' system property.");
+                + " the '%s' system property.", SystemProperties.GAME_WORKSHOP_PATH));
         }
     }
 

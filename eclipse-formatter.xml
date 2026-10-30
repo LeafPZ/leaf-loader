@@ -1049,8 +1049,8 @@
     <!-- 'try-with-resources' -->
     <setting id="org.eclipse.jdt.core.formatter.alignment_for_resources_in_try" value="82"/>
     <!-- 'multi-catch' -->
-    <setting id="org.eclipse.jdt.core.formatter.wrap_before_or_operator_multicatch" value="false"/>
-    <setting id="org.eclipse.jdt.core.formatter.alignment_for_union_type_in_multicatch" value="18"/>
+    <setting id="org.eclipse.jdt.core.formatter.wrap_before_or_operator_multicatch" value="true"/>
+    <setting id="org.eclipse.jdt.core.formatter.alignment_for_union_type_in_multicatch" value="16"/>
     <!-- 'switch' case with arrow -->
     <setting id="org.eclipse.jdt.core.formatter.wrap_before_switch_case_arrow_operator" value="false"/>
     <setting id="org.eclipse.jdt.core.formatter.alignment_for_switch_case_with_arrow" value="20"/>

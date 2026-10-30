@@ -1,14 +1,15 @@
+import org.gradle.kotlin.dsl.apply
+import org.gradle.kotlin.dsl.eclipse
+
 import groovy.xml.XmlSlurper
 import groovy.xml.slurpersupport.GPathResult
 import groovy.xml.slurpersupport.NodeChildren
 
 import java.io.FileNotFoundException
 import java.net.URI
-import java.nio.charset.Charset
 import java.time.LocalDate
 
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
-import com.diffplug.spotless.LineEnding
 import proguard.gradle.ProGuardTask
 
 import dev.aoqia.leaf.loom.build.nesting.JarNester
@@ -54,6 +55,7 @@ base {
 allprojects {
     apply(plugin = "java-library")
     apply(plugin = "eclipse")
+    apply(plugin = "checkstyle")
 
     version = rootProject.version
 
@@ -113,8 +115,6 @@ dependencies {
     "include"(libs.tinyremapper)
     "include"(libs.clazztweaker)
     "include"(libs.mappingio)
-
-    api(libs.jspecify)
 
     testCompileOnly(libs.annotations)
 
@@ -442,66 +442,6 @@ val checkVersion = tasks.register("checkVersion") {
     }
 }
 
-spotless {
-    setEncoding(Charset.forName("UTF-8"))
-    setLineEndings(LineEnding.UNIX)
-
-    java {
-        targetExclude("**/generated/**", "**/lib/gson/**")
-
-        eclipse().configFile(file("eclipse-formatter.xml"))
-            .sortMembersEnabled(true)
-            // SF,SI,SM,F,I,C,M,T = Static Fields, Static Initializers, Static Methods,
-            //   Fields, Initializers, Constructors, Methods, (Nested) Types
-            .sortMembersOrder("SF,F,SI,I,C,SM,M,T")
-            .sortMembersDoNotSortFields(true)
-            .sortMembersVisibilityOrderEnabled(true)
-            // B,R,D,V = Public, Protected, Package, Private
-            .sortMembersVisibilityOrder("B,R,D,V")
-
-        cleanthat()
-        // formatAnnotations()
-
-        importOrder(
-            "java|javax",
-            "",
-            "net.fabricmc",
-            "$group",
-            "\\#",
-            "\\#net.fabricmc",
-            "\\#$group",
-            "zombie",
-            "\\#zombie"
-        )
-        removeUnusedImports()
-        forbidWildcardImports()
-        forbidModuleImports()
-
-        trimTrailingWhitespace()
-        leadingTabsToSpaces()
-        endWithNewline()
-
-        toggleOffOn()
-        licenseHeaderFile(file("HEADER")).yearSeparator("-").onlyIfContentMatches("^[^/]{2}")
-    }
-
-    kotlin {
-        targetExclude("src/test/resources/projects/*/**")
-
-        ktlint()
-
-        trimTrailingWhitespace()
-        endWithNewline()
-
-        toggleOffOn()
-        licenseHeaderFile(file("HEADER")).yearSeparator("-").onlyIfContentMatches("^[^/]{2}")
-    }
-}
-
-checkstyle {
-    configFile = file("checkstyle.xml")
-}
-
 publishing {
     publications {
         create<MavenPublication>("maven") {
@@ -532,22 +472,15 @@ publishing {
                     }
                 }
 
-                issueManagement {
-                    system = "GitHub"
-                    url = "${property("url").toString()}/issues"
-                }
-
                 licenses {
+                    license {
+                        name = "AGPL-3.0-or-later"
+                        url = "https://spdx.org/licenses/AGPL-3.0-or-later.html"
+                    }
                     license {
                         name = "Apache-2.0"
                         url = "https://spdx.org/licenses/Apache-2.0.html"
                     }
-                }
-
-                scm {
-                    connection = "scm:git:${property("url").toString()}.git"
-                    developerConnection = "scm:git:${property("url").toString().replace("https", "ssh")}.git"
-                    url = property("url").toString()
                 }
             }
         }

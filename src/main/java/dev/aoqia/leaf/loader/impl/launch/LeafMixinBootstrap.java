@@ -162,7 +162,7 @@ public final class LeafMixinBootstrap {
             List<VersionInterval> reqIntervals = Collections.singletonList(VersionInterval.INFINITE);
 
             for (ModDependency dep : mod.getMetadata().getDependencies()) {
-                if (dep.getModId().equals("leafloader") || dep.getModId().equals("leaf-loader")) {
+                if (dep.getModId().equals("leaf-loader") || dep.getModId().equals("leafloader")) {
                     if (dep.getKind() == Kind.DEPENDS) {
                         reqIntervals = VersionInterval.and(reqIntervals, dep.getVersionIntervals());
                     } else if (dep.getKind() == Kind.BREAKS) {

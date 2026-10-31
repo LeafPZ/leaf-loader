@@ -62,7 +62,7 @@ public final class VersionOverrides {
             Version version;
 
             // Small patch to fix development versions not launching in IDE.
-            if (id.equals("leafloader") && rawVersion.contains(".local")) {
+            if (id.equals("leaf-loader") && rawVersion.contains(".local")) {
                 rawVersion = rawVersion.replace(".local", "");
             }
 

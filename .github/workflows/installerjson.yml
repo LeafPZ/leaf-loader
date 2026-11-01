@@ -13,8 +13,20 @@ jobs:
       - name: Checkout
         # v7
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Setup Java
+        # v6
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6
+        with:
+          java-version: 25
+          distribution: temurin
+          cache: gradle
+      - name: Setup Gradle
+        # v6
+        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6
+        with:
+          gradle-home-cache-excludes: 'caches/leaf-loom'
       - name: Generate
-        run: ./gradlew copyJson -Pleaf.loom.minimalSetup=true
+        run: ./gradlew copyJson -x test -Pleaf.loom.minimalSetup=true --stacktrace
       - name: Get Loader Version
         run: echo "LOADER_VERSION=$(./gradlew -q getLoaderVersion -Pleaf.loom.minimalSetup=true | grep -Eo '^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$')" >> $GITHUB_ENV
       - name: Generate Token

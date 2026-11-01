@@ -101,7 +101,7 @@ public final class LeafLoaderImpl implements LeafLoader {
     public static final int ASM_VERSION = Opcodes.ASM9;
 
     public static final String VERSION = BuildInfo.VERSION;
-    public static final String MOD_ID = "leaf-loader";
+    public static final String MOD_ID = BuildInfo.NAME;
     public static final String WORKSHOP_ID = "3776625738";
 
     // Relative to game cachedir.

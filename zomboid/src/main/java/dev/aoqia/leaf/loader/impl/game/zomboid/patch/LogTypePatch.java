@@ -57,10 +57,16 @@ public class LogTypePatch extends GamePatch {
 
         int enumSize = (int) debugTypeClass.fields.stream()
             .filter(fieldNode -> (fieldNode.access & ENUM_FIELD_FLAGS) == ENUM_FIELD_FLAGS)
+            .filter(node -> node.attrs == null
+                || node.attrs.isEmpty()
+                // Classtweaker's transitive-enum-extend doesn't add to $values, so we have to ignore those fields
+                || !node.attrs.get(0).type.endsWith("StubEnumConstant"))
             .count();
 
         // Add field itself
-        debugTypeClass.fields.add(new FieldNode(ENUM_FIELD_FLAGS, leafDebugType, debugTypeClassSig, null, null));
+
+        debugTypeClass.fields.add(enumSize,
+            new FieldNode(ENUM_FIELD_FLAGS, leafDebugType, debugTypeClassSig, null, null));
 
         // Add to clinit
 

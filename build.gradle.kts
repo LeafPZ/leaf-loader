@@ -5,13 +5,11 @@ import dev.aoqia.leaf.loom.build.nesting.JarNester
 import groovy.xml.XmlSlurper
 import groovy.xml.slurpersupport.GPathResult
 import groovy.xml.slurpersupport.NodeChildren
-import org.gradle.kotlin.dsl.apply
-import org.gradle.kotlin.dsl.eclipse
 import proguard.gradle.ProGuardTask
 import java.io.FileNotFoundException
 import java.net.URI
-import java.time.LocalDate
 import java.nio.charset.Charset
+import java.time.LocalDate
 
 val isCiBuild = providers.environmentVariable("CI").map { it.toBoolean() }.orElse(false).get()
 val isSnapshot = providers.gradleProperty("isSnapshot").map { it.toBoolean() }.orElse(false).get()
@@ -214,10 +212,14 @@ tasks.compileJava {
 tasks.processResources {
     dependsOn(copyJson)
 
+    inputs.property("id", "leaf-${project.name}")
     inputs.property("version", project.version)
 
     filesMatching("leaf.mod.json") {
-        expand("version" to inputs.properties["version"].toString().replace(".local", ""))
+        expand(
+            "id" to "leaf-${project.name}",
+            "version" to inputs.properties["version"].toString().replace(".local", "")
+        )
     }
 }
 

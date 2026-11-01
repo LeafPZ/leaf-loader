@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "id": "leafloader",
+  "id": "${id}",
   "name": "Leaf Loader",
   "version": "${version}",
   "environment": "*",
@@ -9,7 +9,7 @@
     "sources": "https://github.com/LeafPZ/leaf-loader"
   },
   "license": "Apache-2.0",
-  "icon": "assets/leafloader/icon.png",
+  "icon": "assets/${id}/icon.png",
   "authors": [
     "FabricMC", "aoqia"
   ]

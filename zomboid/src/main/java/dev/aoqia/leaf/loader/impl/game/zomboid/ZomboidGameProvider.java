@@ -70,7 +70,6 @@ import dev.aoqia.leaf.loader.impl.metadata.BuiltinModMetadata;
 import dev.aoqia.leaf.loader.impl.metadata.ModDependencyImpl;
 import dev.aoqia.leaf.loader.impl.util.Arguments;
 import dev.aoqia.leaf.loader.impl.util.ExceptionUtil;
-import dev.aoqia.leaf.loader.impl.util.LoaderUtil;
 import dev.aoqia.leaf.loader.impl.util.SystemProperties;
 import dev.aoqia.leaf.loader.impl.util.log.Log;
 import dev.aoqia.leaf.loader.impl.util.log.LogCategory;
@@ -123,15 +122,6 @@ public class ZomboidGameProvider implements GameProvider {
                 // server-specific args here
                 break;
         }
-    }
-
-    @Override
-    public boolean canOpenErrorGui() {
-        if (arguments == null || envType == EnvType.CLIENT) {
-            return true;
-        }
-
-        return arguments.contains("gui");
     }
 
     @Override
@@ -252,10 +242,14 @@ public class ZomboidGameProvider implements GameProvider {
     }
 
     @Override
-    public boolean hasAwtSupport() {
-        // MC always sets -XstartOnFirstThread for LWJGL
-        // TODO(leaf): Is this true also for Zomboid?
-        return !LoaderUtil.hasMacOs();
+    public boolean hasGuiSupport() {
+        if (SystemProperties.isSet(SystemProperties.NO_GUI)) {
+            return false;
+        }
+
+        return envType == EnvType.CLIENT
+            || LeafLoaderImpl.INSTANCE.isDevelopmentEnvironment()
+            || (arguments != null && arguments.contains("gui"));
     }
 
     @Override
@@ -436,7 +430,7 @@ public class ZomboidGameProvider implements GameProvider {
         processArgumentMap(arguments, envType);
 
         // Force headless mode in production because PZ really wants to enable it, and it messes with the exc window.
-        if (!LeafLoaderImpl.INSTANCE.isDevelopmentEnvironment()) {
+        if (hasGuiSupport()) {
             System.setProperty("java.awt.headless", "false");
         }
 

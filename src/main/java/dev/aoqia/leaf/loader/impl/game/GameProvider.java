@@ -53,7 +53,7 @@ import dev.aoqia.leaf.loader.impl.util.SystemProperties;
 // loader records
 public interface GameProvider {
     default boolean canOpenErrorGui() {
-        return true;
+        return hasGuiSupport();
     }
 
     default boolean displayCrash(Throwable exception, String context) {
@@ -100,6 +100,10 @@ public interface GameProvider {
 
     default boolean hasAwtSupport() {
         return LoaderUtil.hasAwtSupport();
+    }
+
+    default boolean hasGuiSupport() {
+        return !SystemProperties.isSet(SystemProperties.NO_GUI);
     }
 
     void initialize(LeafLauncher launcher);

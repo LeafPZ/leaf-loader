@@ -291,8 +291,8 @@ public final class ModDiscoverer {
 
         Set<ModCandidateImpl> ret = Collections.newSetFromMap(new IdentityHashMap<>(candidates.size() * 2));
         Queue<ModCandidateImpl> queue = new ArrayDeque<>(candidates);
-        ModCandidateImpl mod;
 
+        ModCandidateImpl mod;
         while ((mod = queue.poll()) != null) {
             if (!mod.getMetadata().loadsInEnvironment(envType)) {
                 envDisabledModsOut.computeIfAbsent(mod.getId(), ignore -> Collections.newSetFromMap(
@@ -305,7 +305,10 @@ public final class ModDiscoverer {
             }
 
             // TODO(leaf): Support server-side
-            if (!mod.isBuiltin() && (mod.getSource() == ModSource.CACHEDIR || mod.getSource() == ModSource.WORKSHOP)) {
+            if (loader.getGameProvider().hasGuiSupport()
+                && !mod.isBuiltin()
+                && (mod.getSource() == ModSource.CACHEDIR || mod.getSource() == ModSource.WORKSHOP))
+            {
                 // If the mod isn't enabled in the game, don't load it.
                 // Ignore the leaf loader Steam mod (for use with proxy) as it should always be enabled.
                 if (mod.getModInfo() != null && !enabledGameModIds.contains(mod.getGameId())) {

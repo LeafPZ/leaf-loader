@@ -120,7 +120,7 @@ public final class SystemProperties {
     public static final String DEBUG_DEOBFUSCATE_WITH_CLASSPATH = "leaf.debug.deobfuscateWithClasspath";
     // whether fabric loader is running in a unit test, this affects logging classpath setup
     public static final String UNIT_TEST = "leaf.unitTest";
-    // whether to disable the swing gui popup when error occurred
+    /// Tell the loader that GUI support shouldn't be assumed in any situation.
     public static final String NO_GUI = "leaf.noGui";
 
     // Zomboid-specific props

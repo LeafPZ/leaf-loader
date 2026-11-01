@@ -51,7 +51,6 @@ import dev.aoqia.leaf.loader.impl.gui.LeafStatusTree.LeafStatusTab;
 import dev.aoqia.leaf.loader.impl.gui.LeafStatusTree.LeafTreeWarningLevel;
 import dev.aoqia.leaf.loader.impl.util.LoaderUtil;
 import dev.aoqia.leaf.loader.impl.util.Localization;
-import dev.aoqia.leaf.loader.impl.util.SystemProperties;
 import dev.aoqia.leaf.loader.impl.util.UrlUtil;
 import dev.aoqia.leaf.loader.impl.util.log.Log;
 import dev.aoqia.leaf.loader.impl.util.log.LogCategory;
@@ -87,13 +86,10 @@ public final class LeafGuiEntry {
         boolean exitAfter)
     {
         boolean isCI = System.getenv("CI") != null;
-        boolean isNoGui = SystemProperties.isSet(SystemProperties.NO_GUI);
 
         GameProvider provider = LeafLoaderImpl.INSTANCE.tryGetGameProvider();
 
-        if (!isCI && !isNoGui && !GraphicsEnvironment.isHeadless() && (provider == null || provider
-            .canOpenErrorGui()))
-        {
+        if (!isCI && !GraphicsEnvironment.isHeadless() && (provider == null || provider.canOpenErrorGui())) {
             String title = "Leaf Loader " + LeafLoaderImpl.VERSION;
             LeafStatusTree tree = new LeafStatusTree(title, mainText);
             LeafStatusTab crashTab = tree.addTab(Localization.format("gui.tab.crash"));
@@ -138,10 +134,7 @@ public final class LeafGuiEntry {
      */
     public static void open(LeafStatusTree tree) throws Exception {
         GameProvider provider = LeafLoaderImpl.INSTANCE.tryGetGameProvider();
-
-        if (provider == null && LoaderUtil.hasAwtSupport()
-            || provider != null && provider.hasAwtSupport())
-        {
+        if (provider == null || (provider.hasAwtSupport() && provider.hasGuiSupport())) {
             LeafMainWindow.open(tree, true);
         } else {
             openForked(tree);

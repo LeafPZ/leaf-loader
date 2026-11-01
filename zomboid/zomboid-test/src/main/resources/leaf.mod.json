@@ -10,5 +10,9 @@
     "main": [
       "dev.aoqia.leaf.loader.zomboid.test.TestEntrypoint"
     ]
+  },
+  "accessWidener": "zomboid-test.classtweaker",
+  "depends": {
+    "leaf-loader": "^2.0.0"
   }
 }

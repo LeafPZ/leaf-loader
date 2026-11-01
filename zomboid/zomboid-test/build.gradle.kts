@@ -20,6 +20,8 @@ loom {
             options.put("included-classes", """(zombie).*""")
         }
     }
+
+    accessWidenerPath = file("src/main/resources/${project.name}.classtweaker")
 }
 
 repositories {

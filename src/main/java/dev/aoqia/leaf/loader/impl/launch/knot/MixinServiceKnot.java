@@ -107,13 +107,9 @@ public class MixinServiceKnot implements IMixinService, IClassProvider, IClassBy
 
     @Override
     public IAdviceProvider getAdviceProvider() {
-        return new IAdviceProvider() {
-            @Override
-            public String higherCompatibilityNeeded(int requiredCompatibility, String requiredCompatibilityString) {
-                return "Increase your Leaf Loader dependency to at least " + LeafMixinVersions.getMinLoaderVersion(
-                    requiredCompatibility);
-            }
-        };
+        return (requiredCompatibility,
+            requiredCompatibilityString) -> "Increase your Leaf Loader dependency to at least "
+                + LeafMixinVersions.getMinLoaderVersion(requiredCompatibility);
     }
 
     @Override

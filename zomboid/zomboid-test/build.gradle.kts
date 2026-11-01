@@ -1,5 +1,7 @@
 import groovy.json.JsonSlurper
 
+version = version.toString().replace(".local", "")
+
 val zomboidVersion = project.findProperty("zomboidVersion") as String?
 
 plugins {
@@ -9,7 +11,7 @@ plugins {
 loom {
     runConfigs.configureEach {
         generateRunConfig.set(true)
-        systemProperties.put("leaf.debug.replaceVersion", "leaf${rootProject.name}:${version}")
+        systemProperties.put("leaf.debug.replaceVersion", "leaf-${rootProject.name}:${version}")
         programArguments.add("-debug")
     }
 
@@ -54,13 +56,13 @@ dependencies {
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
 }
 
 tasks.withType<JavaCompile>().configureEach {
     options.encoding = "UTF-8"
-    options.release = 17
+    options.release = 25
 }
 
 tasks.test {

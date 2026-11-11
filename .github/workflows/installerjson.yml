@@ -9,6 +9,7 @@ jobs:
     if: ${{ github.repository_owner == 'LeafPZ' }}
     name: Copy Installer Json
     runs-on: ubuntu-latest
+    environment: publishing
     steps:
       - name: Checkout
         # v7

@@ -43,10 +43,6 @@ plugins {
     id("installerjson")
 }
 
-base {
-    archivesName = project.name
-}
-
 allprojects {
     plugins.apply("java-library")
     plugins.apply("eclipse")

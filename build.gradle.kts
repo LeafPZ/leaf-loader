@@ -180,7 +180,7 @@ dependencies {
 
 sourceSets {
     main {
-        java.srcDirs("src/main/java", "src/main/legacyJava")
+        java.srcDir("src/main/java")
     }
 
     register("java17")

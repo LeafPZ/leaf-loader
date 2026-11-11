@@ -33,7 +33,6 @@
 
 package dev.aoqia.leaf.loader.impl.launch.knot;
 
-import java.io.IOException;
 import java.net.URL;
 import java.util.Enumeration;
 
@@ -60,7 +59,7 @@ class DummyClassLoader extends ClassLoader {
     }
 
     @Override
-    public Enumeration<URL> getResources(String var1) throws IOException {
+    public Enumeration<URL> getResources(String var1) {
         return NULL_ENUMERATION;
     }
 

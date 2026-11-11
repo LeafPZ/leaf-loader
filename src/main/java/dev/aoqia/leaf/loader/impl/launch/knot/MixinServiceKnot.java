@@ -215,7 +215,7 @@ public class MixinServiceKnot implements IMixinService, IClassProvider, IClassBy
 
     @Override
     public String getName() {
-        return LeafLauncherBase.getLauncher() instanceof Knot ? "Knot/Leaf" : "Launchwrapper/Leaf";
+        return "Knot/Leaf";
     }
 
     @Override

@@ -20,8 +20,8 @@ pluginManagement {
                 snapshotsOnly()
             }
         }
-        gradlePluginPortal()
         mavenCentral()
+        gradlePluginPortal()
     }
 }
 

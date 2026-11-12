@@ -19,31 +19,19 @@
 
 package dev.aoqia.leaf.loader.zomboid.test.mixin;
 
-import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
-import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.injection.At;
-
+import org.spongepowered.asm.mixin.Overwrite;
 import zombie.core.Core;
-import zombie.debug.DebugLog;
-import zombie.iso.IsoPuddles;
+import zombie.core.IntegrityReport;
 
 @Mixin(Core.class)
 public class CoreMixin {
-    @ModifyReturnValue(method = "getVersion", at = @At("RETURN"))
-    private String getVersion(String original) {
-        return original + "leaf-loader test subproject active";
-    }
-
-    @ModifyExpressionValue(
-        method = "initShaders",
-        at = @At(
-            value = "INVOKE",
-            target = "Lzombie/iso/IsoPuddles;getInstance()Lzombie/iso/IsoPuddles;"
-        )
-    )
-    private IsoPuddles initShaders(IsoPuddles instance) {
-        DebugLog.log("IsoPuddles::initShaders instance effect name: " + instance.effect.getName());
-        return instance;
+    @SuppressWarnings("OverwriteAuthorRequired")
+    @Overwrite()
+    public String getVersion() {
+        String integrity = IntegrityReport.currentSummary();
+        String gameAndBuildVersion = ((Core) (Object) this).getGameAndBuildVersion();
+        return gameAndBuildVersion + " " + Core.getGitRevisionString() + (integrity.isEmpty() ? "" : " " + integrity)
+            + " leaf-loader :zomboid:zomboid-test";
     }
 }

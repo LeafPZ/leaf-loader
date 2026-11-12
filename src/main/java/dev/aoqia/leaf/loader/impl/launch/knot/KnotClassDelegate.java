@@ -76,7 +76,6 @@ import dev.aoqia.leaf.loader.impl.util.FileSystemUtil;
 import dev.aoqia.leaf.loader.impl.util.LoaderUtil;
 import dev.aoqia.leaf.loader.impl.util.ManifestUtil;
 import dev.aoqia.leaf.loader.impl.util.SystemProperties;
-import dev.aoqia.leaf.loader.impl.util.UnverifiedJarStreamHandler;
 import dev.aoqia.leaf.loader.impl.util.UrlConversionException;
 import dev.aoqia.leaf.loader.impl.util.UrlUtil;
 import dev.aoqia.leaf.loader.impl.util.log.Log;
@@ -725,14 +724,7 @@ final class KnotClassDelegate<T extends ClassLoader & ClassLoaderAccess> impleme
             }
         }
 
-        // FIXME(leaf): A very temporary hack. Figure out a better solution.
-        URL unverifiedUrl = url;
-        if (url.getProtocol().equals("jar")) {
-            unverifiedUrl = new URL(url.getProtocol(), url.getHost(), url.getPort(), url.getFile(),
-                new UnverifiedJarStreamHandler());
-        }
-
-        try (InputStream inputStream = unverifiedUrl.openStream()) {
+        try (InputStream inputStream = url.openStream()) {
             int a = inputStream.available();
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream(a < 32 ? 32768 : a);
             byte[] buffer = new byte[8192];

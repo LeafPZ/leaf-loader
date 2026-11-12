@@ -274,9 +274,10 @@ val generateBuildInfo = tasks.register("generateBuildInfo") {
     doLast {
         val file = generatedDir.asFile.resolve("dev/aoqia/leaf/loader/impl/util/BuildInfo.java")
         file.parentFile.mkdirs()
-        file.writeText(
-            """${(inputs.properties["header"] as File).readText().replaceFirst($$"$YEAR", "${LocalDate.now().year}")}
-package dev.aoqia.leaf.loader.impl.util;
+        file.writeText((inputs.properties["header"] as File)
+            .readText()
+            .replaceFirst($$"$YEAR", "${LocalDate.now().year}")
+                + """package dev.aoqia.leaf.loader.impl.util;
 
 public final class BuildInfo {
     public static final String NAME = "leaf-${inputs.properties["name"]}";
